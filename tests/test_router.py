@@ -83,3 +83,18 @@ def test_declines_when_the_named_entity_is_absent_from_the_result():
                              value=payload)
     goal = "What is the grand total of the sales order for customer 'Acme Industrial'?"
     assert extract_answer(goal, result) is None
+
+
+def test_offline_and_litellm_clients_accept_the_same_call():
+    """Both providers must take the same call site kwargs.
+
+    The offline provider routes on them; the real one must drop them rather
+    than forward them to the API as unknown parameters.
+    """
+    import inspect
+
+    from shadow.llm import LiteLLMClient
+
+    source = inspect.getsource(LiteLLMClient.complete)
+    assert 'kwargs.pop("policy", None)' in source
+    assert 'kwargs.pop("policy_context", None)' in source

@@ -107,6 +107,9 @@ class LiteLLMClient:
     def complete(self, messages: list[dict[str, Any]], **kwargs: Any) -> LLMResponse:
         import litellm
 
+        # Call-site routing for the offline provider; not a model parameter.
+        kwargs.pop("policy", None)
+        kwargs.pop("policy_context", None)
         t0 = time.time()
         resp = litellm.completion(model=self.model, messages=messages, **kwargs)
         dt = time.time() - t0

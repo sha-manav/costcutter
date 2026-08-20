@@ -153,6 +153,12 @@ rows correctly. That is the whole thesis in one call.
 
 ## Results
 
+Read these together with the section that follows, which states exactly what
+the numbers do and do not include: no model was in the loop, so success is
+oracle-checked and real, token counts are measured from the real prompts,
+latency excludes inference, and both stand-in policies are biased against the
+result being shown.
+
 <!-- GENERATED TABLES -->
 
 ## How the numbers were produced, and what they do not include
@@ -191,8 +197,8 @@ to show:
   field from the noun in front of a quoted value. It is much weaker than a
   model at exactly the job models are good at.
 
-So the A-vs-B ratios below are lower bounds, and the achieved coverage is a
-lower bound. To separate the catalog's capability from the router's, coverage
+So the A-vs-B ratios above are lower bounds, and so is the achieved
+coverage. To separate the catalog's capability from the router's, coverage
 is reported twice: **achieved** (what the lexical router actually got) and
 **attainable** (whether *any* verified tool can complete the task when the
 oracle supplies the arguments — the ceiling a perfect router would hit).

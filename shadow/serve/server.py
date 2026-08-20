@@ -65,10 +65,13 @@ def build_server(catalog_path: str | Path, allow_writes: bool = False,
 
 
 def _register(mcp, spec: ToolSpec, executor: ToolExecutor) -> None:
+    from fastmcp.tools.function_tool import FunctionTool
+
     schema = {
         "type": "object",
         "properties": spec.params_schema.get("properties", {}),
         "required": spec.params_schema.get("required", []),
+        "additionalProperties": False,
     }
 
     async def handler(**kwargs: Any) -> str:
@@ -76,14 +79,19 @@ def _register(mcp, spec: ToolSpec, executor: ToolExecutor) -> None:
         return json.dumps({
             "ok": result.ok,
             "value": result.value,
+            # Earlier step responses are part of the answer for multi-step
+            # tools whose last call is a count or a save acknowledgement.
+            "steps": result.values[:-1],
             "error": result.error,
             "duration_s": round(result.duration_s, 3),
         }, default=str)
 
     handler.__name__ = spec.name
-    mcp.add_tool(
+    # The parameter schema is induced, not derived from a Python signature,
+    # so the tool is constructed directly rather than via from_function.
+    mcp.add_tool(FunctionTool(
         fn=handler,
         name=spec.name,
         description=tool_description(spec),
         parameters=schema,
-    )
+    ))

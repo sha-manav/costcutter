@@ -17,16 +17,22 @@ from urllib.parse import quote, unquote
 
 from shadow.capture.schema import Binding, Episode, HttpRecord, Transform
 from shadow.config import Config, get_config
+from shadow.distill.endpoints import chrome_endpoints, endpoint_key
 
 
 @dataclass(frozen=True)
 class ValueSite:
-    """Where a scalar sits inside one request."""
+    """Where a value sits inside one request.
+
+    Identity is the position, not the value: a site is used as a dict key and
+    a value may be a list (a whole `filters` expression), which is not
+    hashable.
+    """
 
     step_index: int
     location: str  # "path" | "query" | "body" | "header"
     key: str       # query key, body json-path, or path segment index "seg3"
-    value: Any
+    value: Any = field(compare=False, default=None)
 
 
 @dataclass
@@ -98,31 +104,60 @@ def request_sites(rec: HttpRecord, step_index: int) -> list[ValueSite]:
         if seg:
             sites.append(ValueSite(step_index, "path", f"seg{i}", unquote(seg)))
     for k, v in rec.query.items():
-        parsed = _maybe_parse_json(v)
-        if isinstance(parsed, (dict, list)):
-            for path, leaf in _walk_json(parsed, f"${k}"):
-                sites.append(ValueSite(step_index, "query", f"{k}::{path}", leaf))
-        else:
-            sites.append(ValueSite(step_index, "query", k, v))
+        sites.extend(_field_sites(step_index, "query", k, v))
     body = rec.req_body
     if isinstance(body, dict):
         for k, v in body.items():
-            parsed = _maybe_parse_json(v)
-            if isinstance(parsed, (dict, list)):
-                for path, leaf in _walk_json(parsed, f"${k}"):
-                    sites.append(ValueSite(step_index, "body", f"{k}::{path}", leaf))
-            else:
-                sites.append(ValueSite(step_index, "body", k, v))
+            sites.extend(_field_sites(step_index, "body", k, v))
     elif isinstance(body, list):
         for path, leaf in _walk_json(body):
             sites.append(ValueSite(step_index, "body", path, leaf))
     return sites
 
 
-def _index_response(rec: HttpRecord) -> list[tuple[str, Any]]:
+# `_=1712345678` is a cache-buster; `__islocal`, `__last_sync_on` and friends
+# are framework bookkeeping. Neither is a parameter of the user's task.
+def _is_bookkeeping(key: str) -> bool:
+    return key == "_" or key.startswith("__")
+
+
+def _field_sites(step_index: int, location: str, key: str,
+                 value: Any) -> list[ValueSite]:
+    """One request field -> the value sites inside it.
+
+    An object field is walked, so each of its leaves becomes its own
+    parameter (a saved document's fields really are separate parameters).
+    A list field is kept whole: exploding `fields` or `filters` into
+    `fields_0`, `fields_1`, … produces tools nobody can call, and the list
+    as a unit is the thing a caller actually varies.
+    """
+    if _is_bookkeeping(key):
+        return []
+    parsed = _maybe_parse_json(value)
+    if isinstance(parsed, dict):
+        return [ValueSite(step_index, location, f"{key}::{path}", leaf)
+                for path, leaf in _walk_json(parsed, "$")
+                if not _is_bookkeeping(path.rsplit(".", 1)[-1])]
+    if isinstance(parsed, list):
+        return [ValueSite(step_index, location, key, parsed)]
+    return [ValueSite(step_index, location, key, value)]
+
+
+def _index_response(rec: HttpRecord, step_index: int) -> list[tuple[str, Any]]:
+    """Leaves of a response that could genuinely be a source of a later value.
+
+    A leaf that merely echoes this request's own input is not a source: the
+    step did not produce it, the user did. Without this, any endpoint that
+    reflects its parameters back (settings saves, validation calls) looks
+    like the origin of every value the user typed, and the "most recent
+    source wins" rule then binds tools to the wrong step.
+    """
     if rec.resp_body is None:
         return []
-    return list(_walk_json(rec.resp_body))
+    echoed = {str(site.value) for site in request_sites(rec, step_index)
+              if not isinstance(site.value, (dict, list))}
+    return [(path, leaf) for path, leaf in _walk_json(rec.resp_body)
+            if str(leaf) not in echoed]
 
 
 # --------------------------------------------------------------------------
@@ -181,7 +216,15 @@ class ProvenanceEngine:
             return False
         return True
 
-    def infer(self, episode: Episode) -> ProvenanceResult:
+    def infer(self, episode: Episode,
+              chrome: set[str] | None = None) -> ProvenanceResult:
+        """Infer bindings for one episode.
+
+        `chrome` names endpoints whose responses must not be used as
+        provenance sources: app metadata blobs match far too many values by
+        coincidence, and a binding onto one is always a false positive.
+        """
+        chrome = chrome or set()
         result = ProvenanceResult()
         responses: list[list[tuple[str, Any]]] = []
 
@@ -210,7 +253,8 @@ class ProvenanceEngine:
                         example_value=site.value,
                         confidence=1.0 - 0.1 * cand.priority,
                     )
-            responses.append(_index_response(rec))
+            responses.append([] if endpoint_key(rec) in chrome
+                             else _index_response(rec, i))
         return result
 
     def _best_candidate(self, site: ValueSite, responses: list[list[tuple[str, Any]]],
@@ -237,5 +281,7 @@ def _param_name(site: ValueSite) -> str:
 
 def infer_all(episodes: list[Episode], cfg: Config | None = None
               ) -> dict[str, ProvenanceResult]:
+    cfg = cfg or get_config()
     engine = ProvenanceEngine(cfg)
-    return {ep.id: engine.infer(ep) for ep in episodes}
+    chrome = chrome_endpoints(episodes, cfg.induce.chrome_df)
+    return {ep.id: engine.infer(ep, chrome) for ep in episodes}

@@ -50,10 +50,16 @@ def cmd_seed(args) -> int:
 def cmd_observe(args) -> int:
     from shadow.bench.generate_traffic import generate
 
+    from oracle.reset import reset
+
     cfg = get_config()
     if args.fresh:
         cfg.path("capture").unlink(missing_ok=True)
+    # Demonstrations start from the same state the benchmark will,
+    # and leave it that way.
+    reset(cfg.app.site)
     entries = generate(args.sessions, cfg, seed=args.seed)
+    reset(cfg.app.site)
     ok = sum(1 for e in entries if e.ok)
     print(f"{ok}/{len(entries)} demonstrations completed")
     return 0 if ok else 1

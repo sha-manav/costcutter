@@ -176,6 +176,10 @@ class ExecutionResult:
     tool: str
     ok: bool
     steps: list[StepResult] = field(default_factory=list)
+    # The final response, plus every step's response. A synthesized list tool
+    # often ends on a count call, so the rows the caller wants are in an
+    # earlier step rather than in `value`.
+    values: list[Any] = field(default_factory=list)
     value: Any = None
     error: str | None = None
     duration_s: float = 0.0
@@ -212,6 +216,7 @@ class ToolExecutor:
                     result.ok = False
                     result.error = f"step {i} returned {sr.status}: {str(body)[:300]}"
                     break
+            result.values = list(responses)
             if result.ok:
                 result.value = responses[-1] if responses else None
         except BindingError as exc:

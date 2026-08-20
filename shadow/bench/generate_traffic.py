@@ -70,11 +70,20 @@ class SessionEntry:
     error: str | None = None
 
 
-def vary(template_id: str, base: dict[str, Any], rng: random.Random) -> dict[str, Any]:
+# Parameters that must be unique across demonstrations: creating the same
+# customer twice fails, and a failed demonstration teaches nothing.
+UNIQUE_PARAMS: dict[str, str] = {"T08_create_customer": "customer_name"}
+
+
+def vary(template_id: str, base: dict[str, Any], rng: random.Random,
+         nonce: int = 0) -> dict[str, Any]:
     pool = VARIATIONS.get(template_id, {})
     params = dict(base)
     for key, values in pool.items():
         params[key] = rng.choice(values)
+    unique_key = UNIQUE_PARAMS.get(template_id)
+    if unique_key and unique_key in params:
+        params[unique_key] = f"{params[unique_key]} {nonce:03d}"
     return params
 
 
@@ -120,7 +129,8 @@ def generate(sessions: int, cfg: Config | None = None, seed: int = 0,
                 ordered = list(tasks)
                 rng.shuffle(ordered)
                 for task in ordered:
-                    params = vary(task.template_id, task.params, rng)
+                    params = vary(task.template_id, task.params, rng,
+                                  nonce=len(entries))
                     t0 = time.time()
                     error = None
                     try:

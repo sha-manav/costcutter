@@ -19,7 +19,11 @@ DESTRUCTIVE_RE = re.compile(r"(delete|cancel|remove|submit|amend|trash)", re.I)
 READ_POST_RE = re.compile(
     r"(get_list|get_count|reportview\.get|search_link|search_widget|"
     r"get_doc|frappe\.client\.get\b|query_report|get_dashboard|"
-    r"frappe\.desk\.search|get_data|run_query_report)", re.I)
+    r"frappe\.desk\.search|get_data|run_query_report|"
+    # Framework/UI plumbing that uses POST but changes no business state:
+    r"validate_link|get_link_title|get_list_settings|getdoctype|"
+    r"user_settings|get_workspace|get_desktop_page|notification|"
+    r"get_events|get_open_count|get_sidebar_stats)", re.I)
 WRITE_METHODS = {"POST", "PUT", "PATCH"}
 
 

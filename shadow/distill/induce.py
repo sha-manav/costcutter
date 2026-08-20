@@ -18,33 +18,14 @@ from shadow.capture.schema import (
     Binding, Episode, HttpRecord, ToolCatalog, ToolSpec, ToolStep,
 )
 from shadow.config import Config, get_config
-from shadow.distill.classify import classify_steps
+from shadow.distill.classify import classify_step, classify_steps
+from shadow.distill.endpoints import (
+    chrome_endpoints, endpoint_key, is_noise, normalize_path,
+)
 from shadow.distill.provenance import (
     ProvenanceEngine, ProvenanceResult, ValueSite,
 )
 from shadow.llm import LLMClient, LLMUsage, make_client, register_policy
-
-# Endpoints that carry no task semantics even though they are API calls.
-NOISE_PATH_PATTERNS = (
-    re.compile(r"frappe\.realtime"),
-    re.compile(r"frappe\.client\.is_document_amended"),
-    re.compile(r"frappe\.desk\.doctype\.notification"),
-    re.compile(r"frappe\.desk\.form\.utils\.get_.*_count"),
-    re.compile(r"frappe\.desk\.reportview\.get_sidebar_stats"),
-    re.compile(r"log_error|error_log|ping$|method/frappe\.utils\.telemetry"),
-    re.compile(r"/api/method/frappe\.desk\.notifications\."),
-    re.compile(r"/api/method/frappe\.core\.doctype\.activity_log"),
-)
-
-ID_SEGMENT = re.compile(
-    r"""^(
-        [A-Z]{2,8}(-[A-Za-z]{2,8})*-\d{2,4}-\d{3,6}      # SAL-ORD-2025-00001
-        | [0-9a-f]{12,}                                   # hashes / uuids
-        | \d{3,}                                          # long numerics
-        | .*@.*\..*                                       # e-mail style keys
-    )$""",
-    re.VERBOSE,
-)
 
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
@@ -52,31 +33,6 @@ DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 # --------------------------------------------------------------------------
 # Path normalisation
 # --------------------------------------------------------------------------
-
-def normalize_path(path: str) -> tuple[str, list[int]]:
-    """Replace identifier-looking segments with placeholders.
-
-    Returns the templated path and the indices of the segments replaced.
-    """
-    segs = path.strip("/").split("/")
-    var_idx: list[int] = []
-    out: list[str] = []
-    for i, seg in enumerate(segs):
-        if ID_SEGMENT.match(seg):
-            var_idx.append(i)
-            out.append("{}")
-        else:
-            out.append(seg)
-    return "/" + "/".join(out), var_idx
-
-
-def is_noise(rec: HttpRecord) -> bool:
-    if rec.is_document or rec.is_polling:
-        return True
-    if not rec.path.startswith("/api/"):
-        return True
-    return any(p.search(rec.path) for p in NOISE_PATH_PATTERNS)
-
 
 # --------------------------------------------------------------------------
 # Load-bearing trimming
@@ -92,26 +48,49 @@ class TrimmedEpisode:
     signature: str
 
 
-def load_bearing_indices(records: list[HttpRecord],
-                         prov: ProvenanceResult) -> list[int]:
+def load_bearing_indices(records: list[HttpRecord], prov: ProvenanceResult,
+                         chrome: set[str] | None = None) -> list[int]:
+    """The steps that actually carry the task.
+
+    Kept: anything that changes state, anything whose response feeds a later
+    step, and the final meaningful call (for a read, that *is* the result).
+    Dropped: the rest — page chrome, metadata fetches, validation pings.
+    This is what makes signatures stable across repetitions of a task and
+    what stops an induced tool from replaying a whole page load.
+    """
+    chrome = chrome or set()
     referenced: set[int] = set()
     for binding in prov.bindings.values():
         if binding.kind == "from_response" and binding.source_step_index is not None:
             referenced.add(binding.source_step_index)
 
     keep: list[int] = []
+    # Every episode keeps a terminal step. Prefer a non-chrome one; when a
+    # workload is uniform enough that its only endpoint counts as chrome,
+    # fall back to the last meaningful call rather than emitting nothing.
     last_meaningful = max(
-        (i for i, r in enumerate(records) if not is_noise(r)), default=-1)
+        (i for i, r in enumerate(records)
+         if not is_noise(r) and endpoint_key(r) not in chrome), default=-1)
+    if last_meaningful < 0:
+        last_meaningful = max(
+            (i for i, r in enumerate(records) if not is_noise(r)), default=-1)
     for i, rec in enumerate(records):
         if is_noise(rec):
             continue
-        if rec.method != "GET" or i in referenced or i == last_meaningful:
+        if i in referenced or i == last_meaningful:
+            keep.append(i)
+            continue
+        if endpoint_key(rec) in chrome:
+            continue
+        if classify_step(ToolStep(method=rec.method,
+                                  path_template=rec.path)) != "read":
             keep.append(i)
     return keep
 
 
-def trim_episode(ep: Episode, prov: ProvenanceResult) -> TrimmedEpisode | None:
-    keep = load_bearing_indices(ep.records, prov)
+def trim_episode(ep: Episode, prov: ProvenanceResult,
+                 chrome: set[str] | None = None) -> TrimmedEpisode | None:
+    keep = load_bearing_indices(ep.records, prov, chrome)
     if not keep:
         return None
     remap = {old: new for new, old in enumerate(keep)}
@@ -152,6 +131,14 @@ def infer_type(values: list[Any]) -> dict[str, Any]:
     non_null = [v for v in values if v is not None and v != ""]
     if not non_null:
         return {"type": "string"}
+    if all(isinstance(v, list) for v in non_null):
+        flat = [x for v in non_null for x in v]
+        scalars = [x for x in flat if not isinstance(x, (list, dict))]
+        items = (infer_type(scalars) if scalars and len(scalars) == len(flat)
+                 else {})
+        return {"type": "array", "items": items} if items else {"type": "array"}
+    if all(isinstance(v, dict) for v in non_null):
+        return {"type": "object"}
     strs = [str(v) for v in non_null]
     if all(isinstance(v, bool) for v in non_null):
         return {"type": "boolean"}
@@ -165,6 +152,8 @@ def infer_type(values: list[Any]) -> dict[str, Any]:
 
 
 def maybe_enum(values: list[Any], enum_max: int) -> list[Any] | None:
+    if any(isinstance(v, (list, dict)) for v in values):
+        return None
     distinct = list(dict.fromkeys(str(v) for v in values if v is not None))
     if 1 < len(distinct) <= enum_max and all(len(d) < 64 for d in distinct):
         return distinct
@@ -186,8 +175,11 @@ _VERB_BY_METHOD = {"POST": "create", "PUT": "update", "PATCH": "update",
                    "DELETE": "delete", "GET": "get"}
 
 
-def _fallback_name(group: list[TrimmedEpisode]) -> tuple[str, str]:
+def _fallback_name(group: list[TrimmedEpisode],
+                   subject_is_parameter: bool = False) -> tuple[str, str]:
     records = group[0].records
+    steps = [ToolStep(method=r.method, path_template=r.path) for r in records]
+    mutation = classify_steps(steps)
     doctypes: list[str] = []
     for rec in records:
         m = re.search(r"/api/resource/([^/?]+)", rec.path)
@@ -199,35 +191,42 @@ def _fallback_name(group: list[TrimmedEpisode]) -> tuple[str, str]:
         if isinstance(rec.req_body, dict) and isinstance(rec.req_body.get("doctype"), str):
             doctypes.append(rec.req_body["doctype"])
     subject = Counter(doctypes).most_common(1)[0][0] if doctypes else "record"
+    if subject_is_parameter:
+        # The record type is chosen by the caller, so naming the tool after
+        # whichever type happened to be most common would be a lie.
+        subject, doctypes = "record", []
     subject_snake = re.sub(r"\W+", "_", subject).strip("_").lower()
 
+    # The verb follows the mutation class, not the HTTP method: Frappe's desk
+    # issues POSTs for list queries, so method alone names half the read
+    # tools "create".
     methods = [r.method for r in records]
-    if "DELETE" in methods:
-        verb = "delete"
-    elif any(re.search(r"submit|cancel", r.path, re.I) for r in records):
-        verb = "submit"
-    elif any(m in {"POST", "PUT", "PATCH"} for m in methods):
-        # A POST to a *_list/get_list endpoint is still a read in Frappe.
-        if all(re.search(r"get_list|reportview|get_count|search", r.path, re.I)
-               for r in records if r.method != "GET"):
-            verb = "list"
-        else:
-            verb = _VERB_BY_METHOD.get(
-                next(m for m in methods if m in {"POST", "PUT", "PATCH"}), "update")
-    elif any(re.search(r"get_list|reportview|get_count", r.path, re.I) for r in records):
+    loads_existing = any(re.search(r"getdoc\b|/api/resource/[^/]+/", r.path)
+                         for r in records)
+    if mutation == "destructive":
+        verb = "delete" if "DELETE" in methods else "submit"
+    elif mutation == "write":
+        verb = "update" if loads_existing else "create"
+    elif any(re.search(r"get_list|reportview\.get\b|get_count|search", r.path, re.I)
+             for r in records):
         verb = "list"
     else:
         verb = "get"
     name = f"{verb}_{subject_snake}"
     plural = "s" if verb == "list" and not subject_snake.endswith("s") else ""
     name += plural
-    desc = (f"{verb.capitalize()} {subject.lower()} records in the ERP system "
-            f"({len(records)} step{'s' if len(records) != 1 else ''}).")
+    if subject == "record":
+        desc = (f"{verb.capitalize()} records of a caller-specified record type "
+                f"in the ERP system.")
+    else:
+        desc = (f"{verb.capitalize()} {subject.lower()} records in the ERP "
+                f"system ({len(records)} step"
+                f"{'s' if len(records) != 1 else ''}).")
     return name, desc
 
 
 def _offline_name_policy(messages, ctx):
-    name, desc = _fallback_name(ctx["group"])
+    name, desc = _fallback_name(ctx["group"], ctx.get("subject_is_parameter", False))
     return json.dumps({"name": name, "description": desc})
 
 
@@ -267,10 +266,11 @@ def induce(episodes: list[Episode], cfg: Config | None = None,
     engine = ProvenanceEngine(cfg)
     usage = LLMUsage(model=cfg.models.namer)
 
+    chrome = chrome_endpoints(episodes, cfg.induce.chrome_df)
     trimmed: list[TrimmedEpisode] = []
     for ep in episodes:
-        prov = engine.infer(ep)
-        t = trim_episode(ep, prov)
+        prov = engine.infer(ep, chrome)
+        t = trim_episode(ep, prov, chrome)
         if t is not None:
             trimmed.append(t)
 
@@ -280,6 +280,9 @@ def induce(episodes: list[Episode], cfg: Config | None = None,
 
     result = InductionResult(catalog=ToolCatalog(), usage=usage)
     result.groups_seen = len(groups)
+    result.diagnostics.append(
+        f"chrome endpoints dropped by document frequency "
+        f"(>={cfg.induce.chrome_df:.0%} of episodes): {sorted(chrome)}")
 
     specs: list[ToolSpec] = []
     for signature, group in groups.items():
@@ -341,6 +344,11 @@ def _induce_one(group: list[TrimmedEpisode], signature: str, cfg: Config,
     required: list[str] = []
     resolved: dict[tuple[int, str, str], Binding] = {}
     used_names: set[str] = set()
+    # (base name, observed value vector) -> parameter name. Two sites that
+    # always carry the same values under the same field name are one
+    # parameter, not two: a list query that repeats `doctype` for its count
+    # call should not ask the caller for `doctype` twice.
+    unified: dict[tuple[str, str], str] = {}
 
     for key in site_keys:
         step_i, location, site_key = key
@@ -357,8 +365,16 @@ def _induce_one(group: list[TrimmedEpisode], signature: str, cfg: Config,
             resolved[key] = stable_source
             continue
 
+        base = _param_base(site_key, location)
+        vector = json.dumps(values, sort_keys=True, default=str)
+        existing = unified.get((base, vector))
+        if existing is not None:
+            resolved[key] = Binding(kind="user_param", param_name=existing,
+                                    example_value=values[0] if values else None)
+            continue
         name = _unique_param_name(site_key, location, used_names)
         used_names.add(name)
+        unified[(base, vector)] = name
         schema = infer_type(values)
         enum = maybe_enum(values, cfg.induce.enum_max)
         if enum:
@@ -373,7 +389,10 @@ def _induce_one(group: list[TrimmedEpisode], signature: str, cfg: Config,
                                 example_value=values[0] if values else None)
 
     steps = _build_steps(group[0].records, resolved, n_steps)
-    name, desc, usage = _name_tool(group, client)
+    subject_is_parameter = any(
+        key[2].split("::")[-1].strip("$.") == "doctype" and b.kind == "user_param"
+        for key, b in resolved.items())
+    name, desc, usage = _name_tool(group, client, subject_is_parameter)
     example_args = {b.param_name: b.example_value
                     for b in resolved.values()
                     if b.kind == "user_param" and b.param_name}
@@ -427,11 +446,14 @@ def _stable_source(bindings: list[Binding], group_size: int) -> Binding | None:
                    example_value=bindings[0].example_value)
 
 
-def _unique_param_name(site_key: str, location: str, used: set[str]) -> str:
+def _param_base(site_key: str, location: str) -> str:
     base = re.sub(r"\W+", "_", site_key.split("::")[-1].replace("$", "")).strip("_")
     base = base or location
-    if base.startswith("seg"):
-        base = "record_id"
+    return "record_id" if base.startswith("seg") else base
+
+
+def _unique_param_name(site_key: str, location: str, used: set[str]) -> str:
+    base = _param_base(site_key, location)
     name = base
     i = 2
     while name in used:
@@ -487,20 +509,23 @@ def _build_steps(records: list[HttpRecord],
     return steps
 
 
-def _name_tool(group: list[TrimmedEpisode], client: LLMClient
-               ) -> tuple[str, str, LLMUsage]:
+def _name_tool(group: list[TrimmedEpisode], client: LLMClient,
+               subject_is_parameter: bool = False) -> tuple[str, str, LLMUsage]:
+    hint = ("\nThe record type is a caller-supplied parameter, so the name "
+            "must be generic." if subject_is_parameter else "")
     messages = [
         {"role": "system", "content": NAME_SYSTEM},
-        {"role": "user", "content": _render_group(group)},
+        {"role": "user", "content": _render_group(group) + hint},
     ]
     resp = client.complete(messages, policy="induce_name",
-                           policy_context={"group": group})
+                           policy_context={"group": group,
+                                           "subject_is_parameter": subject_is_parameter})
     try:
         data = resp.json()
         name = re.sub(r"\W+", "_", str(data["name"])).strip("_").lower()
         desc = str(data["description"]).strip()
     except Exception:
-        name, desc = _fallback_name(group)
+        name, desc = _fallback_name(group, subject_is_parameter)
     return name or "unnamed_tool", desc, resp.usage
 
 

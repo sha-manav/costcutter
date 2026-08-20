@@ -164,7 +164,8 @@ def extract_answer(goal: str, result: ExecutionResult) -> str | None:
     reduction is ambiguous, which sends the task to the browser fallback.
     """
     value = result.value
-    rows = _rows(value)
+    rows = next((r for r in (_rows(v) for v in reversed(result.values or [value]))
+                 if r), None)
     g = goal.lower()
     wants_count = "how many" in g or "count" in g
     literals = [l.lower() for l in goal_literals(goal)]

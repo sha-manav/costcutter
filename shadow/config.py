@@ -86,6 +86,7 @@ class InduceConfig(BaseModel):
     enum_max: int = 8
     max_tools: int = 25
     required_presence: float = 0.9
+    chrome_df: float = 0.8
 
 
 class BenchConfig(BaseModel):

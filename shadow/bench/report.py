@@ -95,6 +95,38 @@ def synthesis_ground_truth(cfg: Config) -> dict[str, Any]:
     return out
 
 
+def router_behaviour(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """What the router picked on each held-out template, and what happened.
+
+    This is where the coverage taxonomy comes from: a tool that was never
+    selected, a tool selected with unusable arguments, and a tool that
+    worked are three different failures with three different fixes.
+    """
+    out: dict[str, Any] = {}
+    for row in rows:
+        if row["condition"] != "B_tools":
+            continue
+        entry = out.setdefault(row["template_id"], {
+            "runs": 0, "tool_selected": {}, "outcomes": {}, "first_error": None})
+        entry["runs"] += 1
+        for step in row.get("steps", []):
+            action = step.get("action", {})
+            if action.get("action") != "tool":
+                continue
+            name = action.get("name", "?")
+            entry["tool_selected"][name] = entry["tool_selected"].get(name, 0) + 1
+            served = step.get("served_by", "")
+            entry["outcomes"][served] = entry["outcomes"].get(served, 0) + 1
+            if served == "tool_failed" and entry["first_error"] is None:
+                entry["first_error"] = step.get("detail", "")[:220]
+            break
+        if not any(s.get("action", {}).get("action") == "tool"
+                   for s in row.get("steps", [])):
+            entry["outcomes"]["no_tool_selected"] = (
+                entry["outcomes"].get("no_tool_selected", 0) + 1)
+    return out
+
+
 def build_report(cfg: Config | None = None) -> dict[str, Any]:
     cfg = cfg or get_config()
     rows = load_results(cfg.path("results"))
@@ -122,6 +154,7 @@ def build_report(cfg: Config | None = None) -> dict[str, Any]:
             "tools_with_support_3_plus": sum(1 for t in catalog.tools if t.support >= 3),
         },
         "synthesis_ground_truth": synthesis_ground_truth(cfg),
+        "router_behaviour": router_behaviour(rows),
     }
     sweep = cfg.path("artifacts") / "coverage_sweep.json"
     if sweep.exists():
@@ -204,6 +237,17 @@ def markdown_tables(report: dict[str, Any]) -> str:
                 f"{row_data.get('task_coverage', 0):.0%} | "
                 f"${row_data['usd_per_task']:.5f} | "
                 f"{row_data['mean_steps']:.1f} |")
+
+    router = report.get("router_behaviour") or {}
+    if router:
+        lines += ["", "### What the router did on each held-out template", "",
+                  "| template | tool selected | outcome | first error |",
+                  "| --- | --- | --- | --- |"]
+        for name, entry in sorted(router.items()):
+            picked = ", ".join(f"`{k}`" for k in entry["tool_selected"]) or "—"
+            outcomes = ", ".join(f"{k}×{v}" for k, v in entry["outcomes"].items())
+            err = (entry["first_error"] or "").replace("|", "\\|")[:120] or "—"
+            lines.append(f"| {name} | {picked} | {outcomes} | {err} |")
 
     attain = report.get("attainable_coverage")
     if attain:

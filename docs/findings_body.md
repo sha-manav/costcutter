@@ -212,10 +212,37 @@ effect, and it is what more coverage would multiply.
 
 ## How the numbers were produced, and what they do not include
 
-**No model was in the loop.** The build environment has no API credentials
-for any provider, so both conditions ran on the deterministic providers in
-`shadow/llm.py`. This is stated up front because it changes how each number
-should be read, and every result row carries `usage.simulated: true`:
+**No model was in the loop, and it is not for want of trying.** Putting a
+real model in the loop was the largest planned change for this revision. The
+environment has no usable credentials for any provider — `ANTHROPIC_API_KEY`
+and equivalents unset, a direct call to `api.anthropic.com` refused for want
+of a key, the `AWS_*` variables present but placeholders that Bedrock rejects
+in both regions tried, and no credential file carrying a key. The recheck is
+recorded in `docs/environment.md`.
+
+So the litellm path is built and tested but its network leg is unexercised:
+
+* `tests/test_llm.py` drives the real `LiteLLMClient` against a stub
+  provider — usage read from the provider response rather than the
+  tokenizer, Anthropic's `cache_read_input_tokens` and
+  `cache_creation_input_tokens` understood, offline call-site kwargs never
+  forwarded, both conditions costed through one function.
+* A further test drives `run_tool_task` with a provider client and asserts
+  the *model* chooses the tool and its arguments, with the lexical router
+  monkeypatched to raise if it is consulted. Writing that test found the
+  footgun it was aimed at: under `models.provider: auto` with no
+  credentials, runs had been silently falling back to the offline provider.
+  `make_client` now announces the fallback, and `bench --require-model`
+  refuses to run rather than emit numbers that look like model numbers.
+* Prompt caching is implemented: the fixed prefix — instructions plus the
+  retrieved tool catalog — lives in the system message and is marked
+  `cache_control: ephemeral` for Anthropic models, identically in both
+  conditions, with `cached_input_tokens` reported and priced separately. It
+  has never been exercised against a provider, so no cache hit rate is
+  claimed here.
+
+Every number below therefore comes from the deterministic providers, and
+every result row carries `usage.simulated: true`:
 
 * **Success is real.** Every run is graded by `oracle/checks.py` against the
   ERPNext REST API — a numeric answer compared to a value computed from the

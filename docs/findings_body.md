@@ -325,20 +325,32 @@ bug where a tool won a goal purely because a customer name from its capture
 appeared in the text. The tension does not disappear: any closed-domain
 signal is also a transfer barrier.
 
-**4. A naive router with writes enabled aimed a write tool at the wrong
-task.** With `--allow-writes`, the lexical router answered "Create a sales
-order for customer 'Kestrel Aviation' with 5 units of item 'SH-GEAR-02'" by
-selecting `update_item_price` — a tool that edits a price — with
-`price_list_rate: 2.0`, a number it took from the digits at the end of the
-item code `SH-GEAR-02`, and a filter built from the goal's quoted entities.
-Nothing was mutated, because the tool's first step is a query and it failed
-on an invalid filter field, and the task then completed through the browser
-fallback. But the only thing standing between that selection and an edited
-price was the order of the tool's own steps. This is the argument for the
-gating that is already the default: `--allow-writes` is off in the verifier,
-off in the MCP server, and off in the agent. A synthesized write tool is only
-as safe as whatever is choosing its arguments, and a lexical matcher is not
-safe enough. The read-only configuration is measured separately below.
+**4. A naive router with writes enabled created records nobody asked for.**
+This is the one to take seriously. With `--allow-writes`, the lexical router
+answered "Create a sales order for customer 'Juniper Analytics' with 12 units
+of item 'SH-SENSOR-01'" by selecting `create_customer` — a tool that creates
+customers — with `customer_name: "Juniper Analytics"`. The call succeeded.
+ERPNext created a duplicate customer named `Juniper Analytics - 1`. The
+router then fell back to the browser, which created the sales order, the
+oracle check passed, and **the run is recorded as a success with a stray
+record in the database**.
+
+It happened 9 times in 54 runs: 6 on create-sales-order and 3 on
+create-sales-invoice, every one of them scored as a pass. The benchmark reset
+between tasks hides the damage; a production system has no such reset.
+
+Two things are worth separating here. The synthesized tool did exactly what
+it was synthesized to do — `verify/replay.py` had confirmed against a reset
+database that it creates a customer, and it created a customer. The failure
+is entirely in the thing choosing which tool to call and with what
+arguments, and a lexical matcher is a *weak* such thing. But that is the
+point: a synthesized write tool is only as safe as its caller, the caller is
+a language model, and the oracle check that scores the task cannot see the
+collateral. This is the argument for the gating that is already the default —
+`--allow-writes` is off in the verifier, off in the MCP server, and off in
+the agent — and for something this project does not have: a post-condition
+assertion on the tool itself, so that `create_customer` invoked in service of
+"create a sales order" is rejected rather than merely regretted.
 
 **5. The compounding curve does not compound — within one workload.** The
 sweep runs the whole pipeline over increasing prefixes of the same capture.

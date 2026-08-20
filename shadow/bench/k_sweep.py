@@ -4,6 +4,12 @@ Isolates the two things that were tangled in the first result: what a tool
 costs to *offer* and what it saves when it is *used*. k=0 is the browser
 baseline reached through the tool agent; k at or above the catalog size is
 the whole-catalog behaviour that lost.
+
+One trial per point by default. Under the offline provider the policy is
+deterministic, so repeating a point reproduces its cost and coverage exactly
+and varies only wall clock; the trials budget is better spent on the main
+A/B comparison. Pass --trials to change it, and do change it when running
+against a real model, whose replies are not deterministic.
 """
 from __future__ import annotations
 
@@ -65,13 +71,13 @@ def sweep(ks: tuple[int, ...], trials: int, cfg: Config | None = None,
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--ks", default=",".join(str(k) for k in DEFAULT_KS))
-    ap.add_argument("--trials", type=int, default=None)
+    ap.add_argument("--trials", type=int, default=1)
     ap.add_argument("--allow-writes", action="store_true")
     args = ap.parse_args()
 
     cfg = get_config()
     ks = tuple(int(x) for x in args.ks.split(","))
-    points = sweep(ks, args.trials or cfg.bench.trials, cfg, args.allow_writes)
+    points = sweep(ks, args.trials, cfg, args.allow_writes)
     out = cfg.path("artifacts") / "k_sweep.json"
     out.write_text(json.dumps(points, indent=2))
     print(f"k sweep written to {out}")

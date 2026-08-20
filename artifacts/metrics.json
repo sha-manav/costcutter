@@ -210,73 +210,7 @@
       ]
     },
     "param_typing": {
-      "scored": 13,
-      "correct": 13,
-      "accuracy": 1.0,
-      "unscorable": 15,
-      "mistakes": [],
-      "unscored": [
-        {
-          "tool": "list_records",
-          "param": "doctype"
-        },
-        {
-          "tool": "list_records",
-          "param": "fields"
-        },
-        {
-          "tool": "list_records",
-          "param": "filters"
-        },
-        {
-          "tool": "list_records",
-          "param": "order_by"
-        },
-        {
-          "tool": "update_item_price",
-          "param": "filters"
-        },
-        {
-          "tool": "list_records_2",
-          "param": "doctype"
-        },
-        {
-          "tool": "list_records_2",
-          "param": "filters"
-        },
-        {
-          "tool": "list_records_3",
-          "param": "doctype"
-        },
-        {
-          "tool": "list_records_3",
-          "param": "fields"
-        },
-        {
-          "tool": "list_records_3",
-          "param": "filters"
-        },
-        {
-          "tool": "list_records_3",
-          "param": "order_by"
-        },
-        {
-          "tool": "list_records_3",
-          "param": "filters_2"
-        },
-        {
-          "tool": "create_record",
-          "param": "doctype"
-        },
-        {
-          "tool": "create_record",
-          "param": "name_2"
-        },
-        {
-          "tool": "create_record",
-          "param": "customer_name_2"
-        }
-      ]
+      "error": "HTTPStatusError: Server error '500 INTERNAL SERVER ERROR' for url 'http://shadow.localhost:8000/api/method/login'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
     },
     "tools": [
       {

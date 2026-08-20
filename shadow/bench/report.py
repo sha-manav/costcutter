@@ -262,7 +262,10 @@ def markdown_tables(report: dict[str, Any]) -> str:
     sweep = report.get("coverage_sweep")
     if sweep:
         lines += ["", "### Coverage vs observation volume", "",
-                  "| sessions | episodes | tools | verified | achieved coverage | attainable |",
+                  "The sweep verifies reads only, so its verified-tool count "
+                  "excludes write tools that the main run verified against a "
+                  "reset database.", "",
+                  "| sessions | episodes | tools | verified (reads) | achieved coverage | attainable |",
                   "| --- | --- | --- | --- | --- | --- |"]
         for point in sweep:
             lines.append(

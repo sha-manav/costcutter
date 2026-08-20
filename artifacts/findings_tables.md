@@ -25,7 +25,7 @@ Cost per successful task: **1.5x more expensive in B**. p95 latency: **1.1x slow
 | endpoint recall over load-bearing calls (unweighted) | 83% |
 | endpoint recall over load-bearing calls (weighted) | 99% |
 | endpoint recall over every observed API call (unweighted) | 83% |
-| parameter typing accuracy | 100% (13/13 scored) |
+| parameter typing accuracy | 0% (0/0 scored) |
 | from_response bindings induced | 22 |
 | tools failing on an unresolved binding at replay | 0 |
 | provenance false-positive rate at replay | 0% |
@@ -80,7 +80,9 @@ Cost per successful task: **1.5x more expensive in B**. p95 latency: **1.1x slow
 
 ### Coverage vs observation volume
 
-| sessions | episodes | tools | verified | achieved coverage | attainable |
+The sweep verifies reads only, so its verified-tool count excludes write tools that the main run verified against a reset database.
+
+| sessions | episodes | tools | verified (reads) | achieved coverage | attainable |
 | --- | --- | --- | --- | --- | --- |
 | 1 | 23 | 2 | 1 | 3% | 33% |
 | 2 | 46 | 7 | 4 | 3% | 33% |

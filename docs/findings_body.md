@@ -206,6 +206,32 @@ oracle supplies the arguments — the ceiling a perfect router would hit).
 Running with a real model is one flag: set `models.provider: litellm` and
 export credentials, then `python -m shadow.cli bench --trials 3 --fresh`.
 
+## Where the tokens actually are
+
+Measured per-task input tokens for the browser baseline, by held-out
+template:
+
+| template | steps | input tokens | per-step |
+| --- | --- | --- | --- |
+| T03 stock on hand (read) | 3 | 1,986 | 410 / 780 / 796 |
+| T06 latest order total (read) | 3 | 2,243 | 405 / 911 / 927 |
+| T09 create sales order (write) | 10 | 13,782 | 412 → 1,595 |
+| T14 create sales invoice (write) | 9 | 13,840 | 414 → 1,760 |
+
+A list page is cheap to look at and takes three steps. A document form is
+expensive to look at — more interactive elements, more text — and takes nine
+or ten. The cost of driving a browser is concentrated almost entirely in the
+write tasks, and those are precisely the templates synthesis could not cover.
+
+That sets the real prize and the real result apart. A tool-served task in
+condition B costs about 2,500 input tokens: one call plus a finish, each
+carrying the tool catalog. Against a read template's 2,000 that is roughly
+parity — tools buy latency there, not tokens. Against a write template's
+13,800 it would be a ~5× saving. Synthesis did not cover those templates, so
+that number is a projection from measured quantities, not a result. It is
+also the clearest statement of what the missing capability in finding 1 is
+worth.
+
 ## What failed to synthesize, and why
 
 This is the section worth reading. Coverage on held-out templates is not

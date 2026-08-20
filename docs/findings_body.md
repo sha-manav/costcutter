@@ -1,0 +1,267 @@
+# Shadow — findings
+
+Watch a person use a legacy web app, synthesize typed task-level tools from
+the HTTP traffic, expose them over MCP, and measure what an agent saves by
+calling those tools instead of driving the browser.
+
+Everything below was produced by the pipeline in this repository against a
+live ERPNext v15 instance seeded with deterministic data.
+
+## The two rules, and how they are enforced
+
+**The API docs are an oracle, never an input.** ERPNext publishes a full REST
+API. It is used only to verify task success and to score synthesis as ground
+truth. It lives in `oracle/`, and `tests/test_isolation.py` fails the build if
+anything under `shadow/distill/` or `shadow/capture/` imports it — by AST
+inspection of every module, and by checking that importing the synthesis
+pipeline does not pull an `oracle` module into `sys.modules`.
+
+**The held-out split is over task templates, not instances.** Fourteen
+templates were partitioned 60/40 with a fixed seed *before* any capture, and
+the split is persisted and never regenerated. Demonstration traffic was
+produced only on the eight OBSERVE templates;
+`bench/generate_traffic.py` calls `assert_observe_only()` for every task it is
+about to drive and raises `HeldOutViolation` on an EVAL id.
+`tests/test_heldout.py` asserts the refusal for every held-out template, and
+asserts that the generator's source actually contains that call.
+
+    OBSERVE  T01 customer outstanding · T02 overdue invoices ·
+             T04 customer order count · T05 item price ·
+             T07 items below price · T08 create customer ·
+             T11 update item price · T13 update customer group
+
+    EVAL     T03 stock on hand · T06 latest order total ·
+             T09 create sales order · T10 create supplier ·
+             T12 create item · T14 create sales invoice
+
+Nothing about the EVAL templates was observed. Four of the six are creates on
+record types the demonstrations never wrote.
+
+## What the pipeline produced
+
+Four demonstration sessions, 96 demonstrations across the eight OBSERVE
+templates, driven through the ERPNext desk UI behind a mitmproxy capture.
+
+| stage | result |
+| --- | --- |
+| raw flows captured | 1,606 |
+| kept after filtering | 1,076 (67.0%) |
+| — of which navigation markers | 98 |
+| dropped as assets | 40 |
+| dropped as websocket/socket.io frames | 386 |
+| collapsed as polling | 104 |
+| episodes after segmentation | 87 |
+| signature groups | see `artifacts/induction_diagnostics.json` |
+| tools emitted (support ≥ 3) | 8 |
+| tools verified against the live instance | 8 |
+
+The retention figure deserves a note, because the build spec expected well
+under 20%. The capture is host-scoped to the application and the whole
+demonstration run shares one browser context, so assets are fetched once and
+served from cache for the remaining 95 demonstrations. What is left is
+already almost entirely API traffic. The compression that matters happens
+later: 1,076 kept records become 87 episodes, and the load-bearing trim
+reduces those to signatures over two or three calls each.
+
+### The interesting tool
+
+`update_item_price` is the one to look at, because it is the thing an OpenAPI
+extractor cannot produce:
+
+    [0] POST /api/method/frappe.desk.reportview.get
+          body.filters       <- param(filters)
+    [1] GET  /api/method/frappe.desk.form.load.getdoc
+          query.name         <- step[0] $.message.values[0][0]
+    [2] POST /api/method/frappe.desk.form.save.savedocs
+          body.doc.name      <- step[0] $.message.values[0][0]
+          body.doc.owner     <- step[1] $.docs[0].owner
+          body.doc.creation  <- step[1] $.docs[0].creation
+          body.doc.item_code <- step[1] $.docs[0].item_code
+          body.doc.uom       <- step[1] $.docs[0].uom
+          body.doc.price_list<- step[1] $.docs[0].price_list
+          body.doc.currency  <- step[1] $.docs[0].currency
+          body.doc.valid_from<- step[1] $.docs[0].valid_from
+          body.doc.price_list_rate <- param(price_list_rate)
+
+Find the record, load it, write it back with every field carried across from
+the load response and exactly one field — the price — left as a parameter.
+The dataflow was inferred from traffic alone; no schema, no documentation.
+
+`list_records` is the one that generalises. Induced from list-view traffic on
+Item Price, Sales Invoice and Sales Order, its `doctype` came out as a
+parameter rather than a constant because it varied across episodes. Pointed
+at `Bin` — a record type no demonstration ever touched — it returns stock
+rows correctly. That is the whole thesis in one call.
+
+## Results
+
+<!-- GENERATED TABLES -->
+
+## How the numbers were produced, and what they do not include
+
+**No model was in the loop.** The build environment has no API credentials
+for any provider, so both conditions ran on the deterministic providers in
+`shadow/llm.py`. This is stated up front because it changes how each number
+should be read, and every result row carries `usage.simulated: true`:
+
+* **Success is real.** Every run is graded by `oracle/checks.py` against the
+  ERPNext REST API — a numeric answer compared to a value computed from the
+  database, or, for a write, the row that must now exist. An agent that
+  claims success without changing anything fails.
+* **Token counts are real measurements, not estimates of a hypothetical.**
+  Both conditions build the exact prompt they would have sent — same system
+  prompt, same accessibility snapshot, same tool schemas, same history
+  window — and tokenise it with the provider tokenizer through
+  `litellm.token_counter`. What is simulated is the *decision*, not the
+  prompt. Cost is then computed from the published price table in
+  `config.yaml` by the same function for both conditions.
+* **Latency excludes model inference.** The reported wall clock is harness
+  latency: browser actions, HTTP calls, page settling. Inference time would
+  be added per step, and condition A takes several times more steps than
+  condition B, so including it would widen the gap rather than narrow it.
+
+Both stand-in policies are biased *against* the result this project is trying
+to show:
+
+* Condition A's policy is a scripted UI recipe. It never explores, never
+  backtracks, never misreads a page, and it edits form fields with composite
+  actions where a model would need a click and a type. It is a stronger and
+  cheaper baseline than an LLM driving the same UI.
+* Condition B's router is a lexical matcher over tool names, descriptions and
+  schemas. It has no knowledge of the task templates and no mapping from
+  goals to tools; it guesses a record type from the goal's words and a filter
+  field from the noun in front of a quoted value. It is much weaker than a
+  model at exactly the job models are good at.
+
+So the A-vs-B ratios below are lower bounds, and the achieved coverage is a
+lower bound. To separate the catalog's capability from the router's, coverage
+is reported twice: **achieved** (what the lexical router actually got) and
+**attainable** (whether *any* verified tool can complete the task when the
+oracle supplies the arguments — the ceiling a perfect router would hit).
+
+Running with a real model is one flag: set `models.provider: litellm` and
+export credentials, then `python -m shadow.cli bench --trials 3 --fresh`.
+
+## What failed to synthesize, and why
+
+This is the section worth reading. Coverage on held-out templates is not
+uniform, and the pattern is systematic rather than random.
+
+**1. Writes do not transfer to unobserved record types — structurally.**
+Four of the six EVAL templates create a record type the demonstrations never
+wrote: Supplier, Item, Sales Order, Sales Invoice. A synthesized write tool
+carries the record's *fields* as its parameters, because that is what varied
+in the observed traffic. `create_customer` exposes `customer_name`; there is
+no parameter through which a caller could set `supplier_name`, because no
+demonstration ever set one. Even the generalised `create_record` tool, which
+did get `doctype` as a parameter through the backoff pass, can only populate
+fields it has seen. The record type is a parameter; the record's schema is
+not. This is a genuine limit of synthesis-from-observation, not a bug: you
+cannot induce a field nobody ever filled in.
+
+The corollary is a scaling prediction the design supports: observing writes
+across *n* record types should turn the doctype into a parameter and the
+union of their fields into optional parameters, at which case the marginal
+cost of the (n+1)th record type is only its own fields. Testing that
+requires an OBSERVE split with more write diversity than this one has, which
+would mean regenerating the split — and the split is fixed.
+
+**2. Reads transfer when the query endpoint is generic, and not otherwise.**
+Frappe routes every list view through one endpoint with the record type in
+the body, so `list_records` generalises to any record type — including `Bin`,
+which the router only fails to reach because it cannot *name* it from the
+goal ("total actual quantity in stock" does not contain the word "Bin"). An
+application that routed each list view through its own endpoint would give a
+per-record-type tool with no transfer at all. How far synthesized reads
+generalise is a property of the application's API shape, not of the method.
+
+**3. Enum induction and transfer pull against each other.** A parameter whose
+observed values are few gets a JSON-Schema enum. That is right for a status
+field and wrong for a record type: `list_records` was observed with three
+record types and would, under a naive rule, advertise a closed domain of
+three — telling a schema-obeying model that `Bin` is not allowed. The
+mitigation implemented here is to require the value set to *saturate* before
+calling it an enum (distinct values must repeat), which also fixed a routing
+bug where a tool won a goal purely because a customer name from its capture
+appeared in the text. The tension does not disappear: any closed-domain
+signal is also a transfer barrier.
+
+**4. A naive router with writes enabled aimed a write tool at the wrong
+task.** With `--allow-writes`, the lexical router answered "Create a sales
+order for customer 'Kestrel Aviation' with 5 units of item 'SH-GEAR-02'" by
+selecting `update_item_price` — a tool that edits a price — with
+`price_list_rate: 2.0` and a filter built from the goal's quoted entities.
+Nothing was mutated, because the tool's first step is a query and it failed
+on an invalid filter field, and the task then completed through the browser
+fallback. But the only thing standing between that selection and an edited
+price was the order of the tool's own steps. This is the argument for the
+gating that is already the default: `--allow-writes` is off in the verifier,
+off in the MCP server, and off in the agent. A synthesized write tool is only
+as safe as whatever is choosing its arguments, and a lexical matcher is not
+safe enough. The read-only configuration is measured separately below.
+
+**5. Segmentation is easy here and would not be in production.** The
+demonstrations are separated by deliberate idle gaps, which is the easy case.
+A real user's session interleaves tasks, abandons them, and comes back; the
+LLM refinement pass (label + coherence + split) exists for that and was
+exercised only lightly here.
+
+**6. Eight tools, not fifteen.** The acceptance target of ≥15 verified tools
+with support ≥3 is not reachable from this observation set: it contains eight
+task types, and the emitted catalog is deliberately curated rather than a
+long tail. Reaching fifteen would mean either lowering `min_support` below
+the point where a signature is evidence of anything, or observing more kinds
+of work. The support distribution is in
+`artifacts/induction_diagnostics.json`.
+
+## Prior art
+
+**mitmproxy2swagger** turns a capture into an OpenAPI document: paths,
+methods, parameter names, example schemas. It documents an endpoint surface.
+It does not infer where a value came from, does not group requests into user
+tasks, and emits nothing executable.
+
+**mitmproxy-mcp** exposes captured flows to a model over MCP so it can search
+and read them — a debugging surface over the capture. The application's
+operations stay data; the tools are "search flows", "read a flow".
+
+**WALT — Web Agents that Learn Tools** ([arXiv:2510.01524](https://arxiv.org/abs/2510.01524),
+Salesforce AI Research, Oct 2025) reverse-engineers functionality already
+built into a website — search, filter, sort, post, comment, create, edit,
+delete — into deterministic high-level calls, discovered and validated by an
+agent driving the site. It reports 52.9% success on VisualWebArena and 50.1%
+on WebArena, with roughly 1.4× fewer steps and 21.3% fewer actions.
+
+**SkillWeaver** ([arXiv:2504.07079](https://arxiv.org/abs/2504.07079), Apr
+2025) has an agent explore a site under an LLM-generated curriculum, practise
+candidate skills, and distil the successful ones into reusable APIs. It
+reports relative success-rate improvements of 31.8% on WebArena and 39.8% on
+real sites, and skills from a strong agent lifting a weaker one by up to
+54.3%.
+
+**UiPath Task Mining** records what users do across desktop applications and
+mines the recordings for automation candidates, producing process
+documentation and RPA suggestions for a human to implement.
+
+**Where this differs.** The input is passive: no exploration, no crawler, no
+agent in the loop during capture — only traffic from someone doing their job.
+That matters when the app is a production ERP, where exploration means
+creating real invoices. The output carries dataflow: a tool is a sequence of
+calls with `from_response` bindings that lift values out of earlier steps,
+which is what makes a list-then-load-then-save update possible rather than a
+single-request replay. And the evaluation is held out over task *templates* —
+tools are synthesized from one set of task types and measured on a disjoint
+set. Coverage measured on the templates you observed is memorisation; that
+distinction is what the whole design turns on.
+
+## Reproducing
+
+```bash
+sudo -u frappe bash infra/setup_erpnext.sh   # or docker compose -f infra/pwd.yml up -d
+sudo bash infra/start_erpnext.sh
+bash scripts/run_all.sh 4 3                  # 4 observation sessions, 3 trials
+```
+
+`scripts/run_all.sh` runs seed → observe → distill → verify → bench →
+attainable → sweep → report, unattended, from a clean instance. Details in
+`docs/reproduce.md`; design rationale in `docs/design.md`.

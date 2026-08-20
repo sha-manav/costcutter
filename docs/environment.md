@@ -30,6 +30,21 @@ One ERPNext-specific gap is worth noting because it silently breaks queries:
 columns that do not exist. `infra/setup_erpnext.sh` runs the hook and then
 `bench migrate` explicitly.
 
+## Two virtualenvs, neither committed
+
+`bash infra/setup_python.sh` creates both:
+
+* `.venv` — everything except mitmproxy
+* `.venv-capture` — mitmproxy only, referenced by `proxy.mitmdump` in
+  `config.yaml`
+
+They are separate because mitmproxy pins a dependency set that, resolved
+together with litellm and fastmcp, silently downgrades mitmproxy to a
+decade-old release. The capture addon runs under the capture interpreter and
+nothing else does. Neither directory is tracked; `.venv-capture/` was
+committed by mistake early on and untracked in "Untrack committed
+virtualenv".
+
 ## No model credentials were available
 
 The sandbox has no API key for any LLM provider, so both benchmark

@@ -151,13 +151,26 @@ def infer_type(values: list[Any]) -> dict[str, Any]:
     return {"type": "string"}
 
 
-def maybe_enum(values: list[Any], enum_max: int) -> list[Any] | None:
+def maybe_enum(values: list[Any], enum_max: int,
+               max_distinct_ratio: float = 0.5) -> list[Any] | None:
+    """An enum, but only when the observed value set looks closed.
+
+    Low cardinality alone is not enough: three customer names in three
+    episodes is not a three-valued domain, it is an identifier that happened
+    to be sampled three times. Require the values to repeat — a closed set
+    saturates as observations accumulate, an identifier does not.
+    """
     if any(isinstance(v, (list, dict)) for v in values):
         return None
-    distinct = list(dict.fromkeys(str(v) for v in values if v is not None))
-    if 1 < len(distinct) <= enum_max and all(len(d) < 64 for d in distinct):
-        return distinct
-    return None
+    seen = [str(v) for v in values if v is not None]
+    distinct = list(dict.fromkeys(seen))
+    if not (1 < len(distinct) <= enum_max):
+        return None
+    if not all(len(d) < 64 for d in distinct):
+        return None
+    if len(distinct) / len(seen) > max_distinct_ratio:
+        return None
+    return distinct
 
 
 # --------------------------------------------------------------------------

@@ -24,7 +24,10 @@ from shadow.capture.schema import Binding, ToolSpec, ToolStep
 from shadow.config import Config, get_config
 from shadow.distill.induce import encode_value
 
-CSRF_RE = re.compile(r'"csrf_token"\s*:\s*"([^"]+)"')
+# The desk exposes the session token two ways depending on the page: as a
+# boot key, and as an assignment in the bootstrap script.
+CSRF_RE = re.compile(
+    r'(?:frappe\.csrf_token\s*=\s*|"csrf_token"\s*:\s*)"([^"]+)"')
 JSON_PATH_TOKEN = re.compile(r"\.([^.\[\]]+)|\[(\d+)\]")
 
 

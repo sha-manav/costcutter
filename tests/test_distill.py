@@ -9,7 +9,7 @@ from shadow.capture.schema import Episode, HttpRecord
 from shadow.config import get_config
 from shadow.distill.classify import classify_step, classify_steps
 from shadow.distill.filter import collapse_polling, filter_records
-from shadow.distill.induce import induce, normalize_path
+from shadow.distill.induce import induce, maybe_enum, normalize_path
 from shadow.distill.provenance import ProvenanceEngine
 from shadow.distill.segment import segment
 from shadow.capture.schema import ToolStep
@@ -194,3 +194,14 @@ def test_segmentation_cuts_on_idle_gap():
     assert len(episodes) == 2
     assert all(len(e.records) == 2 for e in episodes)
     assert episodes[0].records[0].episode_id == episodes[0].id
+
+
+def test_enum_requires_a_saturated_value_set():
+    """Low cardinality alone is not a closed domain."""
+    cfg = get_config()
+    # Three names in three observations: an identifier, not an enum.
+    assert maybe_enum(["Acme", "Borealis", "Cobalt"], cfg.induce.enum_max) is None
+    # Three values across twelve observations: a closed set.
+    repeated = ["Sales Order", "Sales Invoice", "Item Price"] * 4
+    assert maybe_enum(repeated, cfg.induce.enum_max) == [
+        "Sales Order", "Sales Invoice", "Item Price"]

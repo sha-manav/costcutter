@@ -108,19 +108,69 @@ def _guess_doctype(goal: str, options: list[str]) -> str | None:
     return best if best_score >= 0.99 else None
 
 
+# "... for the customer 'Acme Industrial'" -> ("customer", "Acme Industrial").
+# The word in front of a quoted value names the field it belongs to often
+# enough to be worth trying, and a wrong guess costs one failed call.
+ENTITY_RE = re.compile(r"(\w+)\s+['\"]([^'\"]+)['\"]")
+
+
+def entity_hints(goal: str) -> list[tuple[str, str]]:
+    return [(word.lower(), value) for word, value in ENTITY_RE.findall(goal)
+            if word.lower() not in {"the", "a", "an", "for", "of", "with", "named"}]
+
+
+def _record_type_from_goal(goal: str, options: list[str]) -> str | None:
+    """Name the record type the goal is about.
+
+    First try the values this parameter was observed with; then the noun in
+    front of the first quoted value. Both are guesses — when neither lands
+    the router falls back to the browser, which is the honest outcome for a
+    lexical matcher with no model behind it.
+    """
+    guess = _guess_doctype(goal, options)
+    if guess is not None:
+        return guess
+    hints = entity_hints(goal)
+    if hints:
+        return hints[0][0].capitalize()
+    return None
+
+
 def fill_arguments(spec: ToolSpec, goal: str) -> dict[str, Any] | None:
+    """Fill a tool's parameters from the goal text alone.
+
+    No task metadata, no mapping from templates to tools. Array-valued
+    parameters get generic values rather than the observed example, because
+    replaying another record type's column list is a guaranteed error.
+    """
     props: dict[str, Any] = spec.params_schema.get("properties", {})
     required: list[str] = spec.params_schema.get("required", [])
     literals = goal_literals(goal)
     numbers = [float(n) for n in NUMBER_RE.findall(goal)]
     args: dict[str, Any] = {}
+    record_type: str | None = None
 
     for name, schema in props.items():
-        examples = schema.get("examples") or []
-        enum = schema.get("enum") or []
-        options = [str(v) for v in (enum or examples)]
-        # A parameter whose observed values are entity names: pick the one the
-        # goal names outright.
+        lname = name.lower()
+        options = [str(v) for v in (schema.get("enum") or schema.get("examples") or [])]
+        if "doctype" in lname or "record_type" in lname:
+            record_type = _record_type_from_goal(goal, options)
+            if record_type is not None:
+                args[name] = record_type
+            continue
+        if schema.get("type") == "array":
+            hints = entity_hints(goal)
+            if "field" in lname:
+                hinted = next((f for hint, f in _FIELD_HINTS if hint in goal.lower()),
+                              None)
+                args[name] = (["name"] + ([hinted] if hinted else [])
+                              + [h[0] for h in hints])
+            else:
+                args[name] = [[field, "=", value] for field, value in hints]
+            continue
+        if "order_by" in lname:
+            args[name] = "modified desc"
+            continue
         guess = _guess_doctype(goal, options) if options else None
         if guess is not None:
             args[name] = guess
@@ -137,11 +187,44 @@ def fill_arguments(spec: ToolSpec, goal: str) -> dict[str, Any] | None:
     return args
 
 
+MUTATING_VERBS = {"create", "add", "update", "change", "set", "delete",
+                  "remove", "cancel", "submit", "make", "register", "reclassify"}
+
+
+def goal_intent(goal: str) -> str:
+    """Whether the goal asks a question or asks for a change."""
+    head = re.split(r"\W+", goal.lower())[:3]
+    return "write" if any(w in MUTATING_VERBS for w in head) else "read"
+
+
+def tool_surface(spec: ToolSpec) -> set[str]:
+    """The words a router can see: name, description, and schema.
+
+    The schema matters most for a generic tool — `list_records` says nothing
+    about sales orders, but its `doctype` parameter was observed with them.
+    """
+    parts = [spec.name.replace("_", " "), spec.description]
+    for name, schema in spec.params_schema.get("properties", {}).items():
+        parts.append(name.replace("_", " "))
+        # Enum values only: they are the parameter's declared domain.
+        # Example values are incidental, and matching on them lets a tool win
+        # a goal just because a customer name happened to be in its capture.
+        for value in (schema.get("enum") or [])[:8]:
+            if isinstance(value, str) and len(value) < 48:
+                parts.append(value)
+    return tokens(" ".join(parts))
+
+
 def select_tool(goal: str, tools: list[ToolSpec]) -> Candidate | None:
     g = tokens(goal)
+    intent = goal_intent(goal)
     best: Candidate | None = None
     for spec in tools:
-        surface = tokens(spec.name.replace("_", " ") + " " + spec.description)
+        # A question must not be answered by a tool that writes, and a
+        # request to change something must not be served by a read.
+        if (intent == "read") != (spec.mutation_class == "read"):
+            continue
+        surface = tool_surface(spec)
         if not surface:
             continue
         overlap = len(surface & g)
@@ -174,8 +257,12 @@ def extract_answer(goal: str, result: ExecutionResult) -> str | None:
         if literals:
             filtered = [r for r in rows
                         if any(str(v).lower() in literals for v in r.values())]
-            if filtered:
-                rows = filtered
+            if not filtered and not wants_count:
+                # The goal named an entity and the result does not mention it:
+                # reducing this to a number would be a guess, so decline and
+                # let the browser fallback handle it.
+                return None
+            rows = filtered or rows
         if wants_count:
             return str(len(rows))
         numeric = _numeric_field(goal, rows)
@@ -193,15 +280,45 @@ def extract_answer(goal: str, result: ExecutionResult) -> str | None:
     return None
 
 
+COLUMN_KEYS = ("keys", "columns", "fields")
+ROW_KEYS = ("values", "data", "rows", "result")
+
+
+def _columnar(value: Any) -> list[dict] | None:
+    """Zip a columnar result (column names + rows of cells) into records.
+
+    Desk endpoints answer with columns and rows rather than objects; without
+    this every synthesized list tool would return something an agent cannot
+    read.
+    """
+    if not isinstance(value, dict):
+        return None
+    columns = next((value[k] for k in COLUMN_KEYS
+                    if isinstance(value.get(k), list)
+                    and all(isinstance(c, str) for c in value[k])), None)
+    rows = next((value[k] for k in ROW_KEYS
+                 if isinstance(value.get(k), list)
+                 and all(isinstance(r, list) for r in value[k])), None)
+    if columns is None or rows is None:
+        return None
+    return [dict(zip(columns, row)) for row in rows]
+
+
 def _rows(value: Any) -> list[dict] | None:
-    if isinstance(value, list) and all(isinstance(r, dict) for r in value):
+    if isinstance(value, list) and value and all(isinstance(r, dict) for r in value):
         return value
+    columnar = _columnar(value)
+    if columnar is not None:
+        return columnar
     if isinstance(value, dict):
         for key in ("message", "data", "values", "result"):
             inner = value.get(key)
             if isinstance(inner, dict):
+                nested = _columnar(inner)
+                if nested is not None:
+                    return nested
                 inner = inner.get("values") or inner.get("data") or inner
-            if isinstance(inner, list) and all(isinstance(r, dict) for r in inner):
+            if isinstance(inner, list) and inner and all(isinstance(r, dict) for r in inner):
                 return inner
     return None
 
@@ -238,7 +355,8 @@ def _numeric_field(goal: str, rows: list[dict]) -> str | None:
         if hint in g and field in keys:
             return field
     numeric_keys = [k for k in keys
-                    if any(_is_number(r.get(k)) for r in rows) and k != "name"]
+                    if any(_is_number(r.get(k)) for r in rows)
+                    and k != "name" and not k.startswith("_")]
     return numeric_keys[0] if len(numeric_keys) == 1 else None
 
 

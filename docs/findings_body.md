@@ -352,6 +352,13 @@ the agent — and for something this project does not have: a post-condition
 assertion on the tool itself, so that `create_customer` invoked in service of
 "create a sales order" is rejected rather than merely regretted.
 
+The ablation above measures what the gating costs, and the answer is nothing:
+with writes gated off, success stays at 100%, coverage stays at 17% (the
+covered template is a read), failed tool calls drop from 36 to 9, cost per
+successful task falls from $0.01221 to $0.00974, and no synthesized tool can
+touch the database. Exposing the write tools bought no capability on this
+split and created nine records nobody asked for.
+
 **5. The compounding curve does not compound — within one workload.** The
 sweep runs the whole pipeline over increasing prefixes of the same capture.
 More observation buys more tools (2 → 7 → 7 → 8) and more episodes

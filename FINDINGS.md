@@ -215,7 +215,7 @@ Cost per successful task: **1.5x more expensive in B**. p95 latency: **1.1x slow
 | endpoint recall over load-bearing calls (unweighted) | 83% |
 | endpoint recall over load-bearing calls (weighted) | 99% |
 | endpoint recall over every observed API call (unweighted) | 83% |
-| parameter typing accuracy | 0% (0/0 scored) |
+| parameter typing accuracy | 100% (13/13 scored) |
 | from_response bindings induced | 22 |
 | tools failing on an unresolved binding at replay | 0 |
 | provenance false-positive rate at replay | 0% |
@@ -243,6 +243,19 @@ Cost per successful task: **1.5x more expensive in B**. p95 latency: **1.1x slow
 | T10_create_supplier | 100% | 0% | 0% | $0.01105 | 10.0 |
 | T12_create_item | 100% | 0% | 0% | $0.01351 | 11.0 |
 | T14_create_sales_invoice | 100% | 3% | 0% | $0.01957 | 12.0 |
+
+### Ablation: condition B with writes gated off
+
+The recommended configuration. Synthesized write tools are not exposed, so every mutation goes through the browser fallback and no tool can change the database.
+
+| metric | B: writes enabled | B: read-only |
+| --- | --- | --- |
+| success rate | 100% | 100% |
+| USD per successful task | $0.01221 | $0.00974 |
+| p95 latency (s) | 39.3 | 37.4 |
+| mean steps | 9.0 | 8.3 |
+| tasks finished on tools alone | 17% | 17% |
+| tool calls that failed | 36 | 9 |
 
 ### What the router did on each held-out template
 
@@ -441,6 +454,13 @@ collateral. This is the argument for the gating that is already the default —
 the agent — and for something this project does not have: a post-condition
 assertion on the tool itself, so that `create_customer` invoked in service of
 "create a sales order" is rejected rather than merely regretted.
+
+The ablation above measures what the gating costs, and the answer is nothing:
+with writes gated off, success stays at 100%, coverage stays at 17% (the
+covered template is a read), failed tool calls drop from 36 to 9, cost per
+successful task falls from $0.01221 to $0.00974, and no synthesized tool can
+touch the database. Exposing the write tools bought no capability on this
+split and created nine records nobody asked for.
 
 **5. The compounding curve does not compound — within one workload.** The
 sweep runs the whole pipeline over increasing prefixes of the same capture.

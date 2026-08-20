@@ -210,7 +210,73 @@
       ]
     },
     "param_typing": {
-      "error": "HTTPStatusError: Server error '500 INTERNAL SERVER ERROR' for url 'http://shadow.localhost:8000/api/method/login'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+      "scored": 13,
+      "correct": 13,
+      "accuracy": 1.0,
+      "unscorable": 15,
+      "mistakes": [],
+      "unscored": [
+        {
+          "tool": "list_records",
+          "param": "doctype"
+        },
+        {
+          "tool": "list_records",
+          "param": "fields"
+        },
+        {
+          "tool": "list_records",
+          "param": "filters"
+        },
+        {
+          "tool": "list_records",
+          "param": "order_by"
+        },
+        {
+          "tool": "update_item_price",
+          "param": "filters"
+        },
+        {
+          "tool": "list_records_2",
+          "param": "doctype"
+        },
+        {
+          "tool": "list_records_2",
+          "param": "filters"
+        },
+        {
+          "tool": "list_records_3",
+          "param": "doctype"
+        },
+        {
+          "tool": "list_records_3",
+          "param": "fields"
+        },
+        {
+          "tool": "list_records_3",
+          "param": "filters"
+        },
+        {
+          "tool": "list_records_3",
+          "param": "order_by"
+        },
+        {
+          "tool": "list_records_3",
+          "param": "filters_2"
+        },
+        {
+          "tool": "create_record",
+          "param": "doctype"
+        },
+        {
+          "tool": "create_record",
+          "param": "name_2"
+        },
+        {
+          "tool": "create_record",
+          "param": "customer_name_2"
+        }
+      ]
     },
     "tools": [
       {
@@ -387,6 +453,81 @@
         "tool_failed": 6
       },
       "first_error": "ERROR: step 0 returned 417: {'exception': 'frappe.exceptions.DataError: Field not permitted in query: item', 'exc_type': 'DataError', 'exc': '[\"Traceback (most recent call last):\\\\n  File \\\\\"apps/frappe/frappe/app.py\\\\\","
+    }
+  },
+  "read_only_ablation": {
+    "condition": "B_tools",
+    "n_runs": 54,
+    "n_tasks": 18,
+    "success_rate": 1.0,
+    "pass_hat_k": 1.0,
+    "usd_per_task": 0.00974,
+    "usd_per_successful_task": 0.00974,
+    "total_usd": 0.525945,
+    "p50_latency_s": 23.994,
+    "p95_latency_s": 37.393,
+    "mean_steps": 8.333,
+    "coverage": 0.0256,
+    "task_coverage": 0.1667,
+    "tool_actions": 9,
+    "browser_actions": 333,
+    "failed_tool_actions": 9,
+    "simulated_policy": true,
+    "per_template": {
+      "T03_stock_on_hand": {
+        "runs": 9,
+        "success_rate": 1.0,
+        "usd_per_task": 0.00494,
+        "mean_steps": 6.0,
+        "coverage": 0.0,
+        "task_coverage": 0.0,
+        "p95_latency_s": 16.27
+      },
+      "T06_latest_order_total": {
+        "runs": 9,
+        "success_rate": 1.0,
+        "usd_per_task": 0.001786,
+        "mean_steps": 2.0,
+        "coverage": 1.0,
+        "task_coverage": 1.0,
+        "p95_latency_s": 3.19
+      },
+      "T09_create_sales_order": {
+        "runs": 9,
+        "success_rate": 1.0,
+        "usd_per_task": 0.016721,
+        "mean_steps": 12.0,
+        "coverage": 0.0,
+        "task_coverage": 0.0,
+        "p95_latency_s": 37.39
+      },
+      "T10_create_supplier": {
+        "runs": 9,
+        "success_rate": 1.0,
+        "usd_per_task": 0.007952,
+        "mean_steps": 9.0,
+        "coverage": 0.0,
+        "task_coverage": 0.0,
+        "p95_latency_s": 24.78
+      },
+      "T12_create_item": {
+        "runs": 9,
+        "success_rate": 1.0,
+        "usd_per_task": 0.010359,
+        "mean_steps": 10.0,
+        "coverage": 0.0,
+        "task_coverage": 0.0,
+        "p95_latency_s": 25.48
+      },
+      "T14_create_sales_invoice": {
+        "runs": 9,
+        "success_rate": 1.0,
+        "usd_per_task": 0.01668,
+        "mean_steps": 11.0,
+        "coverage": 0.0,
+        "task_coverage": 0.0,
+        "p95_latency_s": 38.56
+      }
     }
   },
   "coverage_sweep": [

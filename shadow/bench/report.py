@@ -12,7 +12,9 @@ from shadow.distill.endpoints import chrome_endpoints, is_noise
 from shadow.distill.induce import trim_episode
 from shadow.distill.provenance import ProvenanceEngine
 from shadow.bench.charts import render_all
-from shadow.bench.metrics import _direction, compare, endpoint_recall, load_results
+from shadow.bench.metrics import (
+    _direction, compare, endpoint_recall, load_results, score_condition,
+)
 
 from oracle.api_surface import classify_endpoint
 from oracle.client import OracleClient
@@ -156,6 +158,11 @@ def build_report(cfg: Config | None = None) -> dict[str, Any]:
         "synthesis_ground_truth": synthesis_ground_truth(cfg),
         "router_behaviour": router_behaviour(rows),
     }
+    readonly_path = cfg.path("artifacts") / "results_readonly.jsonl"
+    if readonly_path.exists():
+        readonly = score_condition(load_results(readonly_path), "B_tools", cfg)
+        report["read_only_ablation"] = readonly.to_dict()
+
     sweep = cfg.path("artifacts") / "coverage_sweep.json"
     if sweep.exists():
         report["coverage_sweep"] = json.loads(sweep.read_text())
@@ -237,6 +244,27 @@ def markdown_tables(report: dict[str, Any]) -> str:
                 f"{row_data.get('task_coverage', 0):.0%} | "
                 f"${row_data['usd_per_task']:.5f} | "
                 f"{row_data['mean_steps']:.1f} |")
+
+    readonly = report.get("read_only_ablation")
+    if readonly:
+        lines += ["", "### Ablation: condition B with writes gated off", "",
+                  "The recommended configuration. Synthesized write tools are "
+                  "not exposed, so every mutation goes through the browser "
+                  "fallback and no tool can change the database.", "",
+                  "| metric | B: writes enabled | B: read-only |",
+                  "| --- | --- | --- |",
+                  f"| success rate | {b['success_rate']:.0%} | "
+                  f"{readonly['success_rate']:.0%} |",
+                  f"| USD per successful task | ${b['usd_per_successful_task']:.5f} | "
+                  f"${readonly['usd_per_successful_task']:.5f} |",
+                  f"| p95 latency (s) | {b['p95_latency_s']:.1f} | "
+                  f"{readonly['p95_latency_s']:.1f} |",
+                  f"| mean steps | {b['mean_steps']:.1f} | "
+                  f"{readonly['mean_steps']:.1f} |",
+                  f"| tasks finished on tools alone | {b['task_coverage']:.0%} | "
+                  f"{readonly['task_coverage']:.0%} |",
+                  f"| tool calls that failed | {b['failed_tool_actions']} | "
+                  f"{readonly['failed_tool_actions']} |"]
 
     router = report.get("router_behaviour") or {}
     if router:

@@ -218,13 +218,46 @@ class Split:
         return {"observe": self.observe, "eval": self.eval, "seed": self.seed}
 
 
+# Templates added after the split was frozen. They go to OBSERVE by
+# construction and never enter the shuffle, so the held-out set cannot move.
+# Anything here must be checked against EVAL_TEMPLATE_IDS: a new template that
+# writes a record type an EVAL template writes would leak the answer.
+PINNED_OBSERVE: tuple[str, ...] = (
+    "T15_create_contact",
+    "T16_create_lead",
+    "T17_create_warehouse",
+    "T18_create_item_group",
+    "T19_create_supplier_group",
+    "T20_create_territory",
+)
+
+# The held-out set, frozen. Hardcoded because it is the experiment's
+# integrity: if this list ever changes, every number measured against an
+# earlier one becomes incomparable. tests/test_heldout.py asserts it.
+EVAL_TEMPLATE_IDS: tuple[str, ...] = (
+    "T03_stock_on_hand",
+    "T06_latest_order_total",
+    "T09_create_sales_order",
+    "T10_create_supplier",
+    "T12_create_item",
+    "T14_create_sales_invoice",
+)
+
+
 def make_split(cfg: Config | None = None) -> Split:
+    """Partition templates into OBSERVE and EVAL.
+
+    Only the templates that existed when the split was frozen take part in
+    the shuffle, so adding OBSERVE templates later reproduces the original
+    EVAL set exactly rather than reshuffling the experiment.
+    """
     cfg = cfg or get_config()
-    ids = sorted(t.id for t in TEMPLATES)
+    pinned = set(PINNED_OBSERVE)
+    ids = sorted(t.id for t in TEMPLATES if t.id not in pinned)
     rng = random.Random(cfg.bench.split_seed)
     rng.shuffle(ids)
     n_obs = round(len(ids) * cfg.bench.observe_fraction)
-    observe = sorted(ids[:n_obs])
+    observe = sorted(ids[:n_obs] + [t.id for t in TEMPLATES if t.id in pinned])
     held = sorted(ids[n_obs:])
     return Split(observe=observe, eval=held, seed=cfg.bench.split_seed)
 

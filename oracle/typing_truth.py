@@ -28,9 +28,18 @@ FIELDTYPE_TO_JSON: dict[str, str] = {
 
 
 def field_types(oc: OracleClient, doctype: str) -> dict[str, str]:
-    """fieldname -> expected JSON type for one doctype."""
-    rows = oc.list("DocField", filters=[["parent", "=", doctype]],
-                   fields=["fieldname", "fieldtype"], limit=500)
+    """fieldname -> expected JSON type for one doctype.
+
+    Read from the DocType document itself: `DocField` is a child table and
+    the REST surface refuses to list it directly.
+    """
+    doc = oc.get("DocType", doctype)
+    rows = list(doc.get("fields") or [])
+    try:
+        rows += oc.list("Custom Field", filters=[["dt", "=", doctype]],
+                        fields=["fieldname", "fieldtype"], limit=500)
+    except Exception:
+        pass
     out: dict[str, str] = {}
     for row in rows:
         json_type = FIELDTYPE_TO_JSON.get(row.get("fieldtype", ""))
@@ -40,6 +49,10 @@ def field_types(oc: OracleClient, doctype: str) -> dict[str, str]:
     out.setdefault("name", "string")
     out.setdefault("docstatus", "integer")
     out.setdefault("idx", "integer")
+    out.setdefault("owner", "string")
+    out.setdefault("modified_by", "string")
+    out.setdefault("creation", "date")
+    out.setdefault("modified", "date")
     return out
 
 
@@ -55,6 +68,7 @@ def score_param_typing(oc: OracleClient, catalog: Any) -> dict[str, Any]:
     cache: dict[str, dict[str, str]] = {}
     total = correct = unscorable = 0
     mistakes: list[dict[str, Any]] = []
+    unscored: list[dict[str, Any]] = []
 
     for spec in catalog.tools:
         doctypes = watched_doctypes(spec)
@@ -70,6 +84,7 @@ def score_param_typing(oc: OracleClient, catalog: Any) -> dict[str, Any]:
             expected = known.get(name)
             if expected is None:
                 unscorable += 1
+                unscored.append({"tool": spec.name, "param": name})
                 continue
             total += 1
             induced = schema.get("type", "string")
@@ -86,4 +101,5 @@ def score_param_typing(oc: OracleClient, catalog: Any) -> dict[str, Any]:
         "accuracy": round(correct / total, 4) if total else 0.0,
         "unscorable": unscorable,
         "mistakes": mistakes[:25],
+        "unscored": unscored[:25],
     }

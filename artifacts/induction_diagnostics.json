@@ -1,5 +1,7 @@
 {
   "groups_seen": 14,
+  "records_in": 1020,
+  "records_load_bearing": 195,
   "groups_below_support": 7,
   "dropped_by_rank": 0,
   "diagnostics": [
@@ -29,7 +31,7 @@
     "input_tokens": 1832,
     "cached_input_tokens": 0,
     "output_tokens": 215,
-    "latency_s": 0.002,
+    "latency_s": 0.0012,
     "simulated": true
   }
 }

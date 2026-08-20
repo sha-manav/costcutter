@@ -395,6 +395,7 @@
           },
           "modified": {
             "type": "string",
+            "format": "date",
             "description": "doc for step 2",
             "examples": [
               "2026-08-20 13:54:57.606903"
@@ -2613,6 +2614,7 @@
           },
           "creation": {
             "type": "string",
+            "format": "date",
             "description": "doc for step 1",
             "examples": [
               "2026-08-20 13:54:57.168557"
@@ -2620,6 +2622,7 @@
           },
           "modified": {
             "type": "string",
+            "format": "date",
             "description": "doc for step 1",
             "examples": [
               "2026-08-20 13:54:57.168557"

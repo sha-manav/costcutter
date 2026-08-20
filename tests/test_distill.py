@@ -9,7 +9,7 @@ from shadow.capture.schema import Episode, HttpRecord
 from shadow.config import get_config
 from shadow.distill.classify import classify_step, classify_steps
 from shadow.distill.filter import collapse_polling, filter_records
-from shadow.distill.induce import induce, maybe_enum, normalize_path
+from shadow.distill.induce import induce, infer_type, maybe_enum, normalize_path
 from shadow.distill.provenance import ProvenanceEngine
 from shadow.distill.segment import segment
 from shadow.capture.schema import ToolStep
@@ -205,3 +205,15 @@ def test_enum_requires_a_saturated_value_set():
     repeated = ["Sales Order", "Sales Invoice", "Item Price"] * 4
     assert maybe_enum(repeated, cfg.induce.enum_max) == [
         "Sales Order", "Sales Invoice", "Item Price"]
+
+
+@pytest.mark.parametrize("values,expected", [
+    (["2026-08-20", "2026-01-01"], {"type": "string", "format": "date"}),
+    (["2026-08-20 13:54:57.606903"], {"type": "string", "format": "date"}),
+    (["2026-08-20T13:54:57Z"], {"type": "string", "format": "date"}),
+    (["SAL-ORD-2026-00001"], {"type": "string"}),
+    (["5", "12"], {"type": "integer"}),
+    (["45.00", "62.5"], {"type": "number"}),
+])
+def test_type_inference(values, expected):
+    assert infer_type(values) == expected

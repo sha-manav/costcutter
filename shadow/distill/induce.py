@@ -27,7 +27,11 @@ from shadow.distill.provenance import (
 )
 from shadow.llm import LLMClient, LLMUsage, make_client, register_policy
 
-DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+# Dates and datetimes both count as dates: an app that stores a timestamp
+# alongside a date field renders both here, and typing one as a bare string
+# loses the only structure the value has.
+DATE_RE = re.compile(
+    r"^\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?)?$")
 
 
 # --------------------------------------------------------------------------

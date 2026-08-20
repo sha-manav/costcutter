@@ -79,7 +79,8 @@ def latency_distribution(rows: list[dict[str, Any]], out_path: Path) -> Path:
     a = [float(r["wall_s"]) for r in rows if r["condition"] == "A_browser"]
     b = [float(r["wall_s"]) for r in rows if r["condition"] == "B_tools"]
     fig, ax = plt.subplots(figsize=(6.4, 4.0), dpi=160)
-    parts = ax.boxplot([a or [0], b or [0]], labels=["A: browser", "B: tools"],
+    parts = ax.boxplot([a or [0], b or [0]],
+                       tick_labels=["A: browser", "B: tools"],
                        patch_artist=True, widths=0.45, showfliers=True, zorder=3)
     for patch, colour in zip(parts["boxes"], [PALETTE["A"], PALETTE["B"]]):
         patch.set_facecolor(colour)

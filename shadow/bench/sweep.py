@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from shadow.capture.schema import (
-    read_records, write_catalog, write_episodes, write_jsonl,
+    read_catalog, read_records, write_catalog, write_episodes, write_jsonl,
 )
 from shadow.config import Config, REPO_ROOT, get_config
 from shadow.distill.emit import emit
@@ -26,6 +26,20 @@ def session_cutoffs(manifest_path: Path) -> list[float]:
     entries = json.loads(manifest_path.read_text())
     sessions = sorted({e["session"] for e in entries})
     return [max(e["ts_end"] for e in entries if e["session"] <= s) for s in sessions]
+
+
+def cutoffs_from_capture(cfg: Config, n: int) -> list[float]:
+    """Fallback when no manifest exists: split the capture into n equal spans.
+
+    The manifest is written when a demonstration run finishes; a run that was
+    interrupted still leaves a usable capture, and the curve only needs
+    increasing prefixes of it.
+    """
+    times = sorted(r.ts_end for r in read_records(cfg.path("capture")))
+    if not times:
+        return []
+    lo, hi = times[0], times[-1]
+    return [lo + (hi - lo) * (i + 1) / n for i in range(n)]
 
 
 def pipeline_for_prefix(cfg: Config, cutoff: float, tag: str) -> dict[str, Any]:
@@ -50,15 +64,22 @@ def main() -> int:
                     help="replay-verify each prefix's catalog (slower, accurate)")
     ap.add_argument("--bench", action="store_true",
                     help="run condition B on EVAL for each prefix")
+    ap.add_argument("--points", type=int, default=4,
+                    help="prefix count when no session manifest is available")
     args = ap.parse_args()
     cfg = get_config()
     manifest = cfg.path("artifacts") / "observe_manifest.json"
-    if not manifest.exists():
-        print("no observe manifest; run `python -m shadow.cli observe` first")
+    if manifest.exists():
+        cutoffs = session_cutoffs(manifest)
+    else:
+        cutoffs = cutoffs_from_capture(cfg, args.points)
+        print(f"no observe manifest; using {len(cutoffs)} equal capture spans")
+    if not cutoffs:
+        print("no capture to sweep over; run `python -m shadow.cli observe` first")
         return 2
 
     points: list[dict[str, Any]] = []
-    for i, cutoff in enumerate(session_cutoffs(manifest), start=1):
+    for i, cutoff in enumerate(cutoffs, start=1):
         tag = f"s{i}"
         point = {"sessions": i, **pipeline_for_prefix(cfg, cutoff, tag)}
         catalog_path = Path(point.pop("catalog_path"))

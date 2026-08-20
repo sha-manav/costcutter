@@ -76,6 +76,7 @@ def build_report(cfg: Config | None = None) -> dict[str, Any]:
                        "B_tools": comparison.b.to_dict()},
         "headline": {
             "coverage_on_eval": round(comparison.b.coverage, 4),
+            "task_coverage_on_eval": round(comparison.b.task_coverage, 4),
             "cost_ratio_per_successful_task": round(comparison.cost_ratio, 3),
             "p50_latency_ratio": round(comparison.p50_ratio, 3),
             "p95_latency_ratio": round(comparison.p95_ratio, 3),
@@ -100,11 +101,108 @@ def build_report(cfg: Config | None = None) -> dict[str, Any]:
     return report
 
 
+def markdown_tables(report: dict[str, Any]) -> str:
+    """Numeric tables for FINDINGS.md, so no number is hand-copied."""
+    a = report["conditions"]["A_browser"]
+    b = report["conditions"]["B_tools"]
+    head = report["headline"]
+    gt = report["synthesis_ground_truth"]
+    typing = gt.get("param_typing", {})
+
+    def row(label: str, key: str, fmt: str = "{:.4f}") -> str:
+        return (f"| {label} | {fmt.format(a[key])} | {fmt.format(b[key])} |")
+
+    lines = [
+        "### Conditions on the held-out (EVAL) split", "",
+        "| metric | A: browser only | B: tools + fallback |",
+        "| --- | --- | --- |",
+        f"| runs | {a['n_runs']} | {b['n_runs']} |",
+        f"| tasks | {a['n_tasks']} | {b['n_tasks']} |",
+        row("success rate", "success_rate", "{:.0%}"),
+        row("pass^k across trials", "pass_hat_k", "{:.0%}"),
+        row("USD per attempted task", "usd_per_task", "${:.5f}"),
+        row("USD per successful task", "usd_per_successful_task", "${:.5f}"),
+        row("p50 latency (s)", "p50_latency_s", "{:.1f}"),
+        row("p95 latency (s)", "p95_latency_s", "{:.1f}"),
+        row("mean steps", "mean_steps", "{:.1f}"),
+        row("actions served by synthesized tools", "coverage", "{:.0%}"),
+        row("tasks finished on tools alone", "task_coverage", "{:.0%}"),
+        f"| tool calls that failed | {a['failed_tool_actions']} | "
+        f"{b['failed_tool_actions']} |",
+        "",
+        f"Cost per successful task: **{head['cost_ratio_per_successful_task']:.1f}x** "
+        f"cheaper in B. p95 latency: **{head['p95_latency_ratio']:.1f}x** faster. "
+        f"p50 latency: **{head['p50_latency_ratio']:.1f}x** faster.",
+        "",
+        "### Synthesis ground truth", "",
+        "| measure | value |",
+        "| --- | --- |",
+        f"| documented endpoints the demonstrations touched | {len(gt['observed_endpoints'])} |",
+        f"| endpoint recall (unweighted) | {gt['endpoint_recall']:.0%} |",
+        f"| endpoint recall (weighted by call volume) | {gt['weighted_endpoint_recall']:.0%} |",
+        f"| parameter typing accuracy | "
+        f"{typing.get('accuracy', 0):.0%} ({typing.get('correct', 0)}/{typing.get('scored', 0)} scored) |",
+        f"| from_response bindings induced | {gt['from_response_bindings']} |",
+        f"| tools failing on an unresolved binding at replay | "
+        f"{gt['from_response_failed_at_replay']} |",
+        f"| provenance false-positive rate at replay | {gt['false_provenance_rate']:.0%} |",
+        "",
+        "### Induced tools", "",
+        "| tool | support | class | verified | steps | parameters |",
+        "| --- | --- | --- | --- | --- | --- |",
+    ]
+    for tool in gt["tools"]:
+        params = ", ".join(f"`{p}`" for p in tool["params"]) or "—"
+        lines.append(f"| `{tool['name']}` | {tool['support']} | "
+                     f"{tool['mutation_class']} | "
+                     f"{'yes' if tool['verified'] else 'no'} | {tool['steps']} | "
+                     f"{params} |")
+
+    per_template = b.get("per_template", {})
+    if per_template:
+        lines += ["", "### Per held-out template (condition B)", "",
+                  "| template | success | action coverage | task coverage | "
+                  "USD/task | steps |",
+                  "| --- | --- | --- | --- | --- | --- |"]
+        for name, row_data in per_template.items():
+            lines.append(
+                f"| {name} | {row_data['success_rate']:.0%} | "
+                f"{row_data['coverage']:.0%} | "
+                f"{row_data.get('task_coverage', 0):.0%} | "
+                f"${row_data['usd_per_task']:.5f} | "
+                f"{row_data['mean_steps']:.1f} |")
+
+    attain = report.get("attainable_coverage")
+    if attain:
+        lines += ["", "### Attainable coverage (router-independent ceiling)", "",
+                  f"{attain['attainable']}/{attain['tasks']} held-out tasks "
+                  f"({attain['rate']:.0%}) can be completed by some verified "
+                  "synthesized tool when the oracle supplies the arguments.", "",
+                  "| template | attainable |", "| --- | --- |"]
+        for name, rate in attain.get("by_template", {}).items():
+            lines.append(f"| {name} | {rate:.0%} |")
+
+    sweep = report.get("coverage_sweep")
+    if sweep:
+        lines += ["", "### Coverage vs observation volume", "",
+                  "| sessions | episodes | tools | verified | achieved coverage | attainable |",
+                  "| --- | --- | --- | --- | --- | --- |"]
+        for point in sweep:
+            lines.append(
+                f"| {point['sessions']} | {point.get('episodes', '—')} | "
+                f"{point.get('tools', '—')} | {point.get('verified_tools', '—')} | "
+                f"{point.get('coverage', 0):.0%} | "
+                f"{point.get('attainable_coverage', 0):.0%} |")
+    return "\n".join(lines)
+
+
 def main() -> int:
     cfg = get_config()
     report = build_report(cfg)
     out = cfg.path("artifacts") / "metrics.json"
     out.write_text(json.dumps(report, indent=2, default=str))
+    tables = cfg.path("artifacts") / "findings_tables.md"
+    tables.write_text(markdown_tables(report))
 
     rows = load_results(cfg.path("results"))
     charts = render_all(rows, cfg) if rows else []
@@ -125,6 +223,7 @@ def main() -> int:
     for path in charts:
         print(f"chart: {path}")
     print(f"metrics: {out}")
+    print(f"tables:  {tables}")
     return 0
 
 

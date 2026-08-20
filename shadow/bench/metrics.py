@@ -26,6 +26,12 @@ def usd(cfg: Config, usage: dict[str, Any]) -> float:
             + usage.get("output_tokens", 0) / 1e6 * price.output)
 
 
+def _tool_only(row: dict[str, Any]) -> bool:
+    """Did this run finish on synthesized tools alone?"""
+    served = [step.get("served_by") for step in row.get("steps", [])]
+    return "tool" in served and "browser_fallback" not in served and "browser" not in served
+
+
 def _pct(values: list[float], q: float) -> float:
     if not values:
         return 0.0
@@ -48,14 +54,19 @@ class ConditionMetrics:
     p95_latency_s: float = 0.0
     mean_steps: float = 0.0
     coverage: float = 0.0
+    # Fraction of runs finished without ever touching the browser. Action
+    # coverage counts a tool call that succeeded but did not advance the
+    # task; this does not.
+    task_coverage: float = 0.0
     tool_actions: int = 0
     browser_actions: int = 0
+    failed_tool_actions: int = 0
     simulated_policy: bool = False
     per_template: dict[str, dict[str, Any]] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         d = dict(self.__dict__)
-        for key in ("success_rate", "pass_hat_k", "coverage"):
+        for key in ("success_rate", "pass_hat_k", "coverage", "task_coverage"):
             d[key] = round(d[key], 4)
         for key in ("usd_per_task", "usd_per_successful_task", "total_usd"):
             d[key] = round(d[key], 6)
@@ -107,6 +118,10 @@ def score_condition(rows: list[dict[str, Any]], condition: str,
     m.browser_actions = sum(int(r.get("browser_actions", 0)) for r in rows)
     total_actions = m.tool_actions + m.browser_actions
     m.coverage = m.tool_actions / total_actions if total_actions else 0.0
+    m.failed_tool_actions = sum(
+        1 for r in rows for step in r.get("steps", [])
+        if step.get("served_by") == "tool_failed")
+    m.task_coverage = sum(1 for r in rows if _tool_only(r)) / len(rows)
     m.simulated_policy = any(r["usage"].get("simulated") for r in rows)
 
     for template_id in sorted({r["template_id"] for r in rows}):
@@ -121,6 +136,8 @@ def score_condition(rows: list[dict[str, Any]], condition: str,
             "usd_per_task": round(sum(tcosts) / len(tcosts), 6),
             "mean_steps": round(statistics.fmean(float(r["n_steps"]) for r in trows), 2),
             "coverage": round(t_tool / t_all, 3) if t_all else 0.0,
+            "task_coverage": round(
+                sum(1 for r in trows if _tool_only(r)) / len(trows), 3),
             "p95_latency_s": round(_pct([float(r["wall_s"]) for r in trows], 0.95), 2),
         }
     return m
@@ -157,7 +174,8 @@ class Comparison:
             f"${self.b.usd_per_successful_task:.5f}/successful task  "
             f"p50 {self.b.p50_latency_s:.1f}s  p95 {self.b.p95_latency_s:.1f}s  "
             f"steps {self.b.mean_steps:.1f}\n"
-            f"coverage (actions served by synthesized tools): {self.b.coverage:.0%}\n"
+            f"coverage: {self.b.coverage:.0%} of actions served by synthesized "
+            f"tools; {self.b.task_coverage:.0%} of tasks finished on tools alone\n"
             f"cost per successful task: {self.cost_ratio:.1f}x cheaper\n"
             f"p95 latency: {self.p95_ratio:.1f}x faster")
 

@@ -162,6 +162,15 @@ def score_condition(rows: list[dict[str, Any]], condition: str,
     return m
 
 
+def _direction(ratio: float, better: str, worse: str) -> str:
+    """Say which way a ratio points. A ratio below 1 is not "0.7x better"."""
+    if ratio == float("inf"):
+        return f"unbounded {better}"
+    if ratio >= 1:
+        return f"{ratio:.1f}x {better} in B"
+    return f"{1 / ratio:.1f}x {worse} in B" if ratio else "n/a"
+
+
 @dataclass
 class Comparison:
     a: ConditionMetrics
@@ -195,8 +204,8 @@ class Comparison:
             f"steps {self.b.mean_steps:.1f}\n"
             f"coverage: {self.b.coverage:.0%} of actions served by synthesized "
             f"tools; {self.b.task_coverage:.0%} of tasks finished on tools alone\n"
-            f"cost per successful task: {self.cost_ratio:.1f}x cheaper\n"
-            f"p95 latency: {self.p95_ratio:.1f}x faster")
+            f"cost per successful task: {_direction(self.cost_ratio, 'cheaper', 'more expensive')}\n"
+            f"p95 latency: {_direction(self.p95_ratio, 'faster', 'slower')}")
 
 
 def compare(rows: list[dict[str, Any]], cfg: Config | None = None) -> Comparison:

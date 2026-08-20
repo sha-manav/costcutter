@@ -12,7 +12,7 @@ from shadow.distill.endpoints import chrome_endpoints, is_noise
 from shadow.distill.induce import trim_episode
 from shadow.distill.provenance import ProvenanceEngine
 from shadow.bench.charts import render_all
-from shadow.bench.metrics import compare, endpoint_recall, load_results
+from shadow.bench.metrics import _direction, compare, endpoint_recall, load_results
 
 from oracle.api_surface import classify_endpoint
 from oracle.client import OracleClient
@@ -194,9 +194,9 @@ def markdown_tables(report: dict[str, Any]) -> str:
         f"| tool calls that failed | {a['failed_tool_actions']} | "
         f"{b['failed_tool_actions']} |",
         "",
-        f"Cost per successful task: **{head['cost_ratio_per_successful_task']:.1f}x** "
-        f"cheaper in B. p95 latency: **{head['p95_latency_ratio']:.1f}x** faster. "
-        f"p50 latency: **{head['p50_latency_ratio']:.1f}x** faster.",
+        f"Cost per successful task: **{_direction(head['cost_ratio_per_successful_task'], 'cheaper', 'more expensive')}**. "
+        f"p95 latency: **{_direction(head['p95_latency_ratio'], 'faster', 'slower')}**. "
+        f"p50 latency: **{_direction(head['p50_latency_ratio'], 'faster', 'slower')}**.",
         "",
         "### Synthesis ground truth", "",
         "| measure | value |",

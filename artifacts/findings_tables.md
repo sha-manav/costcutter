@@ -15,7 +15,7 @@
 | tasks finished on tools alone | 0% | 17% |
 | tool calls that failed | 0 | 36 |
 
-Cost per successful task: **0.7x** cheaper in B. p95 latency: **0.9x** faster. p50 latency: **1.0x** faster.
+Cost per successful task: **1.5x more expensive in B**. p95 latency: **1.1x slower in B**. p50 latency: **1.0x slower in B**.
 
 ### Synthesis ground truth
 

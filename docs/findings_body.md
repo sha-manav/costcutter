@@ -225,7 +225,7 @@ cannot induce a field nobody ever filled in.
 
 The corollary is a scaling prediction the design supports: observing writes
 across *n* record types should turn the doctype into a parameter and the
-union of their fields into optional parameters, at which case the marginal
+union of their fields into optional parameters, at which point the marginal
 cost of the (n+1)th record type is only its own fields. Testing that
 requires an OBSERVE split with more write diversity than this one has, which
 would mean regenerating the split — and the split is fixed.

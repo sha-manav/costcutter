@@ -110,14 +110,27 @@ def test_pinned_templates_go_to_observe_and_never_to_eval():
             assert template_id not in split.eval
 
 
-def test_no_added_template_writes_an_eval_record_type():
-    """A new OBSERVE template on an EVAL record type would leak the answer."""
-    from shadow.bench.tasks import EVAL_TEMPLATE_IDS, PINNED_OBSERVE, TEMPLATES
+def test_no_observe_template_writes_an_eval_record_type():
+    """An OBSERVE template on an EVAL record type would leak the answer.
 
-    eval_record_types = {"supplier", "item", "sales order", "sales invoice"}
+    Compared exactly, by declared record type: "Item Group" is not "Item",
+    and a substring check would reject it wrongly.
+    """
+    from shadow.bench.tasks import EVAL_TEMPLATE_IDS, TEMPLATES, template
+
+    eval_writes = {template(t).writes for t in EVAL_TEMPLATE_IDS} - {None}
+    assert eval_writes == {"Sales Order", "Supplier", "Item", "Sales Invoice"}
+
+    split = make_split()
     for tmpl in TEMPLATES:
-        if tmpl.id not in PINNED_OBSERVE:
+        if tmpl.id not in split.observe or tmpl.writes is None:
             continue
-        subject = tmpl.title.lower()
-        assert not any(rt in subject for rt in eval_record_types), (
-            f"{tmpl.id} writes a record type an EVAL template writes")
+        assert tmpl.writes not in eval_writes, (
+            f"{tmpl.id} writes {tmpl.writes!r}, which an EVAL template writes")
+
+
+def test_every_write_template_declares_what_it_writes():
+    from shadow.bench.tasks import TEMPLATES
+
+    for tmpl in TEMPLATES:
+        assert (tmpl.writes is not None) == (tmpl.kind == "write"), tmpl.id

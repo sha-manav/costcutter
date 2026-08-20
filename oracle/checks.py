@@ -187,6 +187,48 @@ def sales_invoice_created(oc: OracleClient, params: dict, answer: str, **_) -> C
     return CheckResult(False, "no sales invoice with the requested item and qty")
 
 
+# ---- record types written only by OBSERVE templates -----------------------
+# Added to test whether write tools transfer across record types. None of
+# these is a record type an EVAL template writes.
+
+def _exists(oc: OracleClient, doctype: str, field: str, value: str) -> CheckResult:
+    rows = oc.list(doctype, filters=[[field, "=", value]], fields=["name"], limit=5)
+    return CheckResult(bool(rows),
+                       f"{doctype} {value!r} {'exists' if rows else 'missing'}")
+
+
+def contact_created(oc: OracleClient, params: dict, answer: str, **_) -> CheckResult:
+    rows = oc.list("Contact",
+                   filters=[["first_name", "=", params["first_name"]]],
+                   fields=["name", "last_name"], limit=5)
+    if not rows:
+        return CheckResult(False, f"contact {params['first_name']!r} not created")
+    return CheckResult(True, f"contact {rows[0]['name']} exists")
+
+
+def lead_created(oc: OracleClient, params: dict, answer: str, **_) -> CheckResult:
+    return _exists(oc, "Lead", "company_name", params["company_name"])
+
+
+def warehouse_created(oc: OracleClient, params: dict, answer: str, **_) -> CheckResult:
+    return _exists(oc, "Warehouse", "warehouse_name", params["warehouse_name"])
+
+
+def item_group_created(oc: OracleClient, params: dict, answer: str, **_) -> CheckResult:
+    return _exists(oc, "Item Group", "item_group_name",
+                   params["item_group_name"])
+
+
+def supplier_group_created(oc: OracleClient, params: dict, answer: str,
+                           **_) -> CheckResult:
+    return _exists(oc, "Supplier Group", "supplier_group_name",
+                   params["supplier_group_name"])
+
+
+def territory_created(oc: OracleClient, params: dict, answer: str, **_) -> CheckResult:
+    return _exists(oc, "Territory", "territory_name", params["territory_name"])
+
+
 CHECKS: dict[str, Callable[..., CheckResult]] = {
     "customer_outstanding": customer_outstanding,
     "overdue_invoice_count": overdue_invoice_count,
@@ -202,6 +244,12 @@ CHECKS: dict[str, Callable[..., CheckResult]] = {
     "item_created": item_created,
     "customer_group_updated": customer_group_updated,
     "sales_invoice_created": sales_invoice_created,
+    "contact_created": contact_created,
+    "lead_created": lead_created,
+    "warehouse_created": warehouse_created,
+    "item_group_created": item_group_created,
+    "supplier_group_created": supplier_group_created,
+    "territory_created": territory_created,
 }
 
 

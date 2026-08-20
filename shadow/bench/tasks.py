@@ -28,6 +28,11 @@ class TaskTemplate:
     kind: str                       # "read" | "write"
     check: str                      # name of the oracle check
     param_sets: tuple[dict[str, Any], ...]
+    # The record type a write template creates or updates, named exactly.
+    # Used to assert that no OBSERVE template writes what an EVAL template
+    # writes — a check that cannot be done by matching substrings, since
+    # "Item Group" is not "Item".
+    writes: str | None = None
 
 
 @dataclass(frozen=True)
@@ -115,6 +120,7 @@ TEMPLATES: tuple[TaskTemplate, ...] = (
         goal=("Create a new customer named '{customer_name}' with customer group "
               "'Commercial' and territory 'All Territories'."),
         kind="write", check="customer_created",
+        writes="Customer",
         param_sets=({"customer_name": "Meridian Logistics"},
                     {"customer_name": "Northgate Foods"},
                     {"customer_name": "Orchid Chemicals"}),
@@ -125,6 +131,7 @@ TEMPLATES: tuple[TaskTemplate, ...] = (
         goal=("Create a sales order for customer '{customer}' with {qty} units of "
               "item '{item_code}'. Leave it as a draft."),
         kind="write", check="sales_order_created",
+        writes="Sales Order",
         param_sets=({"customer": "Kestrel Aviation", "item_code": "SH-GEAR-02", "qty": 5},
                     {"customer": "Juniper Analytics", "item_code": "SH-SENSOR-01", "qty": 12},
                     {"customer": "Granite Construction", "item_code": "SH-BELT-01", "qty": 7}),
@@ -135,6 +142,7 @@ TEMPLATES: tuple[TaskTemplate, ...] = (
         goal=("Create a new supplier named '{supplier_name}' with supplier group "
               "'Services'."),
         kind="write", check="supplier_created",
+        writes="Supplier",
         param_sets=({"supplier_name": "Sable Tooling"},
                     {"supplier_name": "Terra Castings"},
                     {"supplier_name": "Umbra Coatings"}),
@@ -145,6 +153,7 @@ TEMPLATES: tuple[TaskTemplate, ...] = (
         goal=("Change the Standard Selling price list rate for item '{item_code}' "
               "to {new_rate}."),
         kind="write", check="item_price_updated",
+        writes="Item Price",
         param_sets=({"item_code": "SH-BEARING-02", "new_rate": 71.25},
                     {"item_code": "SH-SHAFT-01", "new_rate": 235.00},
                     {"item_code": "SH-SENSOR-02", "new_rate": 151.50}),
@@ -155,6 +164,7 @@ TEMPLATES: tuple[TaskTemplate, ...] = (
         goal=("Create a new item with item code '{item_code}', item name "
               "'{item_name}', item group 'Products' and stock UOM 'Nos'."),
         kind="write", check="item_created",
+        writes="Item",
         param_sets=({"item_code": "SH-CLAMP-01", "item_name": "Toggle Clamp 200N"},
                     {"item_code": "SH-ROTOR-01", "item_name": "Rotor Assembly 90mm"},
                     {"item_code": "SH-FILTER-01", "item_name": "Inline Filter 40um"}),
@@ -165,9 +175,81 @@ TEMPLATES: tuple[TaskTemplate, ...] = (
         goal=("Change the customer group of customer '{customer}' to "
               "'{customer_group}'."),
         kind="write", check="customer_group_updated",
+        writes="Customer",
         param_sets=({"customer": "Lumen Optics", "customer_group": "Individual"},
                     {"customer": "Kestrel Aviation", "customer_group": "Individual"},
                     {"customer": "Ironwood Timber", "customer_group": "Individual"}),
+    ),
+    # ---------------- writes added to OBSERVE after the split was frozen ----
+    # Six more record types written through the desk, none of them a record
+    # type any EVAL template writes. They exist to test one prediction: that
+    # observing writes across n record types turns the record type into a
+    # parameter and the union of fields into optional ones, so the (n+1)th
+    # type costs only its own fields.
+    TaskTemplate(
+        id="T15_create_contact",
+        title="Create a contact",
+        goal=("Create a new contact with first name '{first_name}' and last "
+              "name '{last_name}'."),
+        kind="write", check="contact_created",
+        writes="Contact",
+        param_sets=({"first_name": "Priya", "last_name": "Raman"},
+                    {"first_name": "Tomas", "last_name": "Lindqvist"},
+                    {"first_name": "Ada", "last_name": "Okonkwo"}),
+    ),
+    TaskTemplate(
+        id="T16_create_lead",
+        title="Create a lead",
+        goal=("Create a new lead for the organisation '{company_name}' with "
+              "first name '{first_name}'."),
+        kind="write", check="lead_created",
+        writes="Lead",
+        param_sets=({"company_name": "Halcyon Robotics", "first_name": "Dana"},
+                    {"company_name": "Pinewood Freight", "first_name": "Elias"},
+                    {"company_name": "Quartz Analytics", "first_name": "Mei"}),
+    ),
+    TaskTemplate(
+        id="T17_create_warehouse",
+        title="Create a warehouse",
+        goal="Create a new warehouse named '{warehouse_name}'.",
+        kind="write", check="warehouse_created",
+        writes="Warehouse",
+        param_sets=({"warehouse_name": "Overflow Bay"},
+                    {"warehouse_name": "Cold Store"},
+                    {"warehouse_name": "Transit Dock"}),
+    ),
+    TaskTemplate(
+        id="T18_create_item_group",
+        title="Create an item group",
+        goal=("Create a new item group named '{item_group_name}' under "
+              "'All Item Groups'."),
+        kind="write", check="item_group_created",
+        writes="Item Group",
+        param_sets=({"item_group_name": "Bearings"},
+                    {"item_group_name": "Actuators"},
+                    {"item_group_name": "Fasteners"}),
+    ),
+    TaskTemplate(
+        id="T19_create_supplier_group",
+        title="Create a supplier group",
+        goal=("Create a new supplier group named '{supplier_group_name}' "
+              "under 'All Supplier Groups'."),
+        kind="write", check="supplier_group_created",
+        writes="Supplier Group",
+        param_sets=({"supplier_group_name": "Castings"},
+                    {"supplier_group_name": "Fabrication"},
+                    {"supplier_group_name": "Logistics Partners"}),
+    ),
+    TaskTemplate(
+        id="T20_create_territory",
+        title="Create a territory",
+        goal=("Create a new territory named '{territory_name}' under "
+              "'All Territories'."),
+        kind="write", check="territory_created",
+        writes="Territory",
+        param_sets=({"territory_name": "Nordics"},
+                    {"territory_name": "Iberia"},
+                    {"territory_name": "Great Lakes"}),
     ),
     TaskTemplate(
         id="T14_create_sales_invoice",
@@ -175,6 +257,7 @@ TEMPLATES: tuple[TaskTemplate, ...] = (
         goal=("Create a sales invoice for customer '{customer}' with {qty} units "
               "of item '{item_code}'. Leave it as a draft."),
         kind="write", check="sales_invoice_created",
+        writes="Sales Invoice",
         param_sets=({"customer": "Everest Outfitters", "item_code": "SH-MOTOR-02", "qty": 2},
                     {"customer": "Cobalt Robotics", "item_code": "SH-PANEL-01", "qty": 3},
                     {"customer": "Fjord Marine", "item_code": "SH-CABLE-01", "qty": 25}),

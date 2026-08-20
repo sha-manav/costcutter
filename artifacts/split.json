@@ -7,7 +7,13 @@
     "T07_items_below_price",
     "T08_create_customer",
     "T11_update_item_price",
-    "T13_update_customer_group"
+    "T13_update_customer_group",
+    "T15_create_contact",
+    "T16_create_lead",
+    "T17_create_warehouse",
+    "T18_create_item_group",
+    "T19_create_supplier_group",
+    "T20_create_territory"
   ],
   "eval": [
     "T03_stock_on_hand",

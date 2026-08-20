@@ -53,6 +53,25 @@ VARIATIONS: dict[str, dict[str, list[Any]]] = {
         "customer": ["Lumen Optics", "Kestrel Aviation", "Ironwood Timber",
                      "Juniper Analytics", "Halcyon Media", "Fjord Marine"],
         "customer_group": ["Individual", "Commercial"]},
+    "T15_create_contact": {
+        "first_name": ["Priya", "Tomas", "Ada", "Nils", "Rosa", "Kwame"],
+        "last_name": ["Raman", "Lindqvist", "Okonkwo", "Berg", "Alvarez", "Mensah"]},
+    "T16_create_lead": {
+        "company_name": ["Halcyon Robotics", "Pinewood Freight",
+                         "Quartz Analytics", "Vellum Press", "Ridgeline Tools"],
+        "first_name": ["Dana", "Elias", "Mei", "Owen", "Sofia"]},
+    "T17_create_warehouse": {
+        "warehouse_name": ["Overflow Bay", "Cold Store", "Transit Dock",
+                           "Mezzanine", "Yard Two"]},
+    "T18_create_item_group": {
+        "item_group_name": ["Bearings", "Actuators", "Fasteners",
+                            "Enclosures", "Sensors"]},
+    "T19_create_supplier_group": {
+        "supplier_group_name": ["Castings", "Fabrication", "Logistics Partners",
+                                "Electronics", "Tooling"]},
+    "T20_create_territory": {
+        "territory_name": ["Nordics", "Iberia", "Great Lakes", "Benelux",
+                           "Cascadia"]},
 }
 
 
@@ -72,7 +91,15 @@ class SessionEntry:
 
 # Parameters that must be unique across demonstrations: creating the same
 # customer twice fails, and a failed demonstration teaches nothing.
-UNIQUE_PARAMS: dict[str, str] = {"T08_create_customer": "customer_name"}
+UNIQUE_PARAMS: dict[str, str] = {
+    "T08_create_customer": "customer_name",
+    "T15_create_contact": "last_name",
+    "T16_create_lead": "company_name",
+    "T17_create_warehouse": "warehouse_name",
+    "T18_create_item_group": "item_group_name",
+    "T19_create_supplier_group": "supplier_group_name",
+    "T20_create_territory": "territory_name",
+}
 
 
 def vary(template_id: str, base: dict[str, Any], rng: random.Random,

@@ -187,6 +187,64 @@ def create_sales_invoice(params: dict) -> Recipe:
     yield {"action": "done", "answer": f"created sales invoice at {obs.url}"}
 
 
+# ---- record types written only by OBSERVE templates -----------------------
+# Deliberately the same shape as create_customer: navigate to the new-document
+# route, fill the fields, save. What differs between them is the record type
+# and its fields, which is exactly the variation the write-transfer prediction
+# needs.
+
+def _create_document(route: str, fields: list[tuple[str, Any]],
+                     links: list[tuple[str, Any]] | None = None) -> Recipe:
+    yield {"action": "navigate", "url": _url(f"{route}/new")}
+    yield {"action": "wait", "ms": 2500}
+    for name, value in fields:
+        yield {"action": "field", "field": name, "value": value}
+    for name, value in links or []:
+        yield {"action": "link", "field": name, "value": value}
+    yield {"action": "save"}
+    obs = yield {"action": "wait", "ms": 1500}
+    yield {"action": "done", "answer": f"created at {obs.url}"}
+
+
+def create_contact(params: dict) -> Recipe:
+    yield from _create_document("contact", [
+        ("first_name", params["first_name"]),
+        ("last_name", params["last_name"]),
+    ])
+
+
+def create_lead(params: dict) -> Recipe:
+    yield from _create_document("lead", [
+        ("company_name", params["company_name"]),
+        ("first_name", params["first_name"]),
+    ])
+
+
+def create_warehouse(params: dict) -> Recipe:
+    yield from _create_document("warehouse", [
+        ("warehouse_name", params["warehouse_name"]),
+    ])
+
+
+def create_item_group(params: dict) -> Recipe:
+    yield from _create_document(
+        "item-group", [("item_group_name", params["item_group_name"])],
+        links=[("parent_item_group", "All Item Groups")])
+
+
+def create_supplier_group(params: dict) -> Recipe:
+    yield from _create_document(
+        "supplier-group",
+        [("supplier_group_name", params["supplier_group_name"])],
+        links=[("parent_supplier_group", "All Supplier Groups")])
+
+
+def create_territory(params: dict) -> Recipe:
+    yield from _create_document(
+        "territory", [("territory_name", params["territory_name"])],
+        links=[("parent_territory", "All Territories")])
+
+
 def update_item_price(params: dict) -> Recipe:
     obs = yield {"action": "navigate",
                  "url": _url(f"item-price?item_code={_q(params['item_code'])}"
@@ -229,4 +287,10 @@ RECIPES: dict[str, Callable[[dict], Recipe]] = {
     "T12_create_item": create_item,
     "T13_update_customer_group": update_customer_group,
     "T14_create_sales_invoice": create_sales_invoice,
+    "T15_create_contact": create_contact,
+    "T16_create_lead": create_lead,
+    "T17_create_warehouse": create_warehouse,
+    "T18_create_item_group": create_item_group,
+    "T19_create_supplier_group": create_supplier_group,
+    "T20_create_territory": create_territory,
 }

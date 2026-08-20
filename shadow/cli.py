@@ -90,7 +90,11 @@ def cmd_distill(args) -> int:
         set(json.loads(p.read_text()).get("observe", []))
         if (p := cfg.path("split")).exists() else [])
     emit(catalog, cfg.path("tools"), cfg.path("mcp_server"), REPO_ROOT)
-    print(f"\nsignature groups: {induction.groups_seen}  "
+    print(f"\nload-bearing records: {induction.records_load_bearing}"
+          f"/{induction.records_in} "
+          f"({induction.records_load_bearing / max(1, induction.records_in):.1%} "
+          f"of the filtered stream)")
+    print(f"signature groups: {induction.groups_seen}  "
           f"below min_support: {induction.groups_below_support}  "
           f"dropped by rank: {induction.dropped_by_rank}")
     print(render_catalog(catalog))
@@ -98,6 +102,8 @@ def cmd_distill(args) -> int:
         print("\n" + catalog_to_openapi_like(catalog))
     (cfg.path("artifacts") / "induction_diagnostics.json").write_text(json.dumps({
         "groups_seen": induction.groups_seen,
+        "records_in": induction.records_in,
+        "records_load_bearing": induction.records_load_bearing,
         "groups_below_support": induction.groups_below_support,
         "dropped_by_rank": induction.dropped_by_rank,
         "diagnostics": induction.diagnostics,

@@ -17,8 +17,9 @@ import re
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-from shadow.capture.schema import ToolCatalog, ToolSpec, read_catalog, write_catalog
-from shadow.config import Config, get_config
+from shadow.capture.schema import ToolCatalog, ToolSpec, read_catalog
+from shadow.config import Config, REPO_ROOT, get_config
+from shadow.distill.emit import emit
 from shadow.serve.executor import ExecutionResult, ToolExecutor
 
 from oracle.client import OracleClient
@@ -185,7 +186,9 @@ def main() -> int:
     cfg = get_config()
     catalog = read_catalog(cfg.path("tools"))
     reports = verify_catalog(catalog, cfg, allow_writes=args.allow_writes)
-    write_catalog(cfg.path("tools"), catalog)
+    # Re-emit so the served catalog and the generated server header reflect
+    # what actually verified.
+    emit(catalog, cfg.path("tools"), cfg.path("mcp_server"), REPO_ROOT)
     (cfg.path("artifacts") / "verify_report.json").write_text(
         json.dumps([r.to_dict() for r in reports], indent=2))
     print(json.dumps([r.to_dict() for r in reports], indent=2) if args.json

@@ -327,6 +327,8 @@ class InductionResult:
     groups_seen: int = 0
     groups_below_support: int = 0
     dropped_by_rank: int = 0
+    records_in: int = 0
+    records_load_bearing: int = 0
     diagnostics: list[str] = field(default_factory=list)
 
 
@@ -351,6 +353,8 @@ def induce(episodes: list[Episode], cfg: Config | None = None,
 
     result = InductionResult(catalog=ToolCatalog(), usage=usage)
     result.groups_seen = len(groups)
+    result.records_in = sum(len(ep.records) for ep in episodes)
+    result.records_load_bearing = sum(len(t.records) for t in trimmed)
     result.diagnostics.append(
         f"chrome endpoints dropped by document frequency "
         f"(>={cfg.induce.chrome_df:.0%} of episodes): {sorted(chrome)}")

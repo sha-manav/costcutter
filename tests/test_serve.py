@@ -174,3 +174,20 @@ def test_server_registers_the_induced_schema(tmp_path):
     tool = asyncio.run(server.get_tool("list_records"))
     assert tool.parameters["properties"]["doctype"]["type"] == "string"
     assert tool.parameters["required"] == ["doctype"]
+
+
+def test_emitted_server_module_is_runnable(tmp_path):
+    """The generated MCP server must import and build from its catalog."""
+    from shadow.config import REPO_ROOT
+    from shadow.distill.emit import emit
+
+    catalog = ToolCatalog(tools=[_tool()])
+    tools_path = tmp_path / "tools.json"
+    server_path = tmp_path / "mcp_server.py"
+    emit(catalog, tools_path, server_path, REPO_ROOT)
+
+    source = server_path.read_text()
+    assert "build_server" in source and str(tools_path) in source
+    compile(source, str(server_path), "exec")
+    server = build_server(tools_path)
+    assert asyncio.run(server.get_tool("list_records")) is not None

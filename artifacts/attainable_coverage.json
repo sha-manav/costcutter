@@ -1,10 +1,10 @@
 {
   "tasks": 18,
-  "attainable": 0,
-  "rate": 0.0,
+  "attainable": 6,
+  "rate": 0.3333,
   "by_template": {
-    "T03_stock_on_hand": 0.0,
-    "T06_latest_order_total": 0.0,
+    "T03_stock_on_hand": 1.0,
+    "T06_latest_order_total": 1.0,
     "T09_create_sales_order": 0.0,
     "T10_create_supplier": 0.0,
     "T12_create_item": 0.0,
@@ -14,198 +14,90 @@
     {
       "task_id": "T03_stock_on_hand#0",
       "template_id": "T03_stock_on_hand",
-      "attainable": false,
-      "tool": null,
-      "detail": "no number in answer ''",
+      "attainable": true,
+      "tool": "list_records",
+      "detail": "expected 250.0, got 250.0",
       "attempts": [
         {
           "tool": "list_records",
-          "ok": false,
-          "answer": null,
-          "why": "no number in answer ''"
-        },
-        {
-          "tool": "list_customers",
-          "ok": false,
-          "answer": null,
-          "why": "no number in answer ''"
-        },
-        {
-          "tool": "list_records_2",
-          "ok": false,
-          "answer": "1",
-          "why": "expected 250.0, got 1.0"
-        },
-        {
-          "tool": "list_records_3",
-          "ok": false,
-          "answer": null,
-          "why": "no number in answer ''"
+          "ok": true,
+          "answer": "250.00",
+          "why": "expected 250.0, got 250.0"
         }
       ]
     },
     {
       "task_id": "T03_stock_on_hand#1",
       "template_id": "T03_stock_on_hand",
-      "attainable": false,
-      "tool": null,
-      "detail": "no number in answer ''",
+      "attainable": true,
+      "tool": "list_records",
+      "detail": "expected 250.0, got 250.0",
       "attempts": [
         {
           "tool": "list_records",
-          "ok": false,
-          "answer": null,
-          "why": "no number in answer ''"
-        },
-        {
-          "tool": "list_customers",
-          "ok": false,
-          "answer": null,
-          "why": "no number in answer ''"
-        },
-        {
-          "tool": "list_records_2",
-          "ok": false,
-          "answer": "1",
-          "why": "expected 250.0, got 1.0"
-        },
-        {
-          "tool": "list_records_3",
-          "ok": false,
-          "answer": null,
-          "why": "no number in answer ''"
+          "ok": true,
+          "answer": "250.00",
+          "why": "expected 250.0, got 250.0"
         }
       ]
     },
     {
       "task_id": "T03_stock_on_hand#2",
       "template_id": "T03_stock_on_hand",
-      "attainable": false,
-      "tool": null,
-      "detail": "no number in answer ''",
+      "attainable": true,
+      "tool": "list_records",
+      "detail": "expected 250.0, got 250.0",
       "attempts": [
         {
           "tool": "list_records",
-          "ok": false,
-          "answer": null,
-          "why": "no number in answer ''"
-        },
-        {
-          "tool": "list_customers",
-          "ok": false,
-          "answer": null,
-          "why": "no number in answer ''"
-        },
-        {
-          "tool": "list_records_2",
-          "ok": false,
-          "answer": "1",
-          "why": "expected 250.0, got 1.0"
-        },
-        {
-          "tool": "list_records_3",
-          "ok": false,
-          "answer": null,
-          "why": "no number in answer ''"
+          "ok": true,
+          "answer": "250.00",
+          "why": "expected 250.0, got 250.0"
         }
       ]
     },
     {
       "task_id": "T06_latest_order_total#0",
       "template_id": "T06_latest_order_total",
-      "attainable": false,
-      "tool": null,
-      "detail": "no number in answer ''",
+      "attainable": true,
+      "tool": "list_records",
+      "detail": "expected 589.0, got 589.0",
       "attempts": [
         {
           "tool": "list_records",
-          "ok": false,
-          "answer": null,
-          "why": "no number in answer ''"
-        },
-        {
-          "tool": "list_customers",
-          "ok": false,
-          "answer": null,
-          "why": "no number in answer ''"
-        },
-        {
-          "tool": "list_records_2",
-          "ok": false,
-          "answer": "1",
-          "why": "expected 589.0, got 1.0"
-        },
-        {
-          "tool": "list_records_3",
-          "ok": false,
-          "answer": null,
-          "why": "no number in answer ''"
+          "ok": true,
+          "answer": "589.00",
+          "why": "expected 589.0, got 589.0"
         }
       ]
     },
     {
       "task_id": "T06_latest_order_total#1",
       "template_id": "T06_latest_order_total",
-      "attainable": false,
-      "tool": null,
-      "detail": "no number in answer ''",
+      "attainable": true,
+      "tool": "list_records",
+      "detail": "expected 1060.6, got 1060.6",
       "attempts": [
         {
           "tool": "list_records",
-          "ok": false,
-          "answer": null,
-          "why": "no number in answer ''"
-        },
-        {
-          "tool": "list_customers",
-          "ok": false,
-          "answer": null,
-          "why": "no number in answer ''"
-        },
-        {
-          "tool": "list_records_2",
-          "ok": false,
-          "answer": "1",
-          "why": "expected 1060.6, got 1.0"
-        },
-        {
-          "tool": "list_records_3",
-          "ok": false,
-          "answer": null,
-          "why": "no number in answer ''"
+          "ok": true,
+          "answer": "1060.60",
+          "why": "expected 1060.6, got 1060.6"
         }
       ]
     },
     {
       "task_id": "T06_latest_order_total#2",
       "template_id": "T06_latest_order_total",
-      "attainable": false,
-      "tool": null,
-      "detail": "no number in answer ''",
+      "attainable": true,
+      "tool": "list_records",
+      "detail": "expected 1300.0, got 1300.0",
       "attempts": [
         {
           "tool": "list_records",
-          "ok": false,
-          "answer": null,
-          "why": "no number in answer ''"
-        },
-        {
-          "tool": "list_customers",
-          "ok": false,
-          "answer": null,
-          "why": "no number in answer ''"
-        },
-        {
-          "tool": "list_records_2",
-          "ok": false,
-          "answer": "1",
-          "why": "expected 1300.0, got 1.0"
-        },
-        {
-          "tool": "list_records_3",
-          "ok": false,
-          "answer": null,
-          "why": "no number in answer ''"
+          "ok": true,
+          "answer": "1300.00",
+          "why": "expected 1300.0, got 1300.0"
         }
       ]
     },

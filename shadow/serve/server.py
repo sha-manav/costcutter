@@ -29,13 +29,19 @@ def _signature_hint(spec: ToolSpec) -> str:
     return ", ".join(parts)
 
 
-def tool_description(spec: ToolSpec) -> str:
-    prefix = ""
+def mutation_prefix(spec: ToolSpec) -> str:
     if spec.mutation_class == "write":
-        prefix = "[writes data] "
-    elif spec.mutation_class == "destructive":
-        prefix = "[DESTRUCTIVE] "
-    return f"{prefix}{spec.description} Parameters: {_signature_hint(spec)}"
+        return "[writes data] "
+    if spec.mutation_class == "destructive":
+        return "[DESTRUCTIVE] "
+    return ""
+
+
+def tool_description(spec: ToolSpec) -> str:
+    """Description for MCP, where the schema travels separately but a
+    signature hint in the text still helps a caller."""
+    return f"{mutation_prefix(spec)}{spec.description} " \
+           f"Parameters: {_signature_hint(spec)}"
 
 
 def exposed_tools(catalog: ToolCatalog, allow_writes: bool,

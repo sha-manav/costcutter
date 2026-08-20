@@ -20,7 +20,7 @@ from shadow.llm import LLMClient, LLMUsage, make_client, register_policy
 from shadow.route.browser_agent import RunResult, StepRecord, RecipeDriver
 from shadow.route.observation import snapshot
 from shadow.serve.executor import ExecutionResult, ToolExecutor
-from shadow.serve.server import tool_description
+from shadow.serve.server import mutation_prefix
 
 SYSTEM_PROMPT = """You are an agent operating an ERP system.
 
@@ -50,11 +50,44 @@ def tokens(text: str) -> set[str]:
 # Prompt
 # --------------------------------------------------------------------------
 
+MAX_EXAMPLE_CHARS = 60
+MAX_ENUM_VALUES = 6
+
+
+def compact_schema(spec: ToolSpec) -> dict[str, Any]:
+    """The schema as offered to an agent.
+
+    The induced schema carries a full observed value as `examples`, which for
+    a list query is the entire column list of whichever record type happened
+    to be captured — hundreds of characters per parameter, repeated for every
+    tool, in every prompt. A caller needs the shape, not the specimen.
+    """
+    props: dict[str, Any] = {}
+    required = set(spec.params_schema.get("required", []))
+    for name, schema in spec.params_schema.get("properties", {}).items():
+        compact: dict[str, Any] = {"type": schema.get("type", "string")}
+        if schema.get("format"):
+            compact["format"] = schema["format"]
+        enum = schema.get("enum")
+        if enum:
+            compact["enum"] = [str(v)[:MAX_EXAMPLE_CHARS]
+                               for v in enum[:MAX_ENUM_VALUES]]
+        examples = schema.get("examples") or []
+        if examples and not enum:
+            text = json.dumps(examples[0], default=str)
+            compact["example"] = (text[:MAX_EXAMPLE_CHARS] + "…"
+                                  if len(text) > MAX_EXAMPLE_CHARS else text)
+        if name not in required:
+            compact["optional"] = True
+        props[name] = compact
+    return props
+
+
 def render_tools(tools: list[ToolSpec]) -> str:
     lines = []
     for spec in tools:
-        lines.append(f"- {spec.name}: {tool_description(spec)}")
-        lines.append(f"    schema: {json.dumps(spec.params_schema)}")
+        lines.append(f"- {spec.name}: {mutation_prefix(spec)}{spec.description}")
+        lines.append(f"    parameters: {json.dumps(compact_schema(spec))}")
     lines.append("- browser_task: Drive the web UI to accomplish a goal in "
                  "natural language. Expensive; last resort.")
     return "\n".join(lines)

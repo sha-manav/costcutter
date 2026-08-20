@@ -98,3 +98,28 @@ def test_offline_and_litellm_clients_accept_the_same_call():
     source = inspect.getsource(LiteLLMClient.complete)
     assert 'kwargs.pop("policy", None)' in source
     assert 'kwargs.pop("policy_context", None)' in source
+
+
+def test_compact_schema_does_not_carry_whole_observed_values():
+    """A tool's prompt cost is paid on every step of every task."""
+    from shadow.capture.schema import ToolSpec
+    from shadow.route.agent import MAX_EXAMPLE_CHARS, compact_schema, render_tools
+
+    spec = ToolSpec(
+        name="list_records", description="List records.", mutation_class="read",
+        verified=True,
+        params_schema={
+            "type": "object", "required": ["doctype"],
+            "properties": {
+                "doctype": {"type": "string", "enum": ["Sales Order", "Item Price"]},
+                "fields": {"type": "array",
+                           "examples": [[f"`tabSales Order`.`col{i}`"
+                                         for i in range(30)]]},
+            }})
+    compact = compact_schema(spec)
+    assert compact["doctype"]["enum"] == ["Sales Order", "Item Price"]
+    assert "optional" not in compact["doctype"]
+    assert compact["fields"]["optional"] is True
+    assert len(compact["fields"]["example"]) <= MAX_EXAMPLE_CHARS + 1
+    # The full 30-column specimen must not reach the prompt.
+    assert "col29" not in render_tools([spec])

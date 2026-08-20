@@ -114,23 +114,36 @@ labels only feed naming, where the mutation classifier overrides them.
 extractor cannot produce:
 
     [0] POST /api/method/frappe.desk.reportview.get
-          body.filters       <- param(filters)
+          body.filters            <- param(filters)
     [1] GET  /api/method/frappe.desk.form.load.getdoc
-          query.name         <- step[0] $.message.values[0][0]
+          query.name              <- step[0] $.message.values[0][0]
     [2] POST /api/method/frappe.desk.form.save.savedocs
-          body.doc.name      <- step[0] $.message.values[0][0]
-          body.doc.owner     <- step[1] $.docs[0].owner
-          body.doc.creation  <- step[1] $.docs[0].creation
-          body.doc.item_code <- step[1] $.docs[0].item_code
-          body.doc.uom       <- step[1] $.docs[0].uom
-          body.doc.price_list<- step[1] $.docs[0].price_list
-          body.doc.currency  <- step[1] $.docs[0].currency
-          body.doc.valid_from<- step[1] $.docs[0].valid_from
-          body.doc.price_list_rate <- param(price_list_rate)
+          body.doc.name           <- step[0] $.message.values[0][0]
+          body.doc.owner          <- step[1] $.docs[0].owner
+          body.doc.creation       <- step[1] $.docs[0].creation
+          body.doc.modified_by    <- step[1] $.docs[0].owner
+          body.doc.item_code      <- step[1] $.docs[0].item_code
+          body.doc.item_name      <- step[1] $.docs[0].item_name
+          body.doc.uom            <- step[1] $.docs[0].uom
+          body.doc.price_list     <- step[1] $.docs[0].price_list
+          body.doc.currency       <- step[1] $.docs[0].currency
+          body.doc.valid_from     <- step[1] $.docs[0].valid_from
+          body.doc.price_list_rate<- param(price_list_rate)
+          body.doc.modified       <- param(modified)
 
-Find the record, load it, write it back with every field carried across from
-the load response and exactly one field — the price — left as a parameter.
-The dataflow was inferred from traffic alone; no schema, no documentation.
+Find the record, load it, write it back with eight fields carried across from
+the load response and the price left as a parameter. The dataflow was
+inferred from traffic alone — no schema, no documentation.
+
+Two details are worth noticing. `doc.modified` came out as a parameter rather
+than a carried field, because Frappe's optimistic-concurrency timestamp is
+the one field the client does *not* echo unchanged; the inducer could not
+explain it from any response, so it asked the caller for it. That is the
+correct conservative answer, and it is also the kind of thing a
+documentation-driven integration gets wrong. Second, `filters` is a
+parameter, so the tool is not pinned to the item it was observed editing —
+but it *is* pinned to Item Price, because `doc.price_list` and the filter's
+record type never varied in the demonstrations.
 
 `list_records` is the one that generalises. Induced from list-view traffic on
 Item Price, Sales Invoice and Sales Order, its `doctype` came out as a

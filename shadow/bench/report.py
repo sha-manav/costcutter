@@ -163,6 +163,10 @@ def build_report(cfg: Config | None = None) -> dict[str, Any]:
         readonly = score_condition(load_results(readonly_path), "B_tools", cfg)
         report["read_only_ablation"] = readonly.to_dict()
 
+    k_sweep = cfg.path("artifacts") / "k_sweep.json"
+    if k_sweep.exists():
+        report["k_sweep"] = json.loads(k_sweep.read_text())
+
     sweep = cfg.path("artifacts") / "coverage_sweep.json"
     if sweep.exists():
         report["coverage_sweep"] = json.loads(sweep.read_text())
@@ -244,6 +248,24 @@ def markdown_tables(report: dict[str, Any]) -> str:
                 f"{row_data.get('task_coverage', 0):.0%} | "
                 f"${row_data['usd_per_task']:.5f} | "
                 f"{row_data['mean_steps']:.1f} |")
+
+    k_points = report.get("k_sweep")
+    if k_points:
+        lines += ["", "### The catalog tax: how many tools to put in the prompt", "",
+                  "`k=0` is the browser baseline reached through the tool agent; "
+                  "`k=8` is the whole-catalog behaviour. `no catalog` counts runs "
+                  "where no tool cleared the score floor and none was sent.", "",
+                  "| k | success | USD/successful task | p95 (s) | steps | "
+                  "action coverage | task coverage | mean prompt chars | no catalog |",
+                  "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
+        for point in k_points:
+            lines.append(
+                f"| {point['k']} | {point['success_rate']:.0%} | "
+                f"${point['usd_per_successful_task']:.5f} | "
+                f"{point['p95_latency_s']:.1f} | {point['mean_steps']:.1f} | "
+                f"{point['coverage']:.0%} | {point['task_coverage']:.0%} | "
+                f"{point['mean_prompt_chars']:.0f} | "
+                f"{point['runs_with_no_catalog']}/{point['runs']} |")
 
     readonly = report.get("read_only_ablation")
     if readonly:

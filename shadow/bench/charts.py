@@ -97,6 +97,43 @@ def latency_distribution(rows: list[dict[str, Any]], out_path: Path) -> Path:
     return out_path
 
 
+def catalog_tax(sweep_path: Path, out_path: Path) -> Path | None:
+    """Chart 4 — cost and coverage against how many tools reach the prompt.
+
+    Separates what a tool costs to *offer* from what it saves when *used*.
+    """
+    if not sweep_path.exists():
+        return None
+    points = json.loads(sweep_path.read_text())
+    if not points:
+        return None
+    xs = [p["k"] for p in points]
+    fig, ax = plt.subplots(figsize=(6.4, 4.0), dpi=160)
+    ax.plot(xs, [p["usd_per_successful_task"] for p in points], "-o",
+            color=PALETTE["A"], label="USD per successful task")
+    ax.set_xlabel("tools retrieved into the prompt (k)")
+    ax.set_ylabel("USD per successful task")
+    ax.set_xticks(xs)
+    _style(ax)
+
+    right = ax.twinx()
+    right.plot(xs, [p["task_coverage"] * 100 for p in points], "--s",
+               color=PALETTE["B"], label="tasks finished on tools alone")
+    right.set_ylabel("task coverage (%)")
+    right.set_ylim(0, 100)
+    right.spines["top"].set_visible(False)
+
+    handles = ax.get_lines() + right.get_lines()
+    ax.legend(handles, [h.get_label() for h in handles], frameon=False,
+              fontsize=8, loc="center right")
+    ax.set_title("The catalog tax: cost and coverage vs tools offered")
+    fig.tight_layout()
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path)
+    plt.close(fig)
+    return out_path
+
+
 def render_all(rows: list[dict[str, Any]], cfg: Config | None = None) -> list[Path]:
     cfg = cfg or get_config()
     out_dir = cfg.path("charts")
@@ -105,6 +142,10 @@ def render_all(rows: list[dict[str, Any]], cfg: Config | None = None) -> list[Pa
                            out_dir / "coverage_vs_sessions.png")
     if curve:
         made.append(curve)
+    tax = catalog_tax(cfg.path("artifacts") / "k_sweep.json",
+                      out_dir / "catalog_tax_vs_k.png")
+    if tax:
+        made.append(tax)
     made.append(cost_per_success(rows, out_dir / "cost_per_successful_task.png", cfg))
     made.append(latency_distribution(rows, out_dir / "latency_distribution.png"))
     return made

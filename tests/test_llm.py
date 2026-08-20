@@ -202,9 +202,11 @@ def test_the_model_drives_tool_selection_under_litellm(monkeypatch, tmp_path):
     task = Task(id="T03_stock_on_hand#0", template_id="T03_stock_on_hand",
                 goal="What is the total actual quantity in stock for item 'X'?",
                 kind="read", check="stock_on_hand", params={"item_code": "X"})
+    # Retrieval is exercised in tests/test_retrieval.py; this test is about
+    # who chooses the tool, so the catalog is offered whole.
     result = run_tool_task(task, ToolCatalog(tools=[spec]),
                            client=make_client("claude-haiku-4-5-20251001", "litellm"),
-                           executor=executor)
+                           executor=executor, tool_k=8, floor=-1.0)
 
     # The model picked the tool and the arguments, from the rendered catalog.
     assert executor.calls == [("list_records", {"doctype": "Bin"})]

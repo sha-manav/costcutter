@@ -96,6 +96,12 @@ class BenchConfig(BaseModel):
     trials: int = 3
     max_steps: int = 25
     task_timeout_s: int = 240
+    # How many synthesized tools to put in the prompt. 0 is condition A with
+    # extra steps; a number at or above the catalog size is the old
+    # whole-catalog behaviour.
+    tool_k: int = 3
+    # A goal whose best tool scores at or below this gets no catalog at all.
+    tool_score_floor: float = 0.0
 
 
 class VerifyConfig(BaseModel):

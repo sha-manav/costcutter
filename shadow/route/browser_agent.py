@@ -65,6 +65,8 @@ class RunResult:
     wall_s: float = 0.0
     error: str | None = None
     finished: bool = False
+    # Which tools reached the prompt, and why. Empty for condition A.
+    retrieval: dict[str, Any] = field(default_factory=dict)
 
     @property
     def usage(self) -> LLMUsage:
@@ -91,6 +93,7 @@ class RunResult:
             "finished": self.finished,
             "tool_actions": self.tool_actions,
             "browser_actions": self.browser_actions,
+            "retrieval": self.retrieval,
         }
 
 

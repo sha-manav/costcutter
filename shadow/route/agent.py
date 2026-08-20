@@ -8,6 +8,7 @@ labelled with what served it, which is where the coverage number comes from.
 from __future__ import annotations
 
 import json
+import math
 import re
 import time
 from dataclasses import dataclass
@@ -444,8 +445,13 @@ register_policy("tool_agent", _router_policy)
 # The loop
 # --------------------------------------------------------------------------
 
-def available_tools(catalog: ToolCatalog, allow_writes: bool,
-                    require_verified: bool = True) -> list[ToolSpec]:
+def eligible_tools(catalog: ToolCatalog, allow_writes: bool,
+                   require_verified: bool = True) -> list[ToolSpec]:
+    """Tools this agent is permitted to see at all.
+
+    The mutation gate lives here, before retrieval, so that a write tool
+    excluded by `allow_writes: false` cannot consume a retrieval slot.
+    """
     out = []
     for spec in catalog.tools:
         if require_verified and not spec.verified:
@@ -456,16 +462,122 @@ def available_tools(catalog: ToolCatalog, allow_writes: bool,
     return out
 
 
+# --------------------------------------------------------------------------
+# Retrieval
+#
+# The catalog is a fixed tax on every prompt, paid whether or not a tool is
+# used, and that is what made the tool-first agent lose on the tasks no tool
+# covered. Retrieval turns it into a variable cost: score the tools against
+# the goal, send the top k, and send none at all when nothing scores above a
+# floor. See docs/design.md for why BM25 rather than embeddings.
+# --------------------------------------------------------------------------
+
+def _document(spec: ToolSpec) -> list[str]:
+    """The text a tool is retrieved by: name, description, parameter names."""
+    parts = [spec.name.replace("_", " "), spec.description]
+    parts.extend(name.replace("_", " ")
+                 for name in spec.params_schema.get("properties", {}))
+    for schema in spec.params_schema.get("properties", {}).values():
+        for value in (schema.get("enum") or [])[:8]:
+            if isinstance(value, str) and len(value) < 48:
+                parts.append(value)
+    return [w for w in re.split(r"\W+", " ".join(parts).lower()) if w]
+
+
+def bm25_scores(query: list[str], documents: list[list[str]],
+                k1: float = 1.5, b: float = 0.75) -> list[float]:
+    """Textbook BM25. Small enough to read, which is the point."""
+    if not documents:
+        return []
+    n = len(documents)
+    avgdl = sum(len(d) for d in documents) / n
+    df: dict[str, int] = {}
+    for doc in documents:
+        for term in set(doc):
+            df[term] = df.get(term, 0) + 1
+
+    scores = []
+    for doc in documents:
+        counts: dict[str, int] = {}
+        for term in doc:
+            counts[term] = counts.get(term, 0) + 1
+        score = 0.0
+        for term in query:
+            if term not in counts:
+                continue
+            # +1 inside the log keeps the idf non-negative for terms that
+            # appear in every document, so a common word cannot subtract.
+            idf = math.log(1 + (n - df[term] + 0.5) / (df[term] + 0.5))
+            tf = counts[term]
+            score += idf * (tf * (k1 + 1)) / (tf + k1 * (1 - b + b * len(doc) / avgdl))
+        scores.append(score)
+    return scores
+
+
+@dataclass
+class Retrieval:
+    tools: list[ToolSpec]
+    scores: list[float]
+    considered: int
+    best_score: float = 0.0
+    below_floor: bool = False
+
+    def describe(self) -> str:
+        if self.below_floor:
+            return (f"no tool scored above the floor "
+                    f"(best {self.best_score:.2f} of {self.considered})")
+        names = ", ".join(f"{s.name}:{sc:.2f}"
+                          for s, sc in zip(self.tools, self.scores))
+        return f"retrieved {len(self.tools)}/{self.considered}: {names}"
+
+
+def retrieve_tools(goal: str, tools: list[ToolSpec], k: int,
+                   floor: float = 0.0) -> Retrieval:
+    """Top-k tools for this goal, or none when nothing clears the floor."""
+    if k <= 0 or not tools:
+        return Retrieval([], [], len(tools), 0.0, below_floor=bool(tools))
+    query = [w for w in re.split(r"\W+", goal.lower()) if w and w not in STOPWORDS]
+    scores = bm25_scores(query, [_document(spec) for spec in tools])
+    ranked = sorted(zip(tools, scores), key=lambda pair: -pair[1])
+    best = ranked[0][1] if ranked else 0.0
+    if best <= floor:
+        return Retrieval([], [], len(tools), best, below_floor=True)
+    kept = [(spec, score) for spec, score in ranked[:k] if score > floor]
+    return Retrieval([s for s, _ in kept], [sc for _, sc in kept], len(tools), best)
+
+
+def available_tools(catalog: ToolCatalog, allow_writes: bool,
+                    require_verified: bool = True, goal: str | None = None,
+                    k: int | None = None, floor: float = 0.0
+                    ) -> list[ToolSpec]:
+    """Eligible tools, narrowed to the top k for this goal when k is given."""
+    eligible = eligible_tools(catalog, allow_writes, require_verified)
+    if k is None or goal is None:
+        return eligible
+    return retrieve_tools(goal, eligible, k, floor).tools
+
+
 def run_tool_task(task, catalog: ToolCatalog, cfg: Config | None = None,
                   client: LLMClient | None = None, recipe_factory=None,
                   allow_writes: bool = False, executor: ToolExecutor | None = None,
-                  require_verified: bool = True) -> RunResult:
+                  require_verified: bool = True, tool_k: int | None = None,
+                  floor: float | None = None) -> RunResult:
     cfg = cfg or get_config()
     client = client or make_client(cfg.models.agent, cfg.models.provider)
-    tools = available_tools(catalog, allow_writes, require_verified)
+    k = cfg.bench.tool_k if tool_k is None else tool_k
+    score_floor = cfg.bench.tool_score_floor if floor is None else floor
+    eligible = eligible_tools(catalog, allow_writes, require_verified)
+    retrieval = retrieve_tools(task.goal, eligible, k, score_floor)
+    tools = retrieval.tools
     executor = executor or ToolExecutor(cfg, allow_writes=allow_writes)
     result = RunResult(task_id=task.id, template_id=task.template_id,
                        condition="B_tools")
+    result.retrieval = {"k": k, "floor": score_floor,
+                        "considered": retrieval.considered,
+                        "retrieved": [s.name for s in retrieval.tools],
+                        "scores": [round(x, 3) for x in retrieval.scores],
+                        "best_score": round(retrieval.best_score, 3),
+                        "below_floor": retrieval.below_floor}
     router = DeterministicRouter(task.goal, tools) if client.provider == "offline" else None
     if client.provider == "offline" and router is None:
         result.error = "offline provider needs a router"

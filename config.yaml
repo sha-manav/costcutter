@@ -103,6 +103,11 @@ bench:
   max_steps: 25
   # Per-task wall-clock ceiling for an agent condition.
   task_timeout_s: 240
+  # Tool retrieval: how many synthesized tools reach the prompt, and the
+  # score below which a goal gets none at all. The catalog is a fixed tax on
+  # every prompt, so a task no tool covers should not pay it.
+  tool_k: 3
+  tool_score_floor: 0.0
 
 verify:
   # Writes are only ever replayed against a freshly reset instance.

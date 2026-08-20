@@ -106,6 +106,29 @@ can address, runs it, and requires an observable change — then resets again.
 `--allow-writes` is never the default, in the verifier or the MCP server or
 the agent.
 
+## Retrieval: BM25, not embeddings
+
+The catalog is a fixed tax on every prompt, paid whether or not a tool is
+used, and that is what made the tool-first agent lose on the tasks no tool
+covered. `route/agent.py` scores each eligible tool against the goal with
+BM25 over its name, description, parameter names and enum values, sends the
+top `bench.tool_k`, and sends *nothing* when the best score fails to clear
+`bench.tool_score_floor`.
+
+BM25 rather than embeddings, for three reasons. The corpus is a handful of
+tools, where lexical overlap is not the weak signal it is at scale — a
+synthesized tool's name and parameters are drawn from the same vocabulary as
+the goal, because both describe the same records. It adds no dependency, no
+model call and no index to keep in sync with the catalog. And it is legible:
+`retrieve_tools()` reports the score it gave every tool, so a coverage
+failure can be attributed to retrieval or to the caller rather than guessed
+at. An embedding retriever would be the right answer for a catalog of
+hundreds; at eight it would mostly add a second thing that can be wrong.
+
+The mutation gate runs *before* retrieval, in `eligible_tools()`. A write
+tool excluded by `allow_writes: false` must not consume one of the k slots
+and then be filtered out afterwards — that would spend the budget on nothing.
+
 ## Two coverage numbers, and why both are reported
 
 Achieved coverage is the fraction of agent actions on held-out tasks that a

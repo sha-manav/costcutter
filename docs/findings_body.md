@@ -50,18 +50,29 @@ templates, driven through the ERPNext desk UI behind a mitmproxy capture.
 | dropped as assets | 40 |
 | dropped as websocket/socket.io frames | 386 |
 | collapsed as polling | 104 |
+| records inside episodes | 1,020 |
 | episodes after segmentation | 87 |
-| signature groups | see `artifacts/induction_diagnostics.json` |
+| load-bearing records after the trim | 195 (19.1% of episode records, 12.1% of raw flows) |
+| chrome endpoints found by document frequency | 3 |
 | tools emitted (support ≥ 3) | 8 |
 | tools verified against the live instance | 8 |
 
-The retention figure deserves a note, because the build spec expected well
-under 20%. The capture is host-scoped to the application and the whole
+The 67% retention deserves a note, because the build spec expected well under
+20%. The capture is host-scoped to the application and the whole
 demonstration run shares one browser context, so assets are fetched once and
-served from cache for the remaining 95 demonstrations. What is left is
-already almost entirely API traffic. The compression that matters happens
-later: 1,076 kept records become 87 episodes, and the load-bearing trim
-reduces those to signatures over two or three calls each.
+then served from cache for the remaining 95 demonstrations; what survives the
+filter is already almost entirely API traffic. The compression the spec was
+pointing at does happen — it happens one stage later. The load-bearing trim
+takes 1,020 records inside episodes down to 195, which is 12.1% of the raw
+capture. Three endpoints were identified as page chrome purely by document
+frequency:
+
+    GET  /api/method/frappe.desk.doctype.event.event.get_events
+    GET  /api/method/frappe.desk.form.load.getdoctype
+    POST /api/method/frappe.client.validate_link
+
+None of them is in a hand-written list; they were found because they appear
+in ≥ 80% of episodes regardless of what the user was doing.
 
 ### The interesting tool
 

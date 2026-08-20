@@ -254,7 +254,8 @@ signal is also a transfer barrier.
 task.** With `--allow-writes`, the lexical router answered "Create a sales
 order for customer 'Kestrel Aviation' with 5 units of item 'SH-GEAR-02'" by
 selecting `update_item_price` — a tool that edits a price — with
-`price_list_rate: 2.0` and a filter built from the goal's quoted entities.
+`price_list_rate: 2.0`, a number it took from the digits at the end of the
+item code `SH-GEAR-02`, and a filter built from the goal's quoted entities.
 Nothing was mutated, because the tool's first step is a query and it failed
 on an invalid filter field, and the task then completed through the browser
 fallback. But the only thing standing between that selection and an edited

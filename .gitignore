@@ -1,10 +1,28 @@
 .venv/
+.venv-capture/
 __pycache__/
 *.pyc
 .pytest_cache/
-artifacts/
-capture/out/
-*.jsonl.gz
-bench/results/
-.env
 frappe-bench/
+.env
+
+# Artifacts are working output. The reportable ones are committed by
+# exception below; captures, credentials and the seed image are not
+# (large, and the capture is a recording of a session).
+artifacts/*
+!artifacts/charts/
+artifacts/charts/*
+!artifacts/charts/*.png
+!artifacts/metrics.json
+!artifacts/findings_tables.md
+!artifacts/tools.json
+!artifacts/verify_report.json
+!artifacts/induction_diagnostics.json
+!artifacts/attainable_coverage.json
+!artifacts/coverage_sweep.json
+!artifacts/observe_manifest.json
+!artifacts/split.json
+!artifacts/results.jsonl
+!artifacts/results_readonly.jsonl
+!artifacts/mcp_server.py
+dump.rdb

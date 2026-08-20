@@ -49,7 +49,22 @@ virtualenv".
 
 The sandbox has no API key for any LLM provider, so both benchmark
 conditions ran on the deterministic providers in `shadow/llm.py` rather than
-against a model. `FINDINGS.md` states exactly which numbers this affects and
+against a model. This was rechecked at the start of v2, since putting a real
+model in the loop was its largest task:
+
+* `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` and friends: unset.
+* A direct call to `api.anthropic.com` returns
+  `authentication_error: x-api-key header is required`.
+* `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` are present but are the
+  proxy's placeholders; Bedrock rejects them with
+  `UnrecognizedClientException` in both `us-east-1` and `us-west-2`.
+* No credential file under `~/.claude`, `~/.config/anthropic` or `/root/.ccr`
+  carries a usable key.
+
+So the litellm path is built and tested against a stub provider
+(`tests/test_llm.py`) but its network leg is unexercised, and the numbers in
+`FINDINGS.md` remain offline-provider numbers. `bench --require-model`
+refuses to run rather than produce numbers that look like model numbers. `FINDINGS.md` states exactly which numbers this affects and
 in which direction; the short version is that success is oracle-checked and
 real, token counts are measured from the real prompts, latency excludes
 inference, and both stand-in policies are biased against the result the

@@ -87,6 +87,7 @@ class InduceConfig(BaseModel):
     max_tools: int = 25
     required_presence: float = 0.9
     chrome_df: float = 0.8
+    backoff: bool = True
 
 
 class BenchConfig(BaseModel):

@@ -115,10 +115,31 @@ def request_sites(rec: HttpRecord, step_index: int) -> list[ValueSite]:
     return sites
 
 
-# `_=1712345678` is a cache-buster; `__islocal`, `__last_sync_on` and friends
-# are framework bookkeeping. Neither is a parameter of the user's task.
+# `_=1712345678` is a cache-buster and `__last_sync_on` is a client clock:
+# both change every request and neither is a parameter of anyone's task.
+# Other framework flags (`__islocal`, `__unsaved`) are kept — they are
+# constant, so they become literals, and dropping them would break the very
+# save calls that need them.
+_VOLATILE_KEYS = {"_", "__last_sync_on", "__last_update", "_t", "timestamp"}
+
+
 def _is_bookkeeping(key: str) -> bool:
-    return key == "_" or key.startswith("__")
+    return key in _VOLATILE_KEYS
+
+
+def _is_task_field(path: str) -> bool:
+    """Reject volatile leaves and anything inside a framework subtree.
+
+    `__islocal` is a flag the save call needs, so scalar `__` keys stay.
+    `__onload.dashboard_info[0].total_unpaid` is server-computed display
+    data the client echoes back; its leaves are not parameters of anything.
+    """
+    segments = [seg.split("[")[0] for seg in path.lstrip("$.").split(".")]
+    if not segments:
+        return True
+    if any(seg.startswith("__") for seg in segments[:-1]):
+        return False
+    return not _is_bookkeeping(segments[-1])
 
 
 def _field_sites(step_index: int, location: str, key: str,
@@ -137,7 +158,7 @@ def _field_sites(step_index: int, location: str, key: str,
     if isinstance(parsed, dict):
         return [ValueSite(step_index, location, f"{key}::{path}", leaf)
                 for path, leaf in _walk_json(parsed, "$")
-                if not _is_bookkeeping(path.rsplit(".", 1)[-1])]
+                if _is_task_field(path)]
     if isinstance(parsed, list):
         return [ValueSite(step_index, location, key, parsed)]
     return [ValueSite(step_index, location, key, value)]

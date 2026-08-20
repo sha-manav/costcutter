@@ -46,6 +46,33 @@ class TrimmedEpisode:
     # Bindings keyed by (new_step_index, location, key)
     bindings: dict[tuple[int, str, str], Binding]
     signature: str
+    # The state-changing steps alone. Used by the backoff pass below.
+    core_signature: str = ""
+    core_indices: list[int] = field(default_factory=list)
+
+    def core(self) -> "TrimmedEpisode":
+        """This episode reduced to its state-changing steps."""
+        remap = {old: new for new, old in enumerate(self.core_indices)}
+        bindings: dict[tuple[int, str, str], Binding] = {}
+        for (step, location, key), binding in self.bindings.items():
+            if step not in remap:
+                continue
+            b = binding.model_copy(deep=True)
+            if b.kind == "from_response":
+                src = b.source_step_index
+                if src not in remap:
+                    b = Binding(kind="user_param",
+                                param_name=binding.param_name or key.split("::")[-1],
+                                example_value=binding.example_value,
+                                confidence=0.4, required=False)
+                else:
+                    b.source_step_index = remap[src]
+            bindings[(remap[step], location, key)] = b
+        return TrimmedEpisode(
+            self.episode_id, self.label,
+            [self.records[i] for i in self.core_indices], bindings,
+            self.core_signature, self.core_signature,
+            list(range(len(self.core_indices))))
 
 
 def load_bearing_indices(records: list[HttpRecord], prov: ProvenanceResult,
@@ -114,8 +141,12 @@ def trim_episode(ep: Episode, prov: ProvenanceResult,
         bindings[(remap[site.step_index], site.location, site.key)] = b
 
     sig_parts = [f"{r.method} {normalize_path(r.path)[0]}" for r in records]
+    core_idx = [i for i, r in enumerate(records)
+                if classify_step(ToolStep(method=r.method,
+                                          path_template=r.path)) != "read"]
+    core_sig = " | ".join(sig_parts[i] for i in core_idx)
     return TrimmedEpisode(ep.id, ep.label or "", records, bindings,
-                          " | ".join(sig_parts))
+                          " | ".join(sig_parts), core_sig, core_idx)
 
 
 def _site_param(site: ValueSite) -> str:
@@ -193,16 +224,30 @@ def _fallback_name(group: list[TrimmedEpisode],
     records = group[0].records
     steps = [ToolStep(method=r.method, path_template=r.path) for r in records]
     mutation = classify_steps(steps)
+    # A write tool is named after what it writes. Link-field lookups mention
+    # other record types more often than the record being saved, so the
+    # state-changing steps get first say.
     doctypes: list[str] = []
-    for rec in records:
+    mutating: list[str] = []
+    for rec, step in zip(records, steps):
+        found: list[str] = []
         m = re.search(r"/api/resource/([^/?]+)", rec.path)
         if m:
-            doctypes.append(m.group(1).replace("%20", " "))
+            found.append(m.group(1).replace("%20", " "))
         m = re.search(r"doctype=([^&]+)", rec.url)
         if m:
-            doctypes.append(m.group(1).replace("%20", " "))
-        if isinstance(rec.req_body, dict) and isinstance(rec.req_body.get("doctype"), str):
-            doctypes.append(rec.req_body["doctype"])
+            found.append(m.group(1).replace("%20", " "))
+        if isinstance(rec.req_body, dict):
+            if isinstance(rec.req_body.get("doctype"), str):
+                found.append(rec.req_body["doctype"])
+            # A save call carries its record type inside the document payload,
+            # which is the only place the subject of a write appears.
+            found.extend(_doc_doctypes(rec.req_body))
+        doctypes.extend(found)
+        if classify_step(step) != "read":
+            mutating.extend(found)
+    if mutating:
+        doctypes = mutating
     subject = Counter(doctypes).most_common(1)[0][0] if doctypes else "record"
     if subject_is_parameter:
         # The record type is chosen by the caller, so naming the tool after
@@ -236,6 +281,19 @@ def _fallback_name(group: list[TrimmedEpisode],
                 f"system ({len(records)} step"
                 f"{'s' if len(records) != 1 else ''}).")
     return name, desc
+
+
+def _doc_doctypes(body: dict) -> list[str]:
+    from shadow.distill.provenance import _maybe_parse_json
+
+    found: list[str] = []
+    for value in body.values():
+        parsed = _maybe_parse_json(value)
+        candidates = parsed if isinstance(parsed, list) else [parsed]
+        for item in candidates:
+            if isinstance(item, dict) and isinstance(item.get("doctype"), str):
+                found.append(item["doctype"])
+    return found
 
 
 def _offline_name_policy(messages, ctx):
@@ -298,15 +356,38 @@ def induce(episodes: list[Episode], cfg: Config | None = None,
         f"(>={cfg.induce.chrome_df:.0%} of episodes): {sorted(chrome)}")
 
     specs: list[ToolSpec] = []
+    sparse: list[TrimmedEpisode] = []
     for signature, group in groups.items():
         if len(group) < cfg.induce.min_support:
             result.groups_below_support += 1
             result.diagnostics.append(
                 f"support {len(group)} < {cfg.induce.min_support}: {signature[:120]}")
+            sparse.extend(group)
             continue
         spec, u = _induce_one(group, signature, cfg, client)
         usage = usage + u
         specs.append(spec)
+
+    # Backoff. A task whose full request sequence is rare may still share its
+    # state-changing core with other tasks: three different "open a record and
+    # save it" flows differ in how the record was found, not in the save. Any
+    # value that differs across those cores becomes a parameter, which is how
+    # a tool generalises past the record type it was observed on.
+    if cfg.induce.backoff:
+        backoff_groups: dict[str, list[TrimmedEpisode]] = defaultdict(list)
+        for t in sparse:
+            if t.core_signature:
+                backoff_groups[t.core_signature].append(t.core())
+        for signature, group in backoff_groups.items():
+            if len(group) < cfg.induce.min_support:
+                continue
+            spec, u = _induce_one(group, signature, cfg, client)
+            spec.description += (" Generalised from tasks that share this "
+                                 "state-changing step.")
+            usage = usage + u
+            specs.append(spec)
+            result.diagnostics.append(
+                f"backoff group support {len(group)}: {signature[:120]}")
 
     specs.sort(key=lambda s: (-s.support, s.name))
     if len(specs) > cfg.induce.max_tools:
@@ -382,8 +463,10 @@ def _induce_one(group: list[TrimmedEpisode], signature: str, cfg: Config,
         vector = json.dumps(values, sort_keys=True, default=str)
         existing = unified.get((base, vector))
         if existing is not None:
-            resolved[key] = Binding(kind="user_param", param_name=existing,
-                                    example_value=values[0] if values else None)
+            resolved[key] = Binding(
+                kind="user_param", param_name=existing,
+                example_value=values[0] if values else None,
+                required=presence[key] >= cfg.induce.required_presence)
             continue
         name = _unique_param_name(site_key, location, used_names)
         used_names.add(name)
@@ -396,10 +479,12 @@ def _induce_one(group: list[TrimmedEpisode], signature: str, cfg: Config,
         if values:
             schema["examples"] = [values[0]]
         params[name] = schema
-        if presence[key] >= cfg.induce.required_presence:
+        is_required = presence[key] >= cfg.induce.required_presence
+        if is_required:
             required.append(name)
         resolved[key] = Binding(kind="user_param", param_name=name,
-                                example_value=values[0] if values else None)
+                                example_value=values[0] if values else None,
+                                required=is_required)
 
     steps = _build_steps(group[0].records, resolved, n_steps)
     subject_is_parameter = any(

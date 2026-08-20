@@ -284,10 +284,14 @@ class ToolExecutor:
             name = binding.param_name or ""
             if name in params:
                 return params[name]
-            if binding.example_value is not None:
-                # Optional parameter the caller left out: fall back to the
-                # value the app itself sent when this was observed.
+            if binding.required and binding.example_value is not None:
+                # A required field the caller left out: fall back to the value
+                # the app itself sent when this was observed, so the request
+                # is still well-formed.
                 return binding.example_value
+            # Optional and unsupplied: omit it. Replaying an observed value
+            # here is how a generalised tool sends one record type's fields
+            # while creating another.
             return _MISSING
         src = binding.source_step_index
         if src is None or src >= len(responses):

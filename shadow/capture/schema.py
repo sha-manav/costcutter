@@ -76,6 +76,9 @@ class Binding(BaseModel):
     # Diagnostics: kept so a provenance trace is auditable after the fact.
     example_value: Any | None = None
     confidence: float = 1.0
+    # Whether the field was present in essentially every observed episode.
+    # Optional fields are omitted at execution time rather than defaulted.
+    required: bool = True
 
     def describe(self) -> str:
         if self.kind == "literal":

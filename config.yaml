@@ -92,6 +92,9 @@ induce:
   # An endpoint present in >= this fraction of ALL episodes is page chrome
   # and is dropped from signatures (stop-word removal by document frequency).
   chrome_df: 0.8
+  # When a full request sequence is too rare to induce a tool, fall back to
+  # grouping on the state-changing steps alone.
+  backoff: true
 
 bench:
   split_seed: 1337

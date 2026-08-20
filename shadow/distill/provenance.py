@@ -11,6 +11,7 @@ step that makes multi-call tools executable rather than replayable.
 from __future__ import annotations
 
 import json
+from collections import Counter
 from dataclasses import dataclass, field
 from typing import Any, Iterable
 from urllib.parse import quote, unquote
@@ -56,17 +57,36 @@ class ProvenanceResult:
     bindings: dict[ValueSite, Binding] = field(default_factory=dict)
     unresolved: list[ValueSite] = field(default_factory=list)
 
-    def trace(self, episode: Episode) -> str:
-        """Human-auditable dataflow trace (the M4 done-check)."""
-        lines = [f"episode {episode.id}  label={episode.label!r}"]
+    def trace(self, episode: Episode, verbose: bool = False) -> str:
+        """Human-auditable dataflow trace (the M4 done-check).
+
+        By default this shows the bindings a reader would actually audit:
+        values lifted out of earlier responses, and identifier-like path
+        segments. Constant path segments (`api`, `method`, the endpoint name)
+        are structure, not data, and are only shown with `verbose`.
+        """
+        from shadow.distill.endpoints import normalize_path
+
+        counts = Counter(b.kind for b in self.bindings.values())
+        lines = [f"episode {episode.id}  label={episode.label!r}",
+                 f"  bindings: {counts['from_response']} from earlier responses, "
+                 f"{counts['user_param']} user-supplied, {counts['literal']} literal"]
         for i, rec in enumerate(episode.records):
-            lines.append(f"  [{i}] {rec.method} {rec.path}")
+            _template, var_idx = normalize_path(rec.path)
+            id_segments = {f"seg{n}" for n in var_idx}
+            rows = []
             for site, binding in sorted(self.bindings.items(),
                                         key=lambda kv: (kv[0].step_index, kv[0].key)):
                 if site.step_index != i:
                     continue
-                lines.append(f"        {site.location}:{site.key} = "
-                             f"{binding.describe()}   (observed {site.value!r})")
+                if not verbose and site.location == "path" and site.key not in id_segments:
+                    continue
+                if not verbose and binding.kind == "literal":
+                    continue
+                rows.append(f"        {site.location}:{site.key} = "
+                            f"{binding.describe()}   (observed {site.value!r})")
+            lines.append(f"  [{i}] {rec.method} {rec.path}")
+            lines.extend(rows)
         return "\n".join(lines)
 
 

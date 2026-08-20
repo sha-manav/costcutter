@@ -22,6 +22,7 @@ from shadow.capture.schema import (
 )
 from shadow.config import REPO_ROOT, get_config
 from shadow.distill.emit import catalog_to_openapi_like, emit, render_catalog
+from shadow.distill.endpoints import chrome_endpoints
 from shadow.distill.filter import filter_records, summarize
 from shadow.distill.induce import induce
 from shadow.distill.provenance import ProvenanceEngine
@@ -117,12 +118,15 @@ def cmd_trace(args) -> int:
     cfg = get_config()
     episodes = read_episodes(cfg.path("episodes"))
     engine = ProvenanceEngine(cfg)
+    # Same chrome set induction used, so the trace shows the bindings that
+    # actually reached the tools.
+    chrome = chrome_endpoints(episodes, cfg.induce.chrome_df)
     wanted = {args.episode} if args.episode else None
     shown = 0
     for ep in episodes:
         if wanted and ep.id not in wanted:
             continue
-        print(engine.infer(ep).trace(ep))
+        print(engine.infer(ep, chrome).trace(ep, verbose=args.verbose))
         print()
         shown += 1
         if not wanted and shown >= args.limit:
@@ -193,6 +197,8 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("trace")
     p.add_argument("episode", nargs="?")
     p.add_argument("--limit", type=int, default=3)
+    p.add_argument("--verbose", action="store_true",
+                   help="include literals and constant path segments")
     p.set_defaults(func=cmd_trace)
 
     p = sub.add_parser("verify")

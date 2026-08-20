@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+artifacts/
+capture/out/
+*.jsonl.gz
+bench/results/
+.env
+frappe-bench/

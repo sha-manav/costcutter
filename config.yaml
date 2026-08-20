@@ -1,0 +1,103 @@
+# Shadow — build configuration.
+# Everything the pipeline needs to point at an app, a proxy, and a set of models.
+
+app:
+  # ERPNext under test. The benchmark drives this through a browser and,
+  # for condition B, through synthesized HTTP tools.
+  base_url: "http://shadow.localhost:8000"
+  site: "shadow.localhost"
+  username: "Administrator"
+  password: "admin"
+  # Host header Frappe uses to resolve the site when talking to 127.0.0.1.
+  host_header: "shadow.localhost"
+
+proxy:
+  # mitmproxy listens here; Playwright is pointed at it.
+  port: 8081
+  listen_host: "127.0.0.1"
+  ca_dir: "~/.mitmproxy"
+  # mitmproxy pins its own dependency set, so it lives in its own venv.
+  mitmdump: ".venv-capture/bin/mitmdump"
+
+browser:
+  # Leave empty to use the Playwright-managed download.
+  executable_path: "/opt/pw-browsers/chromium"
+  headless: true
+  slow_mo_ms: 0
+  viewport: [1440, 900]
+
+paths:
+  artifacts: "artifacts"
+  capture: "artifacts/capture/out.jsonl"
+  filtered: "artifacts/capture/filtered.jsonl"
+  episodes: "artifacts/episodes.json"
+  tools: "artifacts/tools.json"
+  mcp_server: "artifacts/mcp_server.py"
+  results: "artifacts/results.jsonl"
+  charts: "artifacts/charts"
+  split: "artifacts/split.json"
+  credentials: "artifacts/credentials.json"
+
+models:
+  # Any litellm-routable model id. Swap freely; the cost table below must
+  # contain an entry for whatever is used or metrics.py will refuse to score.
+  agent: "claude-haiku-4-5-20251001"
+  labeler: "claude-haiku-4-5-20251001"
+  namer: "claude-haiku-4-5-20251001"
+  # "litellm" makes real API calls; "offline" uses the deterministic
+  # provider in shadow/llm.py so the pipeline runs without credentials.
+  provider: "auto"
+
+# USD per 1M tokens. Source: public list prices at time of writing.
+costs:
+  claude-haiku-4-5-20251001:
+    input: 1.00
+    cached_input: 0.10
+    output: 5.00
+  claude-sonnet-5:
+    input: 3.00
+    cached_input: 0.30
+    output: 15.00
+  claude-opus-5:
+    input: 5.00
+    cached_input: 0.50
+    output: 25.00
+  offline-deterministic:
+    input: 1.00
+    cached_input: 0.10
+    output: 5.00
+
+segment:
+  idle_gap_s: 8.0
+  # Episodes shorter than this are dropped as UI noise.
+  min_records: 2
+  # Adjacent episodes with the same label separated by less than this merge.
+  merge_gap_s: 20.0
+  coherence_threshold: 0.5
+
+provenance:
+  min_value_len: 3
+  stoplist:
+    ["0", "1", "true", "false", "null", "none", "yes", "no", "asc", "desc",
+     "en", "utf-8", "json", "get", "post", "list", "form", "and", "or",
+     "name", "modified", "creation", "docstatus", "idx", "*"]
+  max_lookback_steps: 40
+
+induce:
+  min_support: 3
+  enum_max: 8
+  max_tools: 25
+  # A value seen in >= this fraction of a template's episodes is "required".
+  required_presence: 0.9
+
+bench:
+  split_seed: 1337
+  observe_fraction: 0.6
+  trials: 3
+  max_steps: 25
+  # Per-task wall-clock ceiling for an agent condition.
+  task_timeout_s: 240
+
+verify:
+  # Writes are only ever replayed against a freshly reset instance.
+  allow_writes: false

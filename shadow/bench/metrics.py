@@ -26,10 +26,30 @@ def usd(cfg: Config, usage: dict[str, Any]) -> float:
             + usage.get("output_tokens", 0) / 1e6 * price.output)
 
 
+def _acting_steps(row: dict[str, Any]) -> list[dict[str, Any]]:
+    """Steps that did something to the application.
+
+    The final `done` is bookkeeping — it neither calls a tool nor touches the
+    browser — so counting it would put a fixed term in every coverage
+    denominator and make the two conditions look more alike than they are.
+    """
+    return [step for step in row.get("steps", [])
+            if str(step.get("action", {}).get("action", "")).lower() != "done"]
+
+
+def _served(row: dict[str, Any]) -> list[str]:
+    return [str(step.get("served_by", "")) for step in _acting_steps(row)]
+
+
 def _tool_only(row: dict[str, Any]) -> bool:
     """Did this run finish on synthesized tools alone?"""
-    served = [step.get("served_by") for step in row.get("steps", [])]
-    return "tool" in served and "browser_fallback" not in served and "browser" not in served
+    served = _served(row)
+    return ("tool" in served
+            and "browser_fallback" not in served and "browser" not in served)
+
+
+def _count_served(rows: list[dict[str, Any]], kinds: set[str]) -> int:
+    return sum(1 for row in rows for served in _served(row) if served in kinds)
 
 
 def _pct(values: list[float], q: float) -> float:
@@ -114,13 +134,11 @@ def score_condition(rows: list[dict[str, Any]], condition: str,
     m.p95_latency_s = _pct(latencies, 0.95)
     m.mean_steps = statistics.fmean(float(r["n_steps"]) for r in rows)
 
-    m.tool_actions = sum(int(r.get("tool_actions", 0)) for r in rows)
-    m.browser_actions = sum(int(r.get("browser_actions", 0)) for r in rows)
-    total_actions = m.tool_actions + m.browser_actions
+    m.tool_actions = _count_served(rows, {"tool"})
+    m.browser_actions = _count_served(rows, {"browser", "browser_fallback"})
+    m.failed_tool_actions = _count_served(rows, {"tool_failed"})
+    total_actions = m.tool_actions + m.browser_actions + m.failed_tool_actions
     m.coverage = m.tool_actions / total_actions if total_actions else 0.0
-    m.failed_tool_actions = sum(
-        1 for r in rows for step in r.get("steps", [])
-        if step.get("served_by") == "tool_failed")
     m.task_coverage = sum(1 for r in rows if _tool_only(r)) / len(rows)
     m.simulated_policy = any(r["usage"].get("simulated") for r in rows)
 
@@ -128,8 +146,9 @@ def score_condition(rows: list[dict[str, Any]], condition: str,
         trows = [r for r in rows if r["template_id"] == template_id]
         tcosts = [usd(cfg, r["usage"]) for r in trows]
         tsucc = [bool(r["success"]) for r in trows]
-        t_tool = sum(int(r.get("tool_actions", 0)) for r in trows)
-        t_all = t_tool + sum(int(r.get("browser_actions", 0)) for r in trows)
+        t_tool = _count_served(trows, {"tool"})
+        t_all = t_tool + _count_served(
+            trows, {"browser", "browser_fallback", "tool_failed"})
         m.per_template[template_id] = {
             "runs": len(trows),
             "success_rate": round(sum(tsucc) / len(tsucc), 3),

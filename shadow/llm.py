@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Protocol
@@ -31,10 +32,17 @@ __all__ = [
 class LLMUsage:
     model: str
     input_tokens: int = 0
+    # Tokens served from the provider's prompt cache. Priced separately, and
+    # reported separately so a reader can see how much of the prefix was
+    # actually reused rather than take it on faith.
     cached_input_tokens: int = 0
     output_tokens: int = 0
     latency_s: float = 0.0
     simulated: bool = False
+
+    @property
+    def total_input_tokens(self) -> int:
+        return self.input_tokens + self.cached_input_tokens
 
     def __add__(self, other: "LLMUsage") -> "LLMUsage":
         return LLMUsage(
@@ -98,11 +106,44 @@ class LLMClient(Protocol):
     def complete(self, messages: list[dict[str, Any]], **kwargs: Any) -> LLMResponse: ...
 
 
+ANTHROPIC_CACHE_CONTROL = {"type": "ephemeral"}
+
+
+def supports_prompt_caching(model: str) -> bool:
+    """Whether to mark the fixed prefix cacheable for this model."""
+    name = model.lower()
+    return "claude" in name or "anthropic" in name
+
+
+def mark_cacheable(messages: list[dict[str, Any]], model: str) -> list[dict[str, Any]]:
+    """Mark the system message as a cacheable prefix.
+
+    Both conditions build a system message that is identical across every
+    step of every task — the instructions, and for the tool agent the tool
+    catalog — and a user message that carries only what changed. Marking the
+    first as cacheable is what makes the catalog tax a one-off rather than a
+    per-step charge, and it is applied identically to both conditions so the
+    comparison stays honest.
+    """
+    if not supports_prompt_caching(model):
+        return messages
+    out: list[dict[str, Any]] = []
+    for message in messages:
+        if message.get("role") != "system" or not isinstance(message.get("content"), str):
+            out.append(message)
+            continue
+        out.append({"role": "system",
+                    "content": [{"type": "text", "text": message["content"],
+                                 "cache_control": ANTHROPIC_CACHE_CONTROL}]})
+    return out
+
+
 class LiteLLMClient:
     provider = "litellm"
 
-    def __init__(self, model: str) -> None:
+    def __init__(self, model: str, prompt_caching: bool = True) -> None:
         self.model = model
+        self.prompt_caching = prompt_caching
 
     def complete(self, messages: list[dict[str, Any]], **kwargs: Any) -> LLMResponse:
         import litellm
@@ -110,6 +151,8 @@ class LiteLLMClient:
         # Call-site routing for the offline provider; not a model parameter.
         kwargs.pop("policy", None)
         kwargs.pop("policy_context", None)
+        if self.prompt_caching:
+            messages = mark_cacheable(messages, self.model)
         t0 = time.time()
         resp = litellm.completion(model=self.model, messages=messages, **kwargs)
         dt = time.time() - t0
@@ -119,6 +162,10 @@ class LiteLLMClient:
         details = getattr(usage, "prompt_tokens_details", None)
         if details is not None:
             cached = int(getattr(details, "cached_tokens", 0) or 0)
+        # Anthropic reports cache reads and writes outside prompt_tokens_details.
+        cached = cached or int(getattr(usage, "cache_read_input_tokens", 0) or 0)
+        cache_write = int(getattr(usage, "cache_creation_input_tokens", 0) or 0)
+        prompt_tokens = max(prompt_tokens, cached + cache_write)
         text = resp.choices[0].message.content or ""
         tool_calls = []
         for tc in getattr(resp.choices[0].message, "tool_calls", None) or []:
@@ -190,10 +237,26 @@ def _credentials_present() -> bool:
                 "GEMINI_API_KEY", "LITELLM_API_KEY"))
 
 
+class MissingCredentials(RuntimeError):
+    pass
+
+
 def make_client(model: str, provider: str = "auto") -> LLMClient:
-    """Build a client. ``auto`` uses litellm when credentials exist."""
+    """Build a client. ``auto`` uses litellm when credentials exist.
+
+    The fallback is announced. A run that silently degrades to the offline
+    provider produces numbers that look like model numbers and are not, and
+    the only thing standing between that and a wrong headline is a flag in
+    each result row.
+    """
     if provider == "auto":
-        provider = "litellm" if _credentials_present() else "offline"
+        if _credentials_present():
+            provider = "litellm"
+        else:
+            provider = "offline"
+            print("[shadow] no model credentials found; using the offline "
+                  "deterministic provider. Result rows are tagged "
+                  "usage.simulated=true.", file=sys.stderr)
     if provider == "litellm":
         return LiteLLMClient(model)
     if provider == "offline":

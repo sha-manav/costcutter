@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 import time
 from pathlib import Path
 from typing import Any
@@ -80,6 +81,10 @@ def main() -> int:
     ap.add_argument("--include-unverified", action="store_true")
     ap.add_argument("--out", default=None)
     ap.add_argument("--tasks", default=None, help="comma-separated task ids")
+    ap.add_argument("--require-model", action="store_true",
+                    help="fail rather than fall back to the offline provider")
+    ap.add_argument("--smoke", action="store_true",
+                    help="one task per condition, for checking a provider cheaply")
     args = ap.parse_args()
 
     cfg = get_config()
@@ -91,6 +96,22 @@ def main() -> int:
         wanted = set(args.tasks.split(","))
         tasks = [t for t in tasks if t.id in wanted]
 
+    if args.smoke:
+        seen: set[str] = set()
+        smoke = []
+        for task in tasks:
+            if task.template_id not in seen:
+                seen.add(task.template_id)
+                smoke.append(task)
+        tasks = smoke[:1]
+        trials = 1
+
+    provider = make_client(cfg.models.agent, cfg.models.provider).provider
+    if args.require_model and provider != "litellm":
+        print(f"--require-model given but the resolved provider is {provider!r}; "
+              "set models.provider and supply credentials", file=sys.stderr)
+        return 2
+    print(f"provider: {provider}  model: {cfg.models.agent}")
     print(f"EVAL tasks: {len(tasks)} across "
           f"{len({t.template_id for t in tasks})} held-out templates")
     print(f"catalog: {len(catalog.tools)} tools "

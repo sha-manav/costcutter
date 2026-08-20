@@ -95,13 +95,19 @@ def render_tools(tools: list[ToolSpec]) -> str:
 
 def build_messages(goal: str, tools: list[ToolSpec],
                    history: list[StepRecord]) -> list[dict[str, Any]]:
+    """System message holds everything fixed for the task; user holds the rest.
+
+    The split is what makes prompt caching worth anything: the instructions
+    and the retrieved tool catalog are identical on every step, so they are
+    charged once rather than per step.
+    """
     hist = []
     for s in history[-3:]:
         detail = s.detail if len(s.detail) < 1200 else s.detail[:1200] + "…"
         hist.append(f"{s.index}: {json.dumps(s.action)} -> {detail}")
-    user = (f"GOAL: {goal}\n\nAVAILABLE TOOLS:\n{render_tools(tools)}\n\n"
-            f"HISTORY:\n" + ("\n".join(hist) or "(none)"))
-    return [{"role": "system", "content": SYSTEM_PROMPT},
+    system = f"{SYSTEM_PROMPT}\n\nAVAILABLE TOOLS:\n{render_tools(tools)}"
+    user = f"GOAL: {goal}\n\nHISTORY:\n" + ("\n".join(hist) or "(none)")
+    return [{"role": "system", "content": system},
             {"role": "user", "content": user}]
 
 

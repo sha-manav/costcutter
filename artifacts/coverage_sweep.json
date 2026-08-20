@@ -1,0 +1,54 @@
+[
+  {
+    "sessions": 1,
+    "records": 437,
+    "kept": 275,
+    "episodes": 23,
+    "tools": 2,
+    "retention": 0.6293,
+    "verified_tools": 1,
+    "coverage": 0.0256,
+    "success_rate": 1.0,
+    "usd_per_task": 0.009737,
+    "attainable_coverage": 0.3333
+  },
+  {
+    "sessions": 2,
+    "records": 827,
+    "kept": 544,
+    "episodes": 46,
+    "tools": 7,
+    "retention": 0.6578,
+    "verified_tools": 4,
+    "coverage": 0.0256,
+    "success_rate": 1.0,
+    "usd_per_task": 0.011307,
+    "attainable_coverage": 0.3333
+  },
+  {
+    "sessions": 3,
+    "records": 1216,
+    "kept": 811,
+    "episodes": 66,
+    "tools": 7,
+    "retention": 0.6669,
+    "verified_tools": 4,
+    "coverage": 0.0256,
+    "success_rate": 1.0,
+    "usd_per_task": 0.01132,
+    "attainable_coverage": 0.3333
+  },
+  {
+    "sessions": 4,
+    "records": 1603,
+    "kept": 1075,
+    "episodes": 87,
+    "tools": 8,
+    "retention": 0.6706,
+    "verified_tools": 4,
+    "coverage": 0.0256,
+    "success_rate": 1.0,
+    "usd_per_task": 0.01132,
+    "attainable_coverage": 0.3333
+  }
+]

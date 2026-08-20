@@ -265,13 +265,27 @@ off in the MCP server, and off in the agent. A synthesized write tool is only
 as safe as whatever is choosing its arguments, and a lexical matcher is not
 safe enough. The read-only configuration is measured separately below.
 
-**5. Segmentation is easy here and would not be in production.** The
+**5. The compounding curve does not compound — within one workload.** The
+sweep runs the whole pipeline over increasing prefixes of the same capture.
+More observation buys more tools (2 → 7 → 7 → 8) and more episodes
+(23 → 46 → 66 → 87), but held-out coverage is flat: attainable coverage sits
+at its ceiling of 33% after a *single* session, and achieved coverage does
+not move at all. The generic list tool — the one that transfers — is induced
+from the first session's traffic, because the OBSERVE templates already vary
+the record type between them. Everything after that adds depth on task types
+already seen. The reading is that observation volume and observation
+*variety* are different axes, and only the second one moves held-out
+coverage. A curve that rises would need new kinds of work, not more of the
+same. (The sweep verifies reads only, so its verified-tool count is 4 rather
+than the 8 of the main run, and it predates the prompt-size fix below.)
+
+**6. Segmentation is easy here and would not be in production.** The
 demonstrations are separated by deliberate idle gaps, which is the easy case.
 A real user's session interleaves tasks, abandons them, and comes back; the
 LLM refinement pass (label + coherence + split) exists for that and was
 exercised only lightly here.
 
-**6. Eight tools, not fifteen.** The acceptance target of ≥15 verified tools
+**7. Eight tools, not fifteen.** The acceptance target of ≥15 verified tools
 with support ≥3 is not reachable from this observation set: it contains eight
 task types, and the emitted catalog is deliberately curated rather than a
 long tail. Reaching fifteen would mean either lowering `min_support` below

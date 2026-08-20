@@ -375,6 +375,29 @@ expensive to look at — more interactive elements, more text — and takes nine
 or ten. The cost of driving a browser is concentrated almost entirely in the
 write tasks, and those are precisely the templates synthesis could not cover.
 
+### The catalog is not free to carry
+
+The first measured run made this concrete in an unflattering way. Every
+induced parameter carried its full observed value as `examples`, and for a
+list query that value is the entire backtick-qualified column list of
+whichever record type happened to be captured. Across eight tools that came
+to **7,905 characters of prompt on every single step** — larger than the
+accessibility snapshot the tools exist to replace. Condition B cost
+$0.01513 per successful task.
+
+Rendering the same tools by shape instead — type, enum, and one example
+truncated to 60 characters — cut the catalog to 4,096 characters, the covered
+template's per-step input from 2,256 tokens to 1,226, and condition B to
+$0.01221. Both numbers are in the repository
+(`artifacts/results_verbose_schema.jsonl` holds the pre-fix run).
+
+The general point survives the fix: a tool catalog is a fixed tax on every
+prompt, paid whether or not any tool is used. Eight tools cost roughly what
+an ERPNext list page costs to look at. That is the arithmetic that decides
+whether synthesis pays for itself, and it argues for serving a *retrieved*
+subset of tools rather than the whole catalog — which this project does not
+do.
+
 That sets the real prize and the real result apart. A tool-served task in
 condition B costs about 2,500 input tokens: one call plus a finish, each
 carrying the tool catalog. Against a read template's 2,000 that is roughly

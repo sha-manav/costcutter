@@ -24,5 +24,6 @@ artifacts/charts/*
 !artifacts/split.json
 !artifacts/results.jsonl
 !artifacts/results_readonly.jsonl
+!artifacts/results_verbose_schema.jsonl
 !artifacts/mcp_server.py
 dump.rdb

@@ -262,7 +262,13 @@ def relax_settings(frappe) -> None:
     sel = frappe.get_doc("Selling Settings")
     sel.so_required = "No"
     sel.dn_required = "No"
+    # Without a default selling price list, every new sales document fails
+    # validation in the UI. A real deployment sets this in the setup wizard.
+    sel.selling_price_list = "Standard Selling"
     sel.save(ignore_permissions=True)
+    buy = frappe.get_doc("Buying Settings")
+    buy.buying_price_list = "Standard Buying"
+    buy.save(ignore_permissions=True)
     sys_settings = frappe.get_doc("System Settings")
     sys_settings.disable_document_sharing = 0
     sys_settings.save(ignore_permissions=True)

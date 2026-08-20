@@ -109,6 +109,14 @@ class ToolSpec(BaseModel):
     source_episode_ids: list[str] = Field(default_factory=list)
     signature: str = ""
     verify_note: str = ""
+    # Shape of the final step's observed response: json-path -> type name.
+    # Used by verify/replay.py to check that a replay still looks right
+    # without asserting on values, which change between runs.
+    response_shape: dict[str, str] = Field(default_factory=dict)
+    # Example arguments taken from one observed episode, for replay.
+    example_args: dict[str, Any] = Field(default_factory=dict)
+    # Diagnostics for the provenance false-positive metric.
+    n_from_response_bindings: int = 0
 
 
 class ToolCatalog(BaseModel):

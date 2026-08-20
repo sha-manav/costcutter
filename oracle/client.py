@@ -27,6 +27,11 @@ class OracleClient:
         r.raise_for_status()
         self._logged_in = True
 
+    def invalidate(self) -> None:
+        """Drop the session. The DB reset takes the server-side session with
+        it, so callers must invalidate after every reset."""
+        self._logged_in = False
+
     def _ensure(self) -> None:
         if not self._logged_in:
             self.login()

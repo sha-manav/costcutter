@@ -374,6 +374,10 @@ def _induce_one(group: list[TrimmedEpisode], signature: str, cfg: Config,
 
     steps = _build_steps(group[0].records, resolved, n_steps)
     name, desc, usage = _name_tool(group, client)
+    example_args = {b.param_name: b.example_value
+                    for b in resolved.values()
+                    if b.kind == "user_param" and b.param_name}
+    n_from_response = sum(1 for b in resolved.values() if b.kind == "from_response")
 
     spec = ToolSpec(
         name=name,
@@ -385,8 +389,27 @@ def _induce_one(group: list[TrimmedEpisode], signature: str, cfg: Config,
         support=len(group),
         source_episode_ids=[t.episode_id for t in group],
         signature=signature,
+        response_shape=_response_shape(group[0].records[-1].resp_body),
+        example_args=example_args,
+        n_from_response_bindings=n_from_response,
     )
     return spec, usage
+
+
+def _response_shape(body: Any, limit: int = 40) -> dict[str, str]:
+    """Record the observed response structure, not its values."""
+    from shadow.distill.provenance import _walk_json
+
+    shape: dict[str, str] = {}
+    if body is None:
+        return shape
+    for path, leaf in _walk_json(body):
+        # Collapse array indices so the shape survives a different row count.
+        generic = re.sub(r"\[\d+\]", "[]", path)
+        shape.setdefault(generic, type(leaf).__name__)
+        if len(shape) >= limit:
+            break
+    return shape
 
 
 def _stable_source(bindings: list[Binding], group_size: int) -> Binding | None:

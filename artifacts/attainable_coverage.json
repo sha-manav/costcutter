@@ -1,0 +1,561 @@
+{
+  "tasks": 18,
+  "attainable": 0,
+  "rate": 0.0,
+  "by_template": {
+    "T03_stock_on_hand": 0.0,
+    "T06_latest_order_total": 0.0,
+    "T09_create_sales_order": 0.0,
+    "T10_create_supplier": 0.0,
+    "T12_create_item": 0.0,
+    "T14_create_sales_invoice": 0.0
+  },
+  "probes": [
+    {
+      "task_id": "T03_stock_on_hand#0",
+      "template_id": "T03_stock_on_hand",
+      "attainable": false,
+      "tool": null,
+      "detail": "no number in answer ''",
+      "attempts": [
+        {
+          "tool": "list_records",
+          "ok": false,
+          "answer": null,
+          "why": "no number in answer ''"
+        },
+        {
+          "tool": "list_customers",
+          "ok": false,
+          "answer": null,
+          "why": "no number in answer ''"
+        },
+        {
+          "tool": "list_records_2",
+          "ok": false,
+          "answer": "1",
+          "why": "expected 250.0, got 1.0"
+        },
+        {
+          "tool": "list_records_3",
+          "ok": false,
+          "answer": null,
+          "why": "no number in answer ''"
+        }
+      ]
+    },
+    {
+      "task_id": "T03_stock_on_hand#1",
+      "template_id": "T03_stock_on_hand",
+      "attainable": false,
+      "tool": null,
+      "detail": "no number in answer ''",
+      "attempts": [
+        {
+          "tool": "list_records",
+          "ok": false,
+          "answer": null,
+          "why": "no number in answer ''"
+        },
+        {
+          "tool": "list_customers",
+          "ok": false,
+          "answer": null,
+          "why": "no number in answer ''"
+        },
+        {
+          "tool": "list_records_2",
+          "ok": false,
+          "answer": "1",
+          "why": "expected 250.0, got 1.0"
+        },
+        {
+          "tool": "list_records_3",
+          "ok": false,
+          "answer": null,
+          "why": "no number in answer ''"
+        }
+      ]
+    },
+    {
+      "task_id": "T03_stock_on_hand#2",
+      "template_id": "T03_stock_on_hand",
+      "attainable": false,
+      "tool": null,
+      "detail": "no number in answer ''",
+      "attempts": [
+        {
+          "tool": "list_records",
+          "ok": false,
+          "answer": null,
+          "why": "no number in answer ''"
+        },
+        {
+          "tool": "list_customers",
+          "ok": false,
+          "answer": null,
+          "why": "no number in answer ''"
+        },
+        {
+          "tool": "list_records_2",
+          "ok": false,
+          "answer": "1",
+          "why": "expected 250.0, got 1.0"
+        },
+        {
+          "tool": "list_records_3",
+          "ok": false,
+          "answer": null,
+          "why": "no number in answer ''"
+        }
+      ]
+    },
+    {
+      "task_id": "T06_latest_order_total#0",
+      "template_id": "T06_latest_order_total",
+      "attainable": false,
+      "tool": null,
+      "detail": "no number in answer ''",
+      "attempts": [
+        {
+          "tool": "list_records",
+          "ok": false,
+          "answer": null,
+          "why": "no number in answer ''"
+        },
+        {
+          "tool": "list_customers",
+          "ok": false,
+          "answer": null,
+          "why": "no number in answer ''"
+        },
+        {
+          "tool": "list_records_2",
+          "ok": false,
+          "answer": "1",
+          "why": "expected 589.0, got 1.0"
+        },
+        {
+          "tool": "list_records_3",
+          "ok": false,
+          "answer": null,
+          "why": "no number in answer ''"
+        }
+      ]
+    },
+    {
+      "task_id": "T06_latest_order_total#1",
+      "template_id": "T06_latest_order_total",
+      "attainable": false,
+      "tool": null,
+      "detail": "no number in answer ''",
+      "attempts": [
+        {
+          "tool": "list_records",
+          "ok": false,
+          "answer": null,
+          "why": "no number in answer ''"
+        },
+        {
+          "tool": "list_customers",
+          "ok": false,
+          "answer": null,
+          "why": "no number in answer ''"
+        },
+        {
+          "tool": "list_records_2",
+          "ok": false,
+          "answer": "1",
+          "why": "expected 1060.6, got 1.0"
+        },
+        {
+          "tool": "list_records_3",
+          "ok": false,
+          "answer": null,
+          "why": "no number in answer ''"
+        }
+      ]
+    },
+    {
+      "task_id": "T06_latest_order_total#2",
+      "template_id": "T06_latest_order_total",
+      "attainable": false,
+      "tool": null,
+      "detail": "no number in answer ''",
+      "attempts": [
+        {
+          "tool": "list_records",
+          "ok": false,
+          "answer": null,
+          "why": "no number in answer ''"
+        },
+        {
+          "tool": "list_customers",
+          "ok": false,
+          "answer": null,
+          "why": "no number in answer ''"
+        },
+        {
+          "tool": "list_records_2",
+          "ok": false,
+          "answer": "1",
+          "why": "expected 1300.0, got 1.0"
+        },
+        {
+          "tool": "list_records_3",
+          "ok": false,
+          "answer": null,
+          "why": "no number in answer ''"
+        }
+      ]
+    },
+    {
+      "task_id": "T09_create_sales_order#0",
+      "template_id": "T09_create_sales_order",
+      "attainable": false,
+      "tool": null,
+      "detail": "step 0 returned 500: {'exception': \"TypeError: unsupported operand type(s) for *: 'NoneType' and 'float'\", 'exc_type': 'TypeError', '_exc_source': 'erpnext (app",
+      "attempts": [
+        {
+          "tool": "update_item_price",
+          "ok": false,
+          "why": "doctype is a literal (['Item Price']); cannot address Sales Order"
+        },
+        {
+          "tool": "create_customer",
+          "ok": false,
+          "why": "doctype is a literal (['Customer', 'Territory']); cannot address Sales Order"
+        },
+        {
+          "tool": "update_customer",
+          "ok": false,
+          "why": "doctype is a literal (['Customer']); cannot address Sales Order"
+        },
+        {
+          "tool": "create_record",
+          "ok": false,
+          "why": "step 0 returned 500: {'exception': \"TypeError: unsupported operand type(s) for *: 'NoneType' and 'float'\", 'exc_type': 'TypeError', '_exc_source': 'erpnext (app"
+        }
+      ]
+    },
+    {
+      "task_id": "T09_create_sales_order#1",
+      "template_id": "T09_create_sales_order",
+      "attainable": false,
+      "tool": null,
+      "detail": "step 0 returned 500: {'exception': \"TypeError: unsupported operand type(s) for *: 'NoneType' and 'float'\", 'exc_type': 'TypeError', '_exc_source': 'erpnext (app",
+      "attempts": [
+        {
+          "tool": "update_item_price",
+          "ok": false,
+          "why": "doctype is a literal (['Item Price']); cannot address Sales Order"
+        },
+        {
+          "tool": "create_customer",
+          "ok": false,
+          "why": "doctype is a literal (['Customer', 'Territory']); cannot address Sales Order"
+        },
+        {
+          "tool": "update_customer",
+          "ok": false,
+          "why": "doctype is a literal (['Customer']); cannot address Sales Order"
+        },
+        {
+          "tool": "create_record",
+          "ok": false,
+          "why": "step 0 returned 500: {'exception': \"TypeError: unsupported operand type(s) for *: 'NoneType' and 'float'\", 'exc_type': 'TypeError', '_exc_source': 'erpnext (app"
+        }
+      ]
+    },
+    {
+      "task_id": "T09_create_sales_order#2",
+      "template_id": "T09_create_sales_order",
+      "attainable": false,
+      "tool": null,
+      "detail": "step 0 returned 500: {'exception': \"TypeError: unsupported operand type(s) for *: 'NoneType' and 'float'\", 'exc_type': 'TypeError', '_exc_source': 'erpnext (app",
+      "attempts": [
+        {
+          "tool": "update_item_price",
+          "ok": false,
+          "why": "doctype is a literal (['Item Price']); cannot address Sales Order"
+        },
+        {
+          "tool": "create_customer",
+          "ok": false,
+          "why": "doctype is a literal (['Customer', 'Territory']); cannot address Sales Order"
+        },
+        {
+          "tool": "update_customer",
+          "ok": false,
+          "why": "doctype is a literal (['Customer']); cannot address Sales Order"
+        },
+        {
+          "tool": "create_record",
+          "ok": false,
+          "why": "step 0 returned 500: {'exception': \"TypeError: unsupported operand type(s) for *: 'NoneType' and 'float'\", 'exc_type': 'TypeError', '_exc_source': 'erpnext (app"
+        }
+      ]
+    },
+    {
+      "task_id": "T10_create_supplier#0",
+      "template_id": "T10_create_supplier",
+      "attainable": false,
+      "tool": null,
+      "detail": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Supplier, CUST-2026-00001]: supplier_name', 'exc_type': 'MandatoryError', 'exc': '[\"Trace",
+      "attempts": [
+        {
+          "tool": "update_item_price",
+          "ok": false,
+          "why": "doctype is a literal (['Item Price']); cannot address Supplier"
+        },
+        {
+          "tool": "create_customer",
+          "ok": false,
+          "why": "doctype is a literal (['Customer', 'Territory']); cannot address Supplier"
+        },
+        {
+          "tool": "update_customer",
+          "ok": false,
+          "why": "doctype is a literal (['Customer']); cannot address Supplier"
+        },
+        {
+          "tool": "create_record",
+          "ok": false,
+          "why": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Supplier, CUST-2026-00001]: supplier_name', 'exc_type': 'MandatoryError', 'exc': '[\"Trace"
+        }
+      ]
+    },
+    {
+      "task_id": "T10_create_supplier#1",
+      "template_id": "T10_create_supplier",
+      "attainable": false,
+      "tool": null,
+      "detail": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Supplier, CUST-2026-00001]: supplier_name', 'exc_type': 'MandatoryError', 'exc': '[\"Trace",
+      "attempts": [
+        {
+          "tool": "update_item_price",
+          "ok": false,
+          "why": "doctype is a literal (['Item Price']); cannot address Supplier"
+        },
+        {
+          "tool": "create_customer",
+          "ok": false,
+          "why": "doctype is a literal (['Customer', 'Territory']); cannot address Supplier"
+        },
+        {
+          "tool": "update_customer",
+          "ok": false,
+          "why": "doctype is a literal (['Customer']); cannot address Supplier"
+        },
+        {
+          "tool": "create_record",
+          "ok": false,
+          "why": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Supplier, CUST-2026-00001]: supplier_name', 'exc_type': 'MandatoryError', 'exc': '[\"Trace"
+        }
+      ]
+    },
+    {
+      "task_id": "T10_create_supplier#2",
+      "template_id": "T10_create_supplier",
+      "attainable": false,
+      "tool": null,
+      "detail": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Supplier, CUST-2026-00001]: supplier_name', 'exc_type': 'MandatoryError', 'exc': '[\"Trace",
+      "attempts": [
+        {
+          "tool": "update_item_price",
+          "ok": false,
+          "why": "doctype is a literal (['Item Price']); cannot address Supplier"
+        },
+        {
+          "tool": "create_customer",
+          "ok": false,
+          "why": "doctype is a literal (['Customer', 'Territory']); cannot address Supplier"
+        },
+        {
+          "tool": "update_customer",
+          "ok": false,
+          "why": "doctype is a literal (['Customer']); cannot address Supplier"
+        },
+        {
+          "tool": "create_record",
+          "ok": false,
+          "why": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Supplier, CUST-2026-00001]: supplier_name', 'exc_type': 'MandatoryError', 'exc': '[\"Trace"
+        }
+      ]
+    },
+    {
+      "task_id": "T12_create_item#0",
+      "template_id": "T12_create_item",
+      "attainable": false,
+      "tool": null,
+      "detail": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Item, SH-PANEL-01]: item_group', 'exc_type': 'MandatoryError', 'exc': '[\"Traceback (most ",
+      "attempts": [
+        {
+          "tool": "update_item_price",
+          "ok": false,
+          "why": "doctype is a literal (['Item Price']); cannot address Item"
+        },
+        {
+          "tool": "create_customer",
+          "ok": false,
+          "why": "doctype is a literal (['Customer', 'Territory']); cannot address Item"
+        },
+        {
+          "tool": "update_customer",
+          "ok": false,
+          "why": "doctype is a literal (['Customer']); cannot address Item"
+        },
+        {
+          "tool": "create_record",
+          "ok": false,
+          "why": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Item, SH-PANEL-01]: item_group', 'exc_type': 'MandatoryError', 'exc': '[\"Traceback (most "
+        }
+      ]
+    },
+    {
+      "task_id": "T12_create_item#1",
+      "template_id": "T12_create_item",
+      "attainable": false,
+      "tool": null,
+      "detail": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Item, SH-PANEL-01]: item_group', 'exc_type': 'MandatoryError', 'exc': '[\"Traceback (most ",
+      "attempts": [
+        {
+          "tool": "update_item_price",
+          "ok": false,
+          "why": "doctype is a literal (['Item Price']); cannot address Item"
+        },
+        {
+          "tool": "create_customer",
+          "ok": false,
+          "why": "doctype is a literal (['Customer', 'Territory']); cannot address Item"
+        },
+        {
+          "tool": "update_customer",
+          "ok": false,
+          "why": "doctype is a literal (['Customer']); cannot address Item"
+        },
+        {
+          "tool": "create_record",
+          "ok": false,
+          "why": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Item, SH-PANEL-01]: item_group', 'exc_type': 'MandatoryError', 'exc': '[\"Traceback (most "
+        }
+      ]
+    },
+    {
+      "task_id": "T12_create_item#2",
+      "template_id": "T12_create_item",
+      "attainable": false,
+      "tool": null,
+      "detail": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Item, SH-PANEL-01]: item_group', 'exc_type': 'MandatoryError', 'exc': '[\"Traceback (most ",
+      "attempts": [
+        {
+          "tool": "update_item_price",
+          "ok": false,
+          "why": "doctype is a literal (['Item Price']); cannot address Item"
+        },
+        {
+          "tool": "create_customer",
+          "ok": false,
+          "why": "doctype is a literal (['Customer', 'Territory']); cannot address Item"
+        },
+        {
+          "tool": "update_customer",
+          "ok": false,
+          "why": "doctype is a literal (['Customer']); cannot address Item"
+        },
+        {
+          "tool": "create_record",
+          "ok": false,
+          "why": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Item, SH-PANEL-01]: item_group', 'exc_type': 'MandatoryError', 'exc': '[\"Traceback (most "
+        }
+      ]
+    },
+    {
+      "task_id": "T14_create_sales_invoice#0",
+      "template_id": "T14_create_sales_invoice",
+      "attainable": false,
+      "tool": null,
+      "detail": "step 0 returned 500: {'exception': \"TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'\", 'exc_type': 'TypeError', '_exc_source': 'erpnext (app",
+      "attempts": [
+        {
+          "tool": "update_item_price",
+          "ok": false,
+          "why": "doctype is a literal (['Item Price']); cannot address Sales Invoice"
+        },
+        {
+          "tool": "create_customer",
+          "ok": false,
+          "why": "doctype is a literal (['Customer', 'Territory']); cannot address Sales Invoice"
+        },
+        {
+          "tool": "update_customer",
+          "ok": false,
+          "why": "doctype is a literal (['Customer']); cannot address Sales Invoice"
+        },
+        {
+          "tool": "create_record",
+          "ok": false,
+          "why": "step 0 returned 500: {'exception': \"TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'\", 'exc_type': 'TypeError', '_exc_source': 'erpnext (app"
+        }
+      ]
+    },
+    {
+      "task_id": "T14_create_sales_invoice#1",
+      "template_id": "T14_create_sales_invoice",
+      "attainable": false,
+      "tool": null,
+      "detail": "step 0 returned 500: {'exception': \"TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'\", 'exc_type': 'TypeError', '_exc_source': 'erpnext (app",
+      "attempts": [
+        {
+          "tool": "update_item_price",
+          "ok": false,
+          "why": "doctype is a literal (['Item Price']); cannot address Sales Invoice"
+        },
+        {
+          "tool": "create_customer",
+          "ok": false,
+          "why": "doctype is a literal (['Customer', 'Territory']); cannot address Sales Invoice"
+        },
+        {
+          "tool": "update_customer",
+          "ok": false,
+          "why": "doctype is a literal (['Customer']); cannot address Sales Invoice"
+        },
+        {
+          "tool": "create_record",
+          "ok": false,
+          "why": "step 0 returned 500: {'exception': \"TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'\", 'exc_type': 'TypeError', '_exc_source': 'erpnext (app"
+        }
+      ]
+    },
+    {
+      "task_id": "T14_create_sales_invoice#2",
+      "template_id": "T14_create_sales_invoice",
+      "attainable": false,
+      "tool": null,
+      "detail": "step 0 returned 500: {'exception': \"TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'\", 'exc_type': 'TypeError', '_exc_source': 'erpnext (app",
+      "attempts": [
+        {
+          "tool": "update_item_price",
+          "ok": false,
+          "why": "doctype is a literal (['Item Price']); cannot address Sales Invoice"
+        },
+        {
+          "tool": "create_customer",
+          "ok": false,
+          "why": "doctype is a literal (['Customer', 'Territory']); cannot address Sales Invoice"
+        },
+        {
+          "tool": "update_customer",
+          "ok": false,
+          "why": "doctype is a literal (['Customer']); cannot address Sales Invoice"
+        },
+        {
+          "tool": "create_record",
+          "ok": false,
+          "why": "step 0 returned 500: {'exception': \"TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'\", 'exc_type': 'TypeError', '_exc_source': 'erpnext (app"
+        }
+      ]
+    }
+  ]
+}

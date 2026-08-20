@@ -91,7 +91,11 @@ def build_arguments(spec: ToolSpec, task: Task) -> dict[str, Any]:
             args[name] = ([[hint["field"], "=", value]]
                           if hint.get("field") and value is not None else [])
         elif lname == "fields" and hint.get("fields"):
-            args[name] = ["name"] + list(hint["fields"])
+            # Include the filter column as well: the answer reduction matches
+            # the named entity against the returned rows, so a row that does
+            # not carry it cannot be recognised.
+            extra = [hint["field"]] if hint.get("field") else []
+            args[name] = ["name"] + list(hint["fields"]) + extra
         elif "order_by" in lname:
             # The observed value names the record type it was captured on
             # (`\`tabItem Price\`.\`modified\` desc`), which is a SQL error

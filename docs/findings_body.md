@@ -74,6 +74,40 @@ frequency:
 None of them is in a hand-written list; they were found because they appear
 in ≥ 80% of episodes regardless of what the user was doing.
 
+### Did segmentation recover the tasks?
+
+Episodes are cut from the traffic alone. The demonstration manifest — which
+records what was driven and when, and which the synthesis pipeline never
+reads — makes it possible to check afterwards
+(`scripts/segmentation_check.py`):
+
+* 96 demonstrations produced 87 episodes
+* 9 episodes span more than one demonstration
+* 2 overlap no demonstration at all (login, idle navigation)
+
+So boundaries are recovered for roughly 90% of demonstrations. Labels are a
+different story, and the failure is informative:
+
+| demonstrated | most common label |
+| --- | --- |
+| T01 customer outstanding | `create or update sales invoice` ×7 |
+| T02 overdue invoices | `create or update sales invoice` ×9 |
+| T04 customer order count | `create or update sales order` ×7 |
+| T05 item price | `create or update item price` ×8 |
+| T07 items below price | `create or update item price` ×10 |
+| T08 create customer | `submit customer` ×10 |
+| T11 update item price | `submit item price` ×10 |
+| T13 update customer group | `view customer` ×6 |
+
+The *subject* is right almost every time — the labeller identifies the record
+type the user was working on from the traffic. The *verb* is wrong on the
+reads, because the deterministic labeller sees the desk saving list-view
+settings with a POST and concludes something was created. This is exactly the
+judgement an LLM labeller is for, and it is the one place in the pipeline
+where the offline stand-in is clearly worse than a model would be. It does
+not affect the tools: induction groups on request signatures, not on labels;
+labels only feed naming, where the mutation classifier overrides them.
+
 ### The interesting tool
 
 `update_item_price` is the one to look at, because it is the thing an OpenAPI

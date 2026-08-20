@@ -1,0 +1,21 @@
+{
+  "observe": [
+    "T01_customer_outstanding",
+    "T02_overdue_invoices",
+    "T04_customer_open_orders",
+    "T05_item_price",
+    "T07_items_below_price",
+    "T08_create_customer",
+    "T11_update_item_price",
+    "T13_update_customer_group"
+  ],
+  "eval": [
+    "T03_stock_on_hand",
+    "T06_latest_order_total",
+    "T09_create_sales_order",
+    "T10_create_supplier",
+    "T12_create_item",
+    "T14_create_sales_invoice"
+  ],
+  "seed": 1337
+}

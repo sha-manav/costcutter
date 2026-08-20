@@ -1,0 +1,94 @@
+[
+  {
+    "tool": "list_records",
+    "mutation_class": "read",
+    "ok": true,
+    "status": 200,
+    "shape_match": 1.0,
+    "error": null,
+    "binding_failure": false,
+    "changed_doctypes": {},
+    "note": ""
+  },
+  {
+    "tool": "update_item_price",
+    "mutation_class": "write",
+    "ok": true,
+    "status": 200,
+    "shape_match": 1.0,
+    "error": null,
+    "binding_failure": false,
+    "changed_doctypes": {},
+    "note": ""
+  },
+  {
+    "tool": "create_customer",
+    "mutation_class": "write",
+    "ok": true,
+    "status": 200,
+    "shape_match": 1.0,
+    "error": null,
+    "binding_failure": false,
+    "changed_doctypes": {
+      "Customer": 1
+    },
+    "note": ""
+  },
+  {
+    "tool": "list_customers",
+    "mutation_class": "read",
+    "ok": true,
+    "status": 200,
+    "shape_match": 1.0,
+    "error": null,
+    "binding_failure": false,
+    "changed_doctypes": {},
+    "note": ""
+  },
+  {
+    "tool": "list_records_2",
+    "mutation_class": "read",
+    "ok": true,
+    "status": 200,
+    "shape_match": 1.0,
+    "error": null,
+    "binding_failure": false,
+    "changed_doctypes": {},
+    "note": ""
+  },
+  {
+    "tool": "list_records_3",
+    "mutation_class": "read",
+    "ok": true,
+    "status": 200,
+    "shape_match": 1.0,
+    "error": null,
+    "binding_failure": false,
+    "changed_doctypes": {},
+    "note": ""
+  },
+  {
+    "tool": "update_customer",
+    "mutation_class": "write",
+    "ok": true,
+    "status": 200,
+    "shape_match": 1.0,
+    "error": null,
+    "binding_failure": false,
+    "changed_doctypes": {},
+    "note": ""
+  },
+  {
+    "tool": "create_record",
+    "mutation_class": "write",
+    "ok": true,
+    "status": 200,
+    "shape_match": 1.0,
+    "error": null,
+    "binding_failure": false,
+    "changed_doctypes": {
+      "Customer": 2
+    },
+    "note": ""
+  }
+]

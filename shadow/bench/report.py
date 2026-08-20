@@ -8,7 +8,9 @@ from typing import Any
 from shadow.capture.schema import read_catalog, read_episodes, read_records
 from shadow.config import Config, get_config
 from shadow.distill.filter import filter_records
-from shadow.distill.induce import is_noise
+from shadow.distill.endpoints import chrome_endpoints, is_noise
+from shadow.distill.induce import trim_episode
+from shadow.distill.provenance import ProvenanceEngine
 from shadow.bench.charts import render_all
 from shadow.bench.metrics import compare, endpoint_recall, load_results
 
@@ -18,10 +20,30 @@ from oracle.typing_truth import score_param_typing
 
 
 def observed_endpoints(cfg: Config) -> list[tuple[str, str]]:
-    """(method, path) for every meaningful call the demonstrations made."""
+    """(method, path) for every API call the demonstrations made."""
     records = read_records(cfg.path("capture"))
     kept, _stats = filter_records(records)
     return [(r.method, r.path) for r in kept if not is_noise(r)]
+
+
+def load_bearing_endpoints(cfg: Config) -> list[tuple[str, str]]:
+    """(method, path) for the calls that actually carried the tasks.
+
+    Endpoint recall over *every* observed call is misleading: most of them
+    are page chrome that a tool is right to ignore. This is the denominator
+    that matters — the calls the trim kept.
+    """
+    episodes = read_episodes(cfg.path("episodes"))
+    if not episodes:
+        return []
+    engine = ProvenanceEngine(cfg)
+    chrome = chrome_endpoints(episodes, cfg.induce.chrome_df)
+    out: list[tuple[str, str]] = []
+    for ep in episodes:
+        trimmed = trim_episode(ep, engine.infer(ep, chrome), chrome)
+        if trimmed is not None:
+            out.extend((r.method, r.path) for r in trimmed.records)
+    return out
 
 
 def synthesized_endpoints(catalog) -> list[tuple[str, str]]:
@@ -38,8 +60,11 @@ def synthesized_endpoints(catalog) -> list[tuple[str, str]]:
 
 def synthesis_ground_truth(cfg: Config) -> dict[str, Any]:
     catalog = read_catalog(cfg.path("tools"))
-    score = endpoint_recall(observed_endpoints(cfg), synthesized_endpoints(catalog),
+    synthesized = synthesized_endpoints(catalog)
+    score = endpoint_recall(load_bearing_endpoints(cfg), synthesized,
                             classify_endpoint)
+    all_calls = endpoint_recall(observed_endpoints(cfg), synthesized,
+                                classify_endpoint)
     verify_path = cfg.path("artifacts") / "verify_report.json"
     if verify_path.exists():
         reports = json.loads(verify_path.read_text())
@@ -48,6 +73,12 @@ def synthesis_ground_truth(cfg: Config) -> dict[str, Any]:
         score.from_response_failed_at_replay = sum(
             1 for r in reports if r.get("binding_failure"))
     out = score.to_dict()
+    out["recall_over_all_observed_calls"] = {
+        "endpoint_recall": round(all_calls.endpoint_recall, 4),
+        "weighted_endpoint_recall": round(all_calls.weighted_endpoint_recall, 4),
+        "observed_endpoints": all_calls.observed_endpoints,
+        "missed_endpoints": all_calls.missed_endpoints,
+    }
     try:
         oc = OracleClient(cfg)
         oc.login()
@@ -137,9 +168,11 @@ def markdown_tables(report: dict[str, Any]) -> str:
         "### Synthesis ground truth", "",
         "| measure | value |",
         "| --- | --- |",
-        f"| documented endpoints the demonstrations touched | {len(gt['observed_endpoints'])} |",
-        f"| endpoint recall (unweighted) | {gt['endpoint_recall']:.0%} |",
-        f"| endpoint recall (weighted by call volume) | {gt['weighted_endpoint_recall']:.0%} |",
+        f"| documented endpoints in load-bearing calls | {len(gt['observed_endpoints'])} |",
+        f"| endpoint recall over load-bearing calls (unweighted) | {gt['endpoint_recall']:.0%} |",
+        f"| endpoint recall over load-bearing calls (weighted) | {gt['weighted_endpoint_recall']:.0%} |",
+        f"| endpoint recall over every observed API call (unweighted) | "
+        f"{gt['recall_over_all_observed_calls']['endpoint_recall']:.0%} |",
         f"| parameter typing accuracy | "
         f"{typing.get('accuracy', 0):.0%} ({typing.get('correct', 0)}/{typing.get('scored', 0)} scored) |",
         f"| from_response bindings induced | {gt['from_response_bindings']} |",
@@ -210,9 +243,13 @@ def main() -> int:
     comparison = compare(rows, cfg)
     print(comparison.render())
     gt = report["synthesis_ground_truth"]
-    print(f"\nendpoint recall (documented endpoints the demos touched): "
+    print(f"\nendpoint recall over load-bearing calls: "
           f"{gt['endpoint_recall']:.0%} unweighted, "
           f"{gt['weighted_endpoint_recall']:.0%} weighted by call volume")
+    every = gt["recall_over_all_observed_calls"]
+    print(f"endpoint recall over every observed API call: "
+          f"{every['endpoint_recall']:.0%} unweighted, "
+          f"{every['weighted_endpoint_recall']:.0%} weighted")
     typing = gt.get("param_typing", {})
     if "accuracy" in typing:
         print(f"parameter typing accuracy: {typing['accuracy']:.0%} "

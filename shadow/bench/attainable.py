@@ -92,6 +92,11 @@ def build_arguments(spec: ToolSpec, task: Task) -> dict[str, Any]:
                           if hint.get("field") and value is not None else [])
         elif lname == "fields" and hint.get("fields"):
             args[name] = ["name"] + list(hint["fields"])
+        elif "order_by" in lname:
+            # The observed value names the record type it was captured on
+            # (`\`tabItem Price\`.\`modified\` desc`), which is a SQL error
+            # against any other one.
+            args[name] = "modified desc"
         elif lname in {"page_length", "limit", "limit_page_length"}:
             args[name] = 200
         elif lname in task.params:

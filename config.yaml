@@ -41,12 +41,12 @@ paths:
 models:
   # Any litellm-routable model id. Swap freely; the cost table below must
   # contain an entry for whatever is used or metrics.py will refuse to score.
-  agent: "claude-haiku-4-5-20251001"
+  agent: "claude-sonnet-5"
   labeler: "claude-haiku-4-5-20251001"
   namer: "claude-haiku-4-5-20251001"
   # "litellm" makes real API calls; "offline" uses the deterministic
   # provider in shadow/llm.py so the pipeline runs without credentials.
-  provider: "auto"
+  provider: "litellm"
 
 # USD per 1M tokens. Source: public list prices at time of writing.
 costs:

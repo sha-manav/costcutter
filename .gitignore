@@ -23,7 +23,14 @@ artifacts/charts/*
 !artifacts/observe_manifest.json
 !artifacts/split.json
 !artifacts/results.jsonl
-!artifacts/results_readonly.jsonl
-!artifacts/results_verbose_schema.jsonl
+!artifacts/results_offline_readonly.jsonl
+!artifacts/results_offline_verbose_schema.jsonl
+!artifacts/results_offline_v2_partial.jsonl
+!artifacts/results_sonnet.jsonl
+!artifacts/results_haiku.jsonl
+!artifacts/results_writes_enabled.jsonl
+!artifacts/k_sweep.json
+!artifacts/collateral_writes.json
+!artifacts/model_comparison.json
 !artifacts/mcp_server.py
 dump.rdb

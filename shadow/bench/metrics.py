@@ -15,14 +15,30 @@ class MissingCost(RuntimeError):
     """Refuse to score a model with no price in the config table."""
 
 
-def usd(cfg: Config, usage: dict[str, Any]) -> float:
+# Anthropic bills a cache write above the normal input rate.
+CACHE_WRITE_MULTIPLIER = 1.25
+
+
+def usd(cfg: Config, usage: dict[str, Any], price_cache_at_full: bool = False
+        ) -> float:
+    """Cost of one usage record.
+
+    `price_cache_at_full` reprices cache reads at the full input rate. Caching
+    is not neutral between the two conditions — the tool agent's prefix is
+    static and caches, the browser agent's page snapshot changes every step
+    and cannot — so the comparison is reported both ways rather than banking
+    a structural advantage silently.
+    """
     model = usage.get("model", "")
     price = cfg.costs.get(model)
     if price is None:
         raise MissingCost(
             f"no cost entry for model {model!r}; add it to config.yaml costs")
+    cached_rate = price.input if price_cache_at_full else price.cached_input
     return (usage.get("input_tokens", 0) / 1e6 * price.input
-            + usage.get("cached_input_tokens", 0) / 1e6 * price.cached_input
+            + usage.get("cached_input_tokens", 0) / 1e6 * cached_rate
+            + usage.get("cache_write_tokens", 0) / 1e6 * price.input
+            * CACHE_WRITE_MULTIPLIER
             + usage.get("output_tokens", 0) / 1e6 * price.output)
 
 

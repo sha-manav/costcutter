@@ -1,0 +1,62 @@
+[
+  {
+    "k": 0,
+    "runs": 18,
+    "success_rate": 1.0,
+    "usd_per_successful_task": 0.00905,
+    "usd_per_task": 0.00905,
+    "p50_latency_s": 23.31,
+    "p95_latency_s": 36.74,
+    "coverage": 0.0,
+    "task_coverage": 0.0,
+    "mean_steps": 8.67,
+    "failed_tool_actions": 0,
+    "mean_prompt_chars": 2847.2,
+    "runs_with_no_catalog": 18
+  },
+  {
+    "k": 1,
+    "runs": 18,
+    "success_rate": 1.0,
+    "usd_per_successful_task": 0.008957,
+    "usd_per_task": 0.008957,
+    "p50_latency_s": 23.09,
+    "p95_latency_s": 36.18,
+    "coverage": 0.0256,
+    "task_coverage": 0.1667,
+    "mean_steps": 8.33,
+    "failed_tool_actions": 3,
+    "mean_prompt_chars": 2931.9,
+    "runs_with_no_catalog": 3
+  },
+  {
+    "k": 3,
+    "runs": 18,
+    "success_rate": 1.0,
+    "usd_per_successful_task": 0.009242,
+    "usd_per_task": 0.009242,
+    "p50_latency_s": 23.17,
+    "p95_latency_s": 36.73,
+    "coverage": 0.0256,
+    "task_coverage": 0.1667,
+    "mean_steps": 8.33,
+    "failed_tool_actions": 3,
+    "mean_prompt_chars": 3049.5,
+    "runs_with_no_catalog": 3
+  },
+  {
+    "k": 8,
+    "runs": 18,
+    "success_rate": 1.0,
+    "usd_per_successful_task": 0.009402,
+    "usd_per_task": 0.009402,
+    "p50_latency_s": 23.43,
+    "p95_latency_s": 36.8,
+    "coverage": 0.0256,
+    "task_coverage": 0.1667,
+    "mean_steps": 8.33,
+    "failed_tool_actions": 3,
+    "mean_prompt_chars": 3110.7,
+    "runs_with_no_catalog": 3
+  }
+]

@@ -92,7 +92,11 @@ def test_anthropic_cache_fields_are_read(monkeypatch):
     usage = LiteLLMClient("claude-haiku-4-5-20251001").complete(
         [{"role": "user", "content": "U"}]).usage
     assert usage.cached_input_tokens == 700
-    assert usage.input_tokens == 300               # the cache write
+    # A cache write is neither a fresh input token nor a cached read: it is
+    # billed above the input rate, so it is counted on its own.
+    assert usage.cache_write_tokens == 300
+    assert usage.input_tokens == 0
+    assert usage.total_input_tokens == 1000
 
 
 def test_offline_call_site_kwargs_never_reach_the_provider(stub_litellm):
@@ -214,3 +218,31 @@ def test_the_model_drives_tool_selection_under_litellm(monkeypatch, tmp_path):
     assert all(not step.usage.simulated for step in result.steps)
     # And the catalog it chose from was in the cacheable system message.
     assert "list_records" in seen_prompts[0]
+
+
+def test_cache_writes_are_priced_above_the_input_rate():
+    """Anthropic bills cache creation at 1.25x input; folding it into
+    input_tokens understates the first step of every task."""
+    from shadow.bench.metrics import CACHE_WRITE_MULTIPLIER, usd
+
+    cfg = get_config()
+    model = "claude-sonnet-5"
+    price = cfg.costs[model]
+    usage = {"model": model, "input_tokens": 0, "cached_input_tokens": 0,
+             "cache_write_tokens": 1_000_000, "output_tokens": 0}
+    assert usd(cfg, usage) == pytest.approx(price.input * CACHE_WRITE_MULTIPLIER)
+
+
+def test_cost_can_be_repriced_without_the_cache_discount():
+    """Caching favours the tool agent structurally, so the comparison is
+    reported both ways rather than banking the discount silently."""
+    from shadow.bench.metrics import usd
+
+    cfg = get_config()
+    model = "claude-sonnet-5"
+    price = cfg.costs[model]
+    usage = {"model": model, "input_tokens": 0, "cached_input_tokens": 1_000_000,
+             "cache_write_tokens": 0, "output_tokens": 0}
+    assert usd(cfg, usage) == pytest.approx(price.cached_input)
+    assert usd(cfg, usage, price_cache_at_full=True) == pytest.approx(price.input)
+    assert price.cached_input < price.input

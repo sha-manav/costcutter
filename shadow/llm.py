@@ -36,19 +36,24 @@ class LLMUsage:
     # reported separately so a reader can see how much of the prefix was
     # actually reused rather than take it on faith.
     cached_input_tokens: int = 0
+    # Tokens written INTO the cache. Anthropic bills these above the normal
+    # input rate (1.25x), so folding them into input_tokens understates the
+    # cost of the first step of every task.
+    cache_write_tokens: int = 0
     output_tokens: int = 0
     latency_s: float = 0.0
     simulated: bool = False
 
     @property
     def total_input_tokens(self) -> int:
-        return self.input_tokens + self.cached_input_tokens
+        return self.input_tokens + self.cached_input_tokens + self.cache_write_tokens
 
     def __add__(self, other: "LLMUsage") -> "LLMUsage":
         return LLMUsage(
             model=self.model or other.model,
             input_tokens=self.input_tokens + other.input_tokens,
             cached_input_tokens=self.cached_input_tokens + other.cached_input_tokens,
+            cache_write_tokens=self.cache_write_tokens + other.cache_write_tokens,
             output_tokens=self.output_tokens + other.output_tokens,
             latency_s=self.latency_s + other.latency_s,
             simulated=self.simulated or other.simulated,
@@ -59,6 +64,7 @@ class LLMUsage:
             "model": self.model,
             "input_tokens": self.input_tokens,
             "cached_input_tokens": self.cached_input_tokens,
+            "cache_write_tokens": self.cache_write_tokens,
             "output_tokens": self.output_tokens,
             "latency_s": round(self.latency_s, 4),
             "simulated": self.simulated,
@@ -178,8 +184,9 @@ class LiteLLMClient:
             text=text,
             usage=LLMUsage(
                 model=self.model,
-                input_tokens=max(0, prompt_tokens - cached),
+                input_tokens=max(0, prompt_tokens - cached - cache_write),
                 cached_input_tokens=cached,
+                cache_write_tokens=cache_write,
                 output_tokens=int(getattr(usage, "completion_tokens", 0) or 0),
                 latency_s=dt,
             ),

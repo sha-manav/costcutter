@@ -365,3 +365,59 @@ def test_a_run_that_spent_nothing_costs_nothing():
     # But a record that actually consumed tokens still has to be priced.
     with pytest.raises(MissingCost):
         usd(cfg, {"model": "", "input_tokens": 1})
+
+
+ANTHROPIC_MIN_CACHEABLE_TOKENS = 1024
+
+
+def _prefix_tokens(text: str) -> int:
+    """Local tokenizer count. No network.
+
+    Anthropic's own count runs higher than this one -- a prefix measured at
+    1062 here was billed as 1430 -- so treating this number as the budget is
+    the conservative direction.
+    """
+    import litellm
+
+    return litellm.token_counter(
+        model="claude-sonnet-5", messages=[{"role": "user", "content": text}])
+
+
+def test_cacheable_prefixes_clear_the_provider_floor():
+    """Anthropic declines to cache a block under ~1024 tokens, silently.
+
+    97 benchmark runs reported cached_input_tokens: 0 with correctly formed
+    cache_control blocks, because condition A's prefix was 230 tokens and
+    condition B's was 606. There is no error for this -- the request simply
+    comes back uncached -- so only an explicit check catches the regression.
+    """
+    from shadow.route.agent import SYSTEM_PROMPT as B_SYS
+    from shadow.route.browser_agent import SYSTEM_PROMPT as A_SYS
+
+    # Condition A's prefix is the whole stable instruction block and must
+    # clear the floor on its own: it carries no catalog.
+    a_tokens = _prefix_tokens(A_SYS)
+    assert a_tokens >= ANTHROPIC_MIN_CACHEABLE_TOKENS, (
+        f"condition A prefix is {a_tokens} tokens, under the "
+        f"{ANTHROPIC_MIN_CACHEABLE_TOKENS}-token floor; it will not cache")
+    # Condition B reaches the floor as instructions plus retrieved catalog,
+    # so its instruction block alone may be smaller. It is measured here so
+    # that a shrink shows up as a failure rather than as a silent loss of
+    # caching at low k.
+    assert _prefix_tokens(B_SYS) >= 600
+
+
+def test_the_cache_breakpoint_covers_one_contiguous_prefix():
+    """Caching keys on an exact prefix, so the stable part must come first
+    and carry the breakpoint as a single block."""
+    from shadow.llm import ANTHROPIC_CACHE_CONTROL
+
+    marked = mark_cacheable(
+        [{"role": "system", "content": "S" * 8000},
+         {"role": "user", "content": "changes every step"}],
+        "claude-sonnet-5")
+    system = marked[0]["content"]
+    assert isinstance(system, list) and len(system) == 1
+    assert system[0]["cache_control"] == ANTHROPIC_CACHE_CONTROL
+    # The volatile message must never be marked: it would poison every hit.
+    assert isinstance(marked[1]["content"], str)

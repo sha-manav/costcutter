@@ -12,14 +12,77 @@ from typing import Any
 from shadow.config import Config
 from shadow.route.observation import Observation, snapshot
 
-ACTION_SCHEMA = """Reply with one JSON object and nothing else:
+ACTION_SCHEMA = """Reply with one JSON object and nothing else. No prose, no
+code fences, no explanation before or after.
+
+LOW-LEVEL ACTIONS — operate on a ref from the ELEMENTS list.
+
   {"action": "click",    "ref": "e12"}
   {"action": "type",     "ref": "e7", "text": "Acme", "enter": false}
   {"action": "select",   "ref": "e9", "value": "Overdue"}
+  {"action": "press",    "key": "Enter"}
   {"action": "navigate", "url": "/app/sales-order"}
   {"action": "scroll",   "direction": "down"}
   {"action": "done",     "answer": "<final answer, or a short confirmation>"}
-Use refs exactly as shown in ELEMENTS. Prefer navigate for known desk routes."""
+
+Use refs exactly as printed in ELEMENTS. A ref is only valid for the
+snapshot it came from: after any action that changes the page, re-read
+ELEMENTS rather than reusing an old ref.
+
+FORM ACTIONS — address a field by its fieldname, not by ref. These are the
+right tool for editing a document. They locate the widget, handle its
+particular input behaviour, and wait for it to settle. Prefer them over
+click/type on form pages: a click/type pair on a form widget frequently
+targets the wrong node or races the widget's own JavaScript.
+
+  {"action": "field",        "field": "qty",           "value": 12}
+  {"action": "link",         "field": "customer",      "value": "Juniper Analytics"}
+  {"action": "select_field", "field": "status",        "value": "Draft"}
+  {"action": "save"}
+
+  `field`        plain input or textarea.
+  `link`         a foreign-key field. It is an autocomplete: this types the
+                 value and then picks the matching entry from the dropdown.
+                 Plain typing leaves such a field unset.
+  `select_field` a dropdown (Select) field.
+  `save`         saves the current document (Ctrl+S) and waits for the save
+                 to complete. A created document does not exist until saved.
+
+CHILD TABLES (GRIDS) — a document's line items live in a grid, and grid cells
+cannot be reached by click/type: the row editor re-renders as you interact
+with it, which invalidates refs and leaves cells that never become clickable.
+Use the grid action instead.
+
+  {"action": "grid", "field": "items", "row": 0, "column": "item_code",
+   "value": "SH-SENSOR-01", "is_link": true}
+  {"action": "grid", "field": "items", "row": 0, "column": "qty", "value": 12}
+
+  `field`   the grid's own fieldname on the parent document (usually "items").
+  `row`     zero-based index of the line. A new document starts with one
+            empty row at index 0, so the first line is row 0.
+  `column`  the fieldname of the cell within the row.
+  `is_link` true when the cell is a foreign key (for example "item_code"),
+            so the value is picked from the dropdown rather than just typed.
+
+A TYPICAL DOCUMENT-CREATION SEQUENCE
+
+  {"action": "navigate", "url": "/app/sales-order/new"}
+  {"action": "link",  "field": "customer", "value": "Juniper Analytics"}
+  {"action": "grid",  "field": "items", "row": 0, "column": "item_code",
+   "value": "SH-SENSOR-01", "is_link": true}
+  {"action": "grid",  "field": "items", "row": 0, "column": "qty", "value": 12}
+  {"action": "save"}
+  {"action": "done",  "answer": "created"}
+
+GUIDANCE
+
+  Prefer `navigate` to a known desk route over clicking through menus.
+  Read the page text before answering a question; do not guess a number.
+  If an action fails twice in the same way, it will not start working on the
+  third attempt. Change approach: switch from click/type to a form action,
+  navigate somewhere else, or finish with what you have.
+  When the goal is a question, finish with the answer. When it is a change,
+  make the change, save it, and then finish."""
 
 
 class ActionError(RuntimeError):

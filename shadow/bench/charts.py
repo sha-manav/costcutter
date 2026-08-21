@@ -170,3 +170,55 @@ def render_all(rows: list[dict[str, Any]], cfg: Config | None = None) -> list[Pa
     made.append(cost_per_success(rows, out_dir / "cost_per_successful_task.png", cfg))
     made.append(latency_distribution(rows, out_dir / "latency_distribution.png"))
     return made
+
+
+def frontier(points: list[dict[str, Any]], out_path: Path) -> Path | None:
+    """Success against cost, one point per (model, condition).
+
+    The pre-fix Sonnet run is drawn as a distinct marker: it is the
+    naive-harness baseline, and the distance from it to the instrumented
+    points is the finding. A model that never succeeded has no cost per
+    success, so it is drawn on the axis at 0% and annotated rather than
+    dropped -- omitting it would flatter the ladder.
+    """
+    if not points:
+        return None
+    fig, ax = plt.subplots(figsize=(7.0, 4.6), dpi=160)
+    shapes = {"A_browser": "o", "B_tools": "s"}
+    colours = {"Sonnet": PALETTE["A"], "Haiku": PALETTE["B"], "Opus": "#6b7280"}
+
+    finite = [p for p in points
+              if p["usd_per_successful_task"] not in (None, float("inf"))]
+    xmax = max((p["usd_per_successful_task"] for p in finite), default=0.2)
+
+    for p in points:
+        naive = p["harness"].startswith("naive")
+        usd = p["usd_per_successful_task"]
+        unbounded = usd in (None, float("inf"))
+        x = xmax * 1.15 if unbounded else usd
+        y = p["success_rate"] * 100
+        ax.scatter(x, y, s=150 if naive else 95,
+                   marker=shapes.get(p["condition"], "o"),
+                   facecolor="none" if naive else colours.get(p["model"], "#888"),
+                   edgecolor=colours.get(p["model"], "#888"),
+                   linewidths=2.0 if naive else 1.0, zorder=3)
+        cond = "A" if p["condition"] == "A_browser" else "B"
+        label = f"{p['model']} {cond}" + ("  (naive)" if naive else "")
+        if unbounded:
+            label += "  no success"
+        # A and B for the same model land close together; offsetting them in
+        # opposite directions keeps both readable.
+        dy = 8 if p["condition"] == "A_browser" else -13
+        ax.annotate(label, (x, y), textcoords="offset points",
+                    xytext=(8, dy), fontsize=7.5)
+
+    ax.set_xlabel("USD per successful task  (lower is better)")
+    ax.set_ylabel("oracle-verified success (%)")
+    ax.set_ylim(-6, 108)
+    ax.set_title("Model ladder: what a fixed harness buys, and what a bigger model buys")
+    _style(ax)
+    fig.tight_layout()
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path)
+    plt.close(fig)
+    return out_path

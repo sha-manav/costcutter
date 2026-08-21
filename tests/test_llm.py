@@ -265,3 +265,30 @@ def test_both_cost_rows_reach_the_scored_condition():
     assert m.cached_input_tokens == 10_000
     # Repricing cache reads upward can only ever cost more, never less.
     assert m.usd_per_successful_task_uncached > m.usd_per_successful_task
+
+
+def test_a_real_model_never_gets_the_scripted_recipe(stub_litellm):
+    """Condition A's validity depends on this.
+
+    The browser agent passes a deterministic recipe driver down as
+    policy_context so the offline provider can act without a model. If the
+    real client ever consulted it, condition A would quietly become the
+    scripted baseline again and the headline comparison would be measuring
+    a recipe against tools while claiming to measure a model.
+    """
+    calls = stub_litellm
+
+    class ExplodingDriver:
+        def __getattr__(self, name):
+            raise AssertionError(
+                "the real client consulted the scripted recipe driver")
+
+    client = LiteLLMClient("claude-sonnet-5")
+    resp = client.complete(
+        [{"role": "user", "content": "go"}],
+        policy="browser_agent",
+        policy_context={"driver": ExplodingDriver()})
+    assert resp.text is not None
+    # And neither the policy name nor its context leaks into the request.
+    kwargs = calls[-1]["kwargs"]
+    assert "policy" not in kwargs and "policy_context" not in kwargs

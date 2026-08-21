@@ -316,14 +316,21 @@ Rendering the same tools by shape instead — type, enum, and one example
 truncated to 60 characters — cut the catalog to 4,096 characters, the covered
 template's per-step input from 2,256 tokens to 1,226, and condition B to
 $0.01221. Both numbers are in the repository
-(`artifacts/results_verbose_schema.jsonl` holds the pre-fix run).
+(`artifacts/results_offline_verbose_schema.jsonl` holds the pre-fix run).
 
 The general point survives the fix: a tool catalog is a fixed tax on every
 prompt, paid whether or not any tool is used. Eight tools cost roughly what
 an ERPNext list page costs to look at. That is the arithmetic that decides
 whether synthesis pays for itself, and it argues for serving a *retrieved*
-subset of tools rather than the whole catalog — which this project does not
-do.
+subset of tools rather than the whole catalog.
+
+That is what the router now does. Tools are scored against the goal with
+BM25 over their names, descriptions, parameters and enum values, and only
+the top `k` reach the prompt; a goal that clears no tool's score floor gets
+no catalog at all and pays nothing for one. The k-sweep table above measures
+what that is worth, with `k=0` as the browser baseline reached through the
+tool agent and the largest `k` reproducing the whole-catalog behaviour that
+lost.
 
 That sets the real prize and the real result apart. A tool-served task in
 condition B costs about 2,500 input tokens: one call plus a finish, each
@@ -391,6 +398,16 @@ record in the database**.
 It happened 9 times in 54 runs: 6 on create-sales-order and 3 on
 create-sales-invoice, every one of them scored as a pass. The benchmark reset
 between tasks hides the damage; a production system has no such reset.
+
+That was the lexical router, and the obvious objection is that a capable
+model would not make so crude a substitution. So the experiment was repeated
+against one: the same create-type held-out templates, writes enabled, and a
+diff of every watched record type taken around each run so that collateral is
+measured rather than inferred from the trace. The result is the
+collateral-writes table above. Note what the measurement does *not* settle —
+a model that avoids this particular substitution has not been shown to be
+safe, only to be better at one case; the gating argument below rests on the
+oracle's blindness to side effects, which no choice of router changes.
 
 Two things are worth separating here. The synthesized tool did exactly what
 it was synthesized to do — `verify/replay.py` had confirmed against a reset

@@ -6,6 +6,7 @@ should fail here rather than at the next benchmark run.
 from __future__ import annotations
 
 import asyncio
+import io
 import json
 
 from shadow.capture.schema import HttpRecord, read_catalog, write_jsonl
@@ -140,3 +141,48 @@ def test_capture_to_servable_tools(tmp_path):
     assert read_catalog(tools_path).by_name(write.name) is not None
     server = build_server(tools_path, allow_writes=True)
     assert asyncio.run(server.get_tool(write.name)) is not None
+
+
+def test_reset_clears_connections_before_dropping(monkeypatch):
+    """A DROP DATABASE behind an idle connection blocks with no timeout.
+
+    ERPNext's web and worker processes hold pooled connections open, and an
+    idle one still holds a metadata lock. A benchmark run hung here for 26
+    minutes at zero CPU with no output -- indistinguishable from slow
+    progress. The kill has to happen before the drop, every time.
+    """
+    import oracle.reset as reset_mod
+
+    order: list[str] = []
+
+    class _Done:
+        returncode = 0
+        stdout = "41\n42\n"
+        stderr = ""
+
+    def fake_run(cmd, **kwargs):
+        joined = " ".join(str(c) for c in cmd)
+        if "information_schema.processlist" in joined:
+            order.append("list")
+        elif "KILL CONNECTION" in joined:
+            order.append("kill")
+            assert "KILL CONNECTION 41;" in joined
+            assert "KILL CONNECTION 42;" in joined
+        elif "DROP DATABASE" in joined:
+            order.append("drop")
+            # Without a timeout a blocked drop hangs the whole run.
+            assert kwargs.get("timeout"), "DROP DATABASE ran with no timeout"
+        elif "redis-cli" in joined:
+            order.append("flush")
+        else:
+            order.append("import")
+        return _Done()
+
+    monkeypatch.setattr(reset_mod.subprocess, "run", fake_run)
+    monkeypatch.setattr(reset_mod, "site_db", lambda site="s": ("db", "u", "p"))
+    monkeypatch.setattr(reset_mod.Path, "exists", lambda self: True)
+    monkeypatch.setattr(reset_mod.Path, "open",
+                        lambda self, mode="r": io.BytesIO(b""))
+
+    reset_mod.reset("shadow.localhost")
+    assert order.index("kill") < order.index("drop")

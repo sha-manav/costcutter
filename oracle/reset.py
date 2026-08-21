@@ -19,6 +19,9 @@ SEED_DUMP = Path(os.environ.get(
     "SHADOW_SEED_DUMP",
     Path(__file__).resolve().parent.parent / "artifacts" / "seed.sql"))
 REDIS_PORTS = (11000, 13000)
+# A drop that blocks past this is stuck behind a lock, not being slow. Fail
+# loudly: a silent hang is indistinguishable from a long-running task.
+DROP_TIMEOUT_S = 120
 
 
 def site_db(site: str = DEFAULT_SITE) -> tuple[str, str, str]:
@@ -44,6 +47,34 @@ def snapshot(site: str = DEFAULT_SITE, dest: Path | None = None) -> Path:
     return dest
 
 
+def _kill_connections(db_name: str) -> int:
+    """Drop every other connection to the site database.
+
+    ERPNext's web and worker processes hold pooled connections open. An idle
+    one still holds a metadata lock, so DROP DATABASE blocks behind it --
+    without a timeout, and without any output. A benchmark run hung here for
+    26 minutes at zero CPU, which looks exactly like slow progress until you
+    check the process list.
+    """
+    listing = subprocess.run(
+        ["mariadb", "-h", "127.0.0.1", "-u", "root", "-padmin", "-N", "-B",
+         "-e", "SELECT id FROM information_schema.processlist "
+               f"WHERE db = '{db_name}' AND id != CONNECTION_ID();"],
+        capture_output=True, text=True, check=False)
+    ids = [line.strip() for line in listing.stdout.splitlines() if line.strip()]
+    if not ids:
+        return 0
+    # Each KILL is separate: one already-gone connection must not abort the
+    # rest, and a connection closing on its own between the two statements is
+    # a normal race rather than an error.
+    kills = " ".join(f"KILL CONNECTION {cid};" for cid in ids)
+    subprocess.run(
+        ["mariadb", "-h", "127.0.0.1", "-u", "root", "-padmin", "--force",
+         "-e", kills],
+        capture_output=True, check=False)
+    return len(ids)
+
+
 def reset(site: str = DEFAULT_SITE, source: Path | None = None) -> float:
     """Restore the seed image. Returns wall-clock seconds."""
     source = source or SEED_DUMP
@@ -52,13 +83,14 @@ def reset(site: str = DEFAULT_SITE, source: Path | None = None) -> float:
             f"no seed snapshot at {source}; run `python -m shadow.cli seed` first")
     t0 = time.time()
     db_name, db_user, db_password = site_db(site)
+    _kill_connections(db_name)
     subprocess.run(
         ["mariadb", "-h", "127.0.0.1", "-u", "root", "-padmin", "-e",
          f"DROP DATABASE IF EXISTS `{db_name}`; "
          f"CREATE DATABASE `{db_name}` CHARACTER SET utf8mb4 "
          f"COLLATE utf8mb4_unicode_ci; "
          f"GRANT ALL ON `{db_name}`.* TO '{db_user}'@'%';"],
-        check=True, capture_output=True)
+        check=True, capture_output=True, timeout=DROP_TIMEOUT_S)
     with source.open("rb") as fh:
         subprocess.run(["mariadb", *_mysql_args(db_user, db_password), db_name],
                        check=True, stdin=fh, capture_output=True)

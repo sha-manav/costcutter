@@ -353,3 +353,37 @@ CHECKS.update({
     "invoices_for_customer": invoices_for_customer,
     "customer_invoice_total": customer_invoice_total,
 })
+
+
+def quotation_created(oc: OracleClient, params: dict, answer: str,
+                      **_) -> CheckResult:
+    rows = oc.list("Quotation",
+                   filters=[["party_name", "=", params["customer"]]],
+                   fields=["name"], limit=20, order_by="creation desc")
+    for row in rows:
+        doc = oc.get("Quotation", row["name"])
+        for item in doc.get("items", []):
+            if (item.get("item_code") == params["item_code"]
+                    and float(item.get("qty") or 0) == float(params["qty"])):
+                return CheckResult(True, f"quotation {row['name']} matches")
+    return CheckResult(False, "no quotation with the requested item and qty")
+
+
+def purchase_order_created(oc: OracleClient, params: dict, answer: str,
+                           **_) -> CheckResult:
+    rows = oc.list("Purchase Order",
+                   filters=[["supplier", "=", params["supplier"]]],
+                   fields=["name"], limit=20, order_by="creation desc")
+    for row in rows:
+        doc = oc.get("Purchase Order", row["name"])
+        for item in doc.get("items", []):
+            if (item.get("item_code") == params["item_code"]
+                    and float(item.get("qty") or 0) == float(params["qty"])):
+                return CheckResult(True, f"purchase order {row['name']} matches")
+    return CheckResult(False, "no purchase order with the requested item and qty")
+
+
+CHECKS.update({
+    "quotation_created": quotation_created,
+    "purchase_order_created": purchase_order_created,
+})

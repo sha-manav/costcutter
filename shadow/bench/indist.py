@@ -115,8 +115,7 @@ INDIST_TEMPLATES: tuple[IndistTemplate, ...] = (
     ),
 
     # ---------------- flat-form writes ----------------
-    # Child-table workflows are deliberately absent: they are covered by the
-    # held-out set and would confound this regime with the grid behaviour.
+    # Child-table workflows follow the flat ones below.
     IndistTemplate(
         id="D06_create_customer",
         title="Create a customer",
@@ -185,6 +184,40 @@ INDIST_TEMPLATES: tuple[IndistTemplate, ...] = (
         eval_params=({"territory_name": "Desert Rim"},
                      {"territory_name": "Lakeside East"},
                      {"territory_name": "Harbour West"}),
+    ),
+
+    # ---------------- child-table (grid) writes ----------------
+    # These are the highest-token workflows in the set and the place any
+    # cost advantage from a synthesized tool should be largest: the browser
+    # path has to open a form, fill a link field, edit a grid row and save.
+    # Neither doctype is one the held-out set writes.
+    IndistTemplate(
+        id="D11_create_quotation",
+        title="Create a quotation with one line item",
+        goal=("Create a new quotation for the customer '{customer}' with "
+              "{qty} units of item '{item_code}'. Save the record."),
+        kind="write", check="quotation_created", writes="Quotation",
+        observe_params=({"customer": "Acme Industrial", "item_code": "SH-BEARING-01", "qty": 3},
+                        {"customer": "Borealis Freight", "item_code": "SH-BELT-01", "qty": 6},
+                        {"customer": "Cobalt Robotics", "item_code": "SH-CABLE-01", "qty": 9},
+                        {"customer": "Delta Mining Co", "item_code": "SH-GEAR-01", "qty": 4}),
+        eval_params=({"customer": "Halcyon Media", "item_code": "SH-MOTOR-01", "qty": 7},
+                     {"customer": "Ironwood Timber", "item_code": "SH-PANEL-01", "qty": 2},
+                     {"customer": "Kestrel Aviation", "item_code": "SH-PUMP-01", "qty": 5}),
+    ),
+    IndistTemplate(
+        id="D12_create_purchase_order",
+        title="Create a purchase order with one line item",
+        goal=("Create a new purchase order for the supplier '{supplier}' with "
+              "{qty} units of item '{item_code}'. Save the record."),
+        kind="write", check="purchase_order_created", writes="Purchase Order",
+        observe_params=({"supplier": "Northwind Components", "item_code": "SH-BEARING-02", "qty": 5},
+                        {"supplier": "Osprey Metals", "item_code": "SH-GEAR-02", "qty": 8},
+                        {"supplier": "Pacific Polymers", "item_code": "SH-BELT-01", "qty": 3},
+                        {"supplier": "Quarry Stone Ltd", "item_code": "SH-CABLE-01", "qty": 6}),
+        eval_params=({"supplier": "Redwood Fasteners", "item_code": "SH-MOTOR-02", "qty": 4},
+                     {"supplier": "Northwind Components", "item_code": "SH-SENSOR-01", "qty": 11},
+                     {"supplier": "Osprey Metals", "item_code": "SH-SENSOR-02", "qty": 2}),
     ),
 )
 

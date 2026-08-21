@@ -417,3 +417,39 @@ RECIPES.update({
     "D09_create_warehouse": d_create_warehouse,
     "D10_create_territory": d_create_territory,
 })
+
+
+def d_create_quotation(params: dict) -> Recipe:
+    yield {"action": "navigate", "url": _url("quotation/new")}
+    yield {"action": "wait", "ms": 2500}
+    yield {"action": "link", "field": "party_name", "value": params["customer"]}
+    yield {"action": "grid", "field": "items", "row": 0, "column": "item_code",
+           "value": params["item_code"], "is_link": True}
+    yield {"action": "grid", "field": "items", "row": 0, "column": "qty",
+           "value": params["qty"]}
+    yield {"action": "save"}
+    obs = yield {"action": "wait", "ms": 1500}
+    yield {"action": "done", "answer": f"created quotation at {obs.url}"}
+
+
+def d_create_purchase_order(params: dict) -> Recipe:
+    yield {"action": "navigate", "url": _url("purchase-order/new")}
+    yield {"action": "wait", "ms": 2500}
+    yield {"action": "link", "field": "supplier", "value": params["supplier"]}
+    # Required By is mandatory on every line. Setting it on the parent is
+    # what works: ERPNext copies the header value down to each row on save,
+    # overwriting anything set directly in the row.
+    yield {"action": "field", "field": "schedule_date", "value": "31-12-2026"}
+    yield {"action": "grid", "field": "items", "row": 0, "column": "item_code",
+           "value": params["item_code"], "is_link": True}
+    yield {"action": "grid", "field": "items", "row": 0, "column": "qty",
+           "value": params["qty"]}
+    yield {"action": "save"}
+    obs = yield {"action": "wait", "ms": 1500}
+    yield {"action": "done", "answer": f"created purchase order at {obs.url}"}
+
+
+RECIPES.update({
+    "D11_create_quotation": d_create_quotation,
+    "D12_create_purchase_order": d_create_purchase_order,
+})

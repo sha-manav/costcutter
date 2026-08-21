@@ -29,6 +29,19 @@ def main() -> int:
               file=sys.stderr)
         return 2
 
+    # A stale tables file is the one way a hand-copied number can survive
+    # into the report: the prose gets rewritten for a new run and the tables
+    # still describe the old one. Refuse rather than splice.
+    stale = [src for src in (ROOT / "artifacts" / "results.jsonl",
+                             ROOT / "artifacts" / "metrics.json")
+             if src.exists() and src.stat().st_mtime > tables.stat().st_mtime]
+    if stale and "--allow-stale" not in sys.argv:
+        names = ", ".join(src.name for src in stale)
+        print(f"{tables.name} is older than {names}; run "
+              "`python -m shadow.cli report` first, or pass --allow-stale",
+              file=sys.stderr)
+        return 2
+
     text = body.read_text()
     if MARKER not in text:
         print(f"{body} has no {MARKER} marker", file=sys.stderr)

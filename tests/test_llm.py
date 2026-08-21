@@ -292,3 +292,47 @@ def test_a_real_model_never_gets_the_scripted_recipe(stub_litellm):
     # And neither the policy name nor its context leaks into the request.
     kwargs = calls[-1]["kwargs"]
     assert "policy" not in kwargs and "policy_context" not in kwargs
+
+
+def test_failed_runs_still_count_toward_cost_per_success():
+    """A condition must not look cheap by failing.
+
+    This became load-bearing once a real model started failing a third of
+    condition A's runs: if the numerator summed only successful runs, the
+    two failures below would be free and the headline would reward giving
+    up early.
+    """
+    from shadow.bench.metrics import score_condition
+
+    cfg = get_config()
+
+    def row(task: str, ok: bool):
+        return {"condition": "A_browser", "task_id": task, "template_id": "T",
+                "success": ok, "wall_s": 1.0, "n_steps": 1, "steps": [],
+                "usage": {"model": "claude-sonnet-5", "input_tokens": 1_000_000,
+                          "cached_input_tokens": 0, "cache_write_tokens": 0,
+                          "output_tokens": 0}}
+
+    price = cfg.costs["claude-sonnet-5"].input
+    one_pass = score_condition([row("a", True)], "A_browser", cfg)
+    assert one_pass.usd_per_successful_task == pytest.approx(price)
+
+    # Same single success, two failures alongside it: three runs paid for,
+    # one task delivered.
+    with_failures = score_condition(
+        [row("a", True), row("b", False), row("c", False)], "A_browser", cfg)
+    assert with_failures.usd_per_successful_task == pytest.approx(price * 3)
+    assert with_failures.success_rate == pytest.approx(1 / 3)
+
+
+def test_a_condition_that_never_succeeds_has_unbounded_cost():
+    """Not zero, and not a crash -- the charts and tables have to render it."""
+    from shadow.bench.metrics import score_condition
+
+    rows = [{"condition": "B_tools", "task_id": "a", "template_id": "T",
+             "success": False, "wall_s": 1.0, "n_steps": 1, "steps": [],
+             "usage": {"model": "claude-sonnet-5", "input_tokens": 10,
+                       "output_tokens": 0}}]
+    m = score_condition(rows, "B_tools", get_config())
+    assert m.usd_per_successful_task == float("inf")
+    assert m.usd_per_successful_task_uncached == float("inf")

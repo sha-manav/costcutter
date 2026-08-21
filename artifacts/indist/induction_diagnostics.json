@@ -1,0 +1,18 @@
+{
+  "groups_seen": 11,
+  "records_in": 2388,
+  "records_load_bearing": 676,
+  "groups_below_support": 3,
+  "dropped_by_rank": 0,
+  "filter": {
+    "total": 3418,
+    "kept": 2468,
+    "dropped_content_type": 39,
+    "dropped_asset_path": 0,
+    "dropped_websocket": 697,
+    "dropped_not_modified": 0,
+    "dropped_polling": 214,
+    "documents_kept": 176,
+    "reasons": {}
+  }
+}

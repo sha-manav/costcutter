@@ -1,0 +1,100 @@
+[
+  {
+    "tool": "load_configure_document_list_view",
+    "mutation_class": "read",
+    "ok": true,
+    "status": 200,
+    "shape_match": 1.0,
+    "error": null,
+    "binding_failure": false,
+    "changed_doctypes": {},
+    "note": ""
+  },
+  {
+    "tool": "create_save_business_record",
+    "mutation_class": "write",
+    "ok": true,
+    "status": 200,
+    "shape_match": 1.0,
+    "error": null,
+    "binding_failure": false,
+    "changed_doctypes": {
+      "Contact": 1
+    },
+    "note": ""
+  },
+  {
+    "tool": "create_quotation_with_pricing_and_taxes",
+    "mutation_class": "write",
+    "ok": true,
+    "status": 200,
+    "shape_match": 1.0,
+    "error": null,
+    "binding_failure": false,
+    "changed_doctypes": {
+      "Quotation": 1
+    },
+    "note": ""
+  },
+  {
+    "tool": "fetch_lead_open_activities",
+    "mutation_class": "write",
+    "ok": true,
+    "status": 200,
+    "shape_match": 1.0,
+    "error": null,
+    "binding_failure": false,
+    "changed_doctypes": {},
+    "note": ""
+  },
+  {
+    "tool": "create_customer_record",
+    "mutation_class": "write",
+    "ok": true,
+    "status": 200,
+    "shape_match": 1.0,
+    "error": null,
+    "binding_failure": false,
+    "changed_doctypes": {
+      "Customer": 1
+    },
+    "note": ""
+  },
+  {
+    "tool": "initialize_purchase_order",
+    "mutation_class": "write",
+    "ok": true,
+    "status": 200,
+    "shape_match": 1.0,
+    "error": null,
+    "binding_failure": false,
+    "changed_doctypes": {
+      "Purchase Order": 1
+    },
+    "note": ""
+  },
+  {
+    "tool": "filter_document_count",
+    "mutation_class": "read",
+    "ok": true,
+    "status": 200,
+    "shape_match": 1.0,
+    "error": null,
+    "binding_failure": false,
+    "changed_doctypes": {},
+    "note": ""
+  },
+  {
+    "tool": "create_and_configure_purchase_order",
+    "mutation_class": "write",
+    "ok": true,
+    "status": 200,
+    "shape_match": 1.0,
+    "error": null,
+    "binding_failure": false,
+    "changed_doctypes": {
+      "Purchase Order": 1
+    },
+    "note": ""
+  }
+]

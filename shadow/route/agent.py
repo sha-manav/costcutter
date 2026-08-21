@@ -557,6 +557,14 @@ def available_tools(catalog: ToolCatalog, allow_writes: bool,
     return retrieve_tools(goal, eligible, k, floor).tools
 
 
+_UNSET = object()
+"""Sentinel for "the browser fallback has not run yet".
+
+`None` is a legitimate answer from a fallback that finished without one, so
+it cannot double as "not yet run" -- that would let the fallback fire again.
+"""
+
+
 def run_tool_task(task, catalog: ToolCatalog, cfg: Config | None = None,
                   client: LLMClient | None = None, recipe_factory=None,
                   allow_writes: bool = False, executor: ToolExecutor | None = None,
@@ -583,6 +591,7 @@ def run_tool_task(task, catalog: ToolCatalog, cfg: Config | None = None,
         result.error = "offline provider needs a router"
         return result
 
+    fallback_answer: Any = _UNSET
     t0 = time.time()
     for i in range(cfg.bench.max_steps):
         messages = build_messages(task.goal, tools, result.steps)
@@ -610,11 +619,23 @@ def run_tool_task(task, catalog: ToolCatalog, cfg: Config | None = None,
                 served_by = "tool" if exec_result.ok else "tool_failed"
                 detail = exec_result.summary()
         elif kind == "browser_task":
-            sub = _run_browser_fallback(task, cfg, client, recipe_factory)
-            result.steps.extend(sub.steps)
-            if router is not None:
-                router.browser_answer = sub.answer
-            detail = f"browser fallback finished: {sub.answer!r}"
+            # The fallback hands the whole task to the browser, so running it
+            # again from the same reset state cannot produce new information
+            # -- it just re-pays for it. Left uncapped, one run reached 425
+            # steps and 76 minutes by invoking a fresh 25-step browser run on
+            # 17 of its 25 steps. Capping at one also makes the conditions
+            # comparable: condition A gets exactly one browser run too.
+            if fallback_answer is _UNSET:
+                sub = _run_browser_fallback(task, cfg, client, recipe_factory)
+                result.steps.extend(sub.steps)
+                fallback_answer = sub.answer
+                if router is not None:
+                    router.browser_answer = sub.answer
+                detail = f"browser fallback finished: {sub.answer!r}"
+            else:
+                detail = (f"browser fallback already ran this task and "
+                          f"returned {fallback_answer!r}; it will not run "
+                          f"again. Answer with `done` using that result.")
             served_by = "browser_fallback"
         elif kind == "done":
             result.answer = str(action.get("answer", ""))

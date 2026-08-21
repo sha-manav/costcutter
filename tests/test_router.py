@@ -1,7 +1,12 @@
 """The deterministic router and answer reduction used by condition B offline."""
 from __future__ import annotations
 
-from shadow.capture.schema import ToolSpec
+import json
+
+from shadow.capture.schema import ToolCatalog, ToolSpec
+from shadow.bench.tasks import eval_tasks
+from shadow.config import get_config
+from shadow.llm import LLMResponse, LLMUsage
 from shadow.route.agent import (
     entity_hints, extract_answer, fill_arguments, goal_intent, select_tool,
     tool_surface,
@@ -123,3 +128,46 @@ def test_compact_schema_does_not_carry_whole_observed_values():
     assert len(compact["fields"]["example"]) <= MAX_EXAMPLE_CHARS + 1
     # The full 30-column specimen must not reach the prompt.
     assert "col29" not in render_tools([spec])
+
+
+def test_the_browser_fallback_runs_at_most_once_per_task(monkeypatch):
+    """A second full browser run cannot produce new information.
+
+    Uncapped, one held-out run reached 425 steps and 76 minutes by invoking
+    a fresh 25-step browser run on 17 of its 25 steps. It also made the
+    comparison unfair in condition B's disfavour: condition A gets exactly
+    one browser run, so condition B's fallback must too.
+    """
+    import shadow.route.agent as agent_mod
+
+    calls = []
+
+    class _Sub:
+        steps: list = []
+        answer = "42"
+
+    def fake_fallback(task, cfg, client, recipe_factory):
+        calls.append(task)
+        return _Sub()
+
+    monkeypatch.setattr(agent_mod, "_run_browser_fallback", fake_fallback)
+
+    cfg = get_config()
+    catalog = ToolCatalog(tools=[])
+    task = eval_tasks(cfg)[0]
+
+    # A client that asks for the browser on every single step.
+    class AlwaysFallback:
+        provider = "litellm"
+        model = "claude-sonnet-5"
+
+        def complete(self, messages, **kwargs):
+            return LLMResponse(text=json.dumps({"action": "browser_task"}),
+                               usage=LLMUsage(model=self.model))
+
+    result = agent_mod.run_tool_task(task, catalog, cfg, AlwaysFallback())
+    assert len(calls) == 1, f"browser fallback ran {len(calls)} times"
+    # Every later request is still recorded as a step, so the cost of asking
+    # is not hidden -- only the cost of re-driving the browser is avoided.
+    served = [s.served_by for s in result.steps]
+    assert served.count("browser_fallback") == cfg.bench.max_steps

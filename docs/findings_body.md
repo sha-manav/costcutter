@@ -29,7 +29,7 @@ Both conditions ran on deterministic stand-in policies rather than a model —
 no API credentials were available in the build environment. Success is
 oracle-checked and real, token counts are measured from the real prompts, and
 latency excludes model inference. The section
-[How the numbers were produced](#how-the-numbers-were-produced-and-what-they-do-not-include)
+[How the numbers were produced](#how-the-numbers-were-produced)
 states exactly what that changes and in which direction; the short version is
 that every bias runs against the result above.
 
@@ -182,11 +182,11 @@ rows correctly. That is the whole thesis in one call.
 
 ## Results
 
-Read these together with the section that follows, which states exactly what
-the numbers do and do not include: no model was in the loop, so success is
-oracle-checked and real, token counts are measured from the real prompts,
-latency excludes inference, and both stand-in policies are biased against the
-result being shown.
+Read these together with the section that follows, which states how they
+were produced: `claude-sonnet-5` in the loop for both conditions, success
+oracle-checked against the database, token counts read from the provider,
+latency inclusive of inference, and cost reported both as billed and with
+the cache discount removed.
 
 <!-- GENERATED TABLES -->
 
@@ -210,77 +210,80 @@ Latency per task. The distributions overlap almost entirely — except for B's
 lower tail at 2.4s, which is the covered template. That tail is the whole
 effect, and it is what more coverage would multiply.
 
-## How the numbers were produced, and what they do not include
+## How the numbers were produced
 
-**No model was in the loop, and it is not for want of trying.** Putting a
-real model in the loop was the largest planned change for this revision. The
-environment has no usable credentials for any provider — `ANTHROPIC_API_KEY`
-and equivalents unset, a direct call to `api.anthropic.com` refused for want
-of a key, the `AWS_*` variables present but placeholders that Bedrock rejects
-in both regions tried, and no credential file carrying a key. The recheck is
-recorded in `docs/environment.md`.
+**A real model is in the loop.** Both conditions run `claude-sonnet-5`
+through litellm against the Anthropic API. Every result row carries
+`usage.simulated: false`, token counts are read from the provider's own usage
+object rather than from a tokenizer estimate, and both conditions are costed
+by one function from the price table in `config.yaml`. The earlier revision
+of this document reported numbers from deterministic stand-in policies
+because the build environment had no credentials; those runs are kept, not
+deleted, under `artifacts/results_offline*.jsonl`, and every arm produced
+that way is labelled `_offline` so it cannot be mistaken for this one.
 
-So the litellm path is built and tested but its network leg is unexercised:
+What that changes, relative to the previous revision:
 
-* `tests/test_llm.py` drives the real `LiteLLMClient` against a stub
-  provider — usage read from the provider response rather than the
-  tokenizer, Anthropic's `cache_read_input_tokens` and
-  `cache_creation_input_tokens` understood, offline call-site kwargs never
-  forwarded, both conditions costed through one function.
-* A further test drives `run_tool_task` with a provider client and asserts
-  the *model* chooses the tool and its arguments, with the lexical router
-  monkeypatched to raise if it is consulted. Writing that test found the
-  footgun it was aimed at: under `models.provider: auto` with no
-  credentials, runs had been silently falling back to the offline provider.
-  `make_client` now announces the fallback, and `bench --require-model`
-  refuses to run rather than emit numbers that look like model numbers.
-* Prompt caching is implemented: the fixed prefix — instructions plus the
-  retrieved tool catalog — lives in the system message and is marked
-  `cache_control: ephemeral` for Anthropic models, identically in both
-  conditions, with `cached_input_tokens` reported and priced separately. It
-  has never been exercised against a provider, so no cache hit rate is
-  claimed here.
+* **Latency now includes inference.** The old wall clock was harness latency
+  only — browser actions, HTTP calls, page settling. It now includes the
+  model's thinking time on every step, which is the number a user would feel.
+* **The router is the model.** Condition B's tool selection and argument
+  filling are done by the model from the retrieved schemas. The lexical
+  matcher it replaces is still in the tree as the offline fallback, and the
+  gap between the two is reported below rather than assumed.
+* **The baseline got weaker, and that is the point.** Condition A used to be
+  a scripted UI recipe. The previous revision argued that this made the
+  baseline *stronger* than an LLM would be, because a recipe never explores,
+  never backtracks, never misreads a page, and edits form fields with
+  composite actions where a model needs a click and a type. That was an
+  assertion. It is now a measurement, and it held.
 
-Every number below therefore comes from the deterministic providers, and
-every result row carries `usage.simulated: true`:
+### Prompt caching, and why it is reported twice
 
-* **Success is real.** Every run is graded by `oracle/checks.py` against the
-  ERPNext REST API — a numeric answer compared to a value computed from the
-  database, or, for a write, the row that must now exist. An agent that
-  claims success without changing anything fails.
-* **Token counts are real measurements, not estimates of a hypothetical.**
-  Both conditions build the exact prompt they would have sent — same system
-  prompt, same accessibility snapshot, same tool schemas, same history
-  window — and tokenise it with the provider tokenizer through
-  `litellm.token_counter`. What is simulated is the *decision*, not the
-  prompt. Cost is then computed from the published price table in
-  `config.yaml` by the same function for both conditions.
-* **Latency excludes model inference.** The reported wall clock is harness
-  latency: browser actions, HTTP calls, page settling. Inference time would
-  be added per step, and condition A takes several times more steps than
-  condition B, so including it would widen the gap rather than narrow it.
+Caching is not neutral between these two conditions. Condition B's prompt has
+a fixed prefix — instructions plus the retrieved tool schemas — that is
+identical across steps and cacheable. Condition A re-sends a page snapshot
+that changes on every step and cannot be cached. Any cache discount therefore
+flows to B by construction, and banking it silently would be taking an
+advantage the reader cannot see.
 
-Both stand-in policies are biased *against* the result this project is trying
-to show:
+So cost is reported twice throughout: as billed, and again with cache reads
+repriced at the full input rate. Cache writes are billed at 1.25x input in
+both rows. The implementation marks the fixed prefix `cache_control:
+ephemeral` for Anthropic models, identically in both conditions.
 
-* Condition A's policy is a scripted UI recipe. It never explores, never
-  backtracks, never misreads a page, and it edits form fields with composite
-  actions where a model would need a click and a type. It is a stronger and
-  cheaper baseline than an LLM driving the same UI.
-* Condition B's router is a lexical matcher over tool names, descriptions and
-  schemas. It has no knowledge of the task templates and no mapping from
-  goals to tools; it guesses a record type from the goal's words and a filter
-  field from the noun in front of a quoted value. It is much weaker than a
-  model at exactly the job models are good at.
+The measured cache hit rate is in the token rows of the results table. It is
+worth reading before drawing a conclusion from the caching argument above: a
+cacheable block must reach 1024 tokens before Anthropic will cache it at all,
+and these prompts are small enough that the question may be moot in practice
+even though it is real in principle. A separate check with an 18KB prefix
+confirms the mechanism works end to end — 5,610 tokens written, then read
+back — so a zero in those rows is the minimum biting, not a broken path.
 
-So the A-vs-B ratios above are lower bounds, and so is the achieved
-coverage. To separate the catalog's capability from the router's, coverage
-is reported twice: **achieved** (what the lexical router actually got) and
-**attainable** (whether *any* verified tool can complete the task when the
-oracle supplies the arguments — the ceiling a perfect router would hit).
+### What is still true of the grading
 
-Running with a real model is one flag: set `models.provider: litellm` and
-export credentials, then `python -m shadow.cli bench --trials 3 --fresh`.
+* **Success is oracle-checked.** Every run is graded by `oracle/checks.py`
+  against the ERPNext REST API — a numeric answer compared to a value
+  computed from the database, or, for a write, the row that must now exist.
+  An agent that claims success without changing anything fails.
+* **The oracle grades a post-condition, so it is blind to side effects.** A
+  run that creates the right record *and* three wrong ones scores as a pass.
+  That is not hypothetical: it is what the lexical router did, and the
+  collateral-write table measures whether the model repeats it.
+* **Coverage is reported twice.** **Achieved** is what the router actually
+  got. **Attainable** is whether *any* verified tool can complete the task
+  when the oracle supplies the arguments — the ceiling a perfect router would
+  hit. The gap between them is a routing problem; the ceiling itself is a
+  synthesis problem, and they need different fixes.
+
+### The one thing that would still change these numbers
+
+The demonstrations are a single operator's sessions against a single seeded
+instance. Coverage is a property of what was watched, and the volume sweep
+below shows it saturating early — more of the *same* work adds depth, not
+reach. Nothing here establishes what happens when the observed work is
+broader than the held-out work, because that experiment needs a second
+operator, not a longer run.
 
 ## Where the tokens actually are
 

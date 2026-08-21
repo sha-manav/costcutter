@@ -133,10 +133,16 @@ def settle(page: Any, timeout: int = 8000) -> None:
 # because that bias runs against the result we are trying to show.
 # --------------------------------------------------------------------------
 
-def _field_input(page: Any, fieldname: str):
+def _field_input(page: Any, fieldname: str, root: Any = None):
     sel = (f'[data-fieldname="{fieldname}"] input:not([type=hidden]), '
            f'[data-fieldname="{fieldname}"] textarea')
-    loc = page.locator(sel).first
+    loc = (root or page).locator(sel).first
+    # A field below the fold is present but not visible, and waiting for
+    # visibility on it just burns the timeout. Scroll first.
+    try:
+        loc.scroll_into_view_if_needed(timeout=5000)
+    except Exception:
+        pass
     loc.wait_for(state="visible", timeout=15000)
     return loc
 
@@ -182,27 +188,142 @@ def fill_grid(page: Any, grid_field: str, row: int, column: str,
         f'[data-fieldname="{grid_field}"] .grid-row[data-idx]').nth(row)
     grid.wait_for(state="visible", timeout=15000)
     cell = grid.locator(f'[data-fieldname="{column}"]').first
+    if cell.count() == 0 or not _visible(cell):
+        # A grid shows only a few columns inline; the rest live in the row
+        # editor. Without this, a mandatory column that happens to be hidden
+        # -- Delivery Date on a Sales Order line -- is simply unreachable,
+        # and the document can never be saved.
+        _fill_in_row_editor(page, grid, column, value, is_link)
+        return
     cell.click(timeout=15000)
     inp = cell.locator("input, textarea").first
     inp.wait_for(state="visible", timeout=10000)
-    inp.fill("")
-    inp.type(str(value), delay=25)
-    if is_link:
-        option = page.locator(".awesomplete li").filter(has_text=str(value)).first
-        try:
-            option.wait_for(state="visible", timeout=8000)
-            option.click()
-        except Exception:
-            inp.press("Enter")
-    else:
-        inp.press("Escape")
+    _type_into(page, inp, value, is_link, scope=cell)
     page.wait_for_timeout(400)
 
 
-def save_document(page: Any) -> None:
+def _visible(loc: Any) -> bool:
+    try:
+        return bool(loc.is_visible(timeout=1500))
+    except Exception:
+        return False
+
+
+def _fill_in_row_editor(page: Any, grid_row: Any, column: str, value: Any,
+                        is_link: bool) -> None:
+    """Open a grid row's expanded editor and fill a column that is not
+    shown inline."""
+    opener = grid_row.locator(".btn-open-row, .grid-row-open, .edit-grid-row").first
+    if opener.count() == 0:
+        raise ActionError(
+            f"column {column!r} is not shown in the grid row and the row "
+            "editor could not be opened")
+    opener.click(timeout=15000)
+    form = page.locator(".grid-form-body, .form-in-grid").first
+    form.wait_for(state="visible", timeout=10000)
+    inp = _field_input(page, column, root=form)
+    inp.click(timeout=15000)
+    _type_into(page, inp, value, is_link, scope=form)
+    # Collapse the editor again so the next action sees the normal grid.
+    close = page.locator(".grid-footer-toolbar .btn-open-row, "
+                         ".grid-form-body .octicon-triangle-up, "
+                         ".grid-row-open .btn-open-row").first
+    try:
+        if close.count():
+            close.click(timeout=4000)
+    except Exception:
+        page.keyboard.press("Escape")
+    page.wait_for_timeout(400)
+
+
+def _type_into(page: Any, inp: Any, value: Any, is_link: bool,
+               scope: Any = None) -> None:
+    inp.fill("")
+    inp.type(str(value), delay=25)
+    if is_link:
+        option = page.locator(".awesomplete li").filter(
+            has_text=str(value)).first
+        try:
+            option.wait_for(state="visible", timeout=8000)
+            option.click()
+            return
+        except Exception:
+            inp.press("Enter")
+            return
+    inp.press("Escape")
+
+
+def _dismiss_modal(page: Any) -> bool:
+    """Close a blocking Frappe dialog. Returns whether one was there.
+
+    A failed save leaves its validation dialog open, and the modal backdrop
+    intercepts pointer events. Every subsequent click then times out against
+    an element that is present, visible and unreachable -- which reads as a
+    broken selector and is really an un-dismissed dialog. One template spent
+    its entire step budget this way.
+    """
+    modal = page.locator(".modal.show").first
+    try:
+        if not modal.is_visible(timeout=800):
+            return False
+    except Exception:
+        return False
+    for closer in (".modal.show .btn-modal-close", ".modal.show .modal-header .close",
+                   ".modal.show .btn-primary"):
+        try:
+            btn = page.locator(closer).first
+            if btn.count() and btn.is_visible(timeout=500):
+                btn.click(timeout=3000)
+                page.wait_for_timeout(300)
+                break
+        except Exception:
+            continue
+    else:
+        page.keyboard.press("Escape")
+        page.wait_for_timeout(300)
+    try:
+        page.locator(".modal-backdrop").first.wait_for(state="detached", timeout=4000)
+    except Exception:
+        pass
+    return True
+
+
+def save_document(page: Any) -> str:
+    """Save the current document and report what actually happened.
+
+    This used to press Ctrl+S and return unconditionally, so a save blocked
+    by a validation error reported "save ok". The model, told it had
+    succeeded, pressed save twenty more times and ran out of budget with the
+    document still unsaved -- a whole template scored 0/9 on it. An action
+    that cannot fail is an action the agent cannot recover from.
+    """
     page.keyboard.press("Control+s")
     page.wait_for_timeout(1200)
     settle(page, timeout=15000)
+
+    # Frappe reports a blocked save in a modal: mandatory fields, a
+    # validation exception, a permission error.
+    try:
+        dialog = page.locator(".modal.show .modal-body, .msgprint").first
+        if dialog.is_visible(timeout=1500):
+            message = " ".join((dialog.inner_text() or "").split())[:400]
+            _dismiss_modal(page)
+            if message:
+                return f"NOT SAVED: {message}"
+    except Exception:
+        pass
+
+    # No modal: the document is saved unless the desk still says otherwise.
+    try:
+        pill = page.locator(
+            ".indicator-pill, .title-area .indicator").first
+        state = " ".join((pill.inner_text() or "").split()).lower()
+    except Exception:
+        state = ""
+    if "not saved" in state:
+        return ("NOT SAVED: the document is still in an unsaved state and no "
+                "error was shown. A required field is probably empty.")
+    return f"saved ({state})" if state else "saved"
 
 
 def perform(page: Any, obs: Observation, action: dict[str, Any],
@@ -210,8 +331,12 @@ def perform(page: Any, obs: Observation, action: dict[str, Any],
     kind = str(action.get("action", "")).lower()
     try:
         if kind == "done":
+            _dismiss_modal(page)
             return ActionOutcome(True, "done", done=True,
                                  answer=str(action.get("answer", "")))
+        # Anything that touches the page needs the overlay gone first.
+        if kind != "navigate":
+            _dismiss_modal(page)
         if kind == "navigate":
             url = str(action.get("url", ""))
             if url.startswith("/"):
@@ -249,7 +374,10 @@ def perform(page: Any, obs: Observation, action: dict[str, Any],
                       action["column"], action["value"],
                       bool(action.get("is_link", False)))
         elif kind == "save":
-            save_document(page)
+            detail = save_document(page)
+            if detail.startswith("NOT SAVED"):
+                return ActionOutcome(False, detail, snapshot(page))
+            return ActionOutcome(True, detail, snapshot(page))
         elif kind == "wait":
             page.wait_for_timeout(int(action.get("ms", 800)))
         else:

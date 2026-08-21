@@ -294,3 +294,126 @@ RECIPES: dict[str, Callable[[dict], Recipe]] = {
     "T19_create_supplier_group": create_supplier_group,
     "T20_create_territory": create_territory,
 }
+
+
+# --------------------------------------------------------------------------
+# In-distribution (D…) recipes.
+#
+# These generate the demonstration traffic for the in-distribution regime.
+# They drive the same desk surfaces as the T… recipes -- filtered list views
+# for reads, flat document forms for writes -- because the point of that
+# regime is to observe ordinary work, not unusual work.
+# --------------------------------------------------------------------------
+
+def d_customer_invoice_count(params: dict) -> Recipe:
+    obs = yield {"action": "navigate",
+                 "url": _url(f"sales-invoice?customer={_q(params['customer'])}")}
+    obs = yield {"action": "wait", "ms": 2500}
+    yield {"action": "done",
+           "answer": str(len(set(SINV_ID_RE.findall(obs.text))))}
+
+
+def d_customer_invoice_total(params: dict) -> Recipe:
+    obs = yield {"action": "navigate",
+                 "url": _url(f"sales-invoice?customer={_q(params['customer'])}")}
+    obs = yield {"action": "wait", "ms": 2500}
+    yield {"action": "done", "answer": f"{sum(_money(obs.text)):.2f}"}
+
+
+def d_customer_order_count(params: dict) -> Recipe:
+    obs = yield {"action": "navigate",
+                 "url": _url(f"sales-order?customer={_q(params['customer'])}")}
+    obs = yield {"action": "wait", "ms": 2500}
+    yield {"action": "done", "answer": str(len(set(SO_ID_RE.findall(obs.text))))}
+
+
+def d_item_stock_in_warehouse(params: dict) -> Recipe:
+    item, warehouse = params["item_code"], params["warehouse"]
+    obs = yield {"action": "navigate",
+                 "url": _url(f"bin?item_code={_q(item)}&warehouse={_q(warehouse)}")}
+    obs = yield {"action": "wait", "ms": 2500}
+    lines = _rows_after_header(obs.text)
+    total = 0.0
+    for i, line in enumerate(lines):
+        if line.strip() == item and i + 2 < len(lines):
+            try:
+                total += float(lines[i + 2].replace(",", ""))
+            except ValueError:
+                pass
+    yield {"action": "done", "answer": f"{total:g}"}
+
+
+def d_item_selling_price(params: dict) -> Recipe:
+    item = params["item_code"]
+    obs = yield {"action": "navigate",
+                 "url": _url(f"item-price?item_code={_q(item)}"
+                             "&price_list=Standard%20Selling")}
+    obs = yield {"action": "wait", "ms": 2500}
+    prices = _money(obs.text)
+    yield {"action": "done", "answer": f"{prices[0]:.2f}" if prices else "0"}
+
+
+def d_create_customer(params: dict) -> Recipe:
+    yield {"action": "navigate", "url": _url("customer/new")}
+    yield {"action": "wait", "ms": 2500}
+    yield {"action": "field", "field": "customer_name",
+           "value": params["customer_name"]}
+    yield {"action": "link", "field": "customer_group", "value": "Commercial"}
+    yield {"action": "link", "field": "territory", "value": "All Territories"}
+    yield {"action": "save"}
+    obs = yield {"action": "wait", "ms": 1500}
+    yield {"action": "done", "answer": f"created customer at {obs.url}"}
+
+
+def d_create_contact(params: dict) -> Recipe:
+    yield {"action": "navigate", "url": _url("contact/new")}
+    yield {"action": "wait", "ms": 2500}
+    yield {"action": "field", "field": "first_name", "value": params["first_name"]}
+    yield {"action": "field", "field": "last_name", "value": params["last_name"]}
+    yield {"action": "save"}
+    obs = yield {"action": "wait", "ms": 1500}
+    yield {"action": "done", "answer": f"created contact at {obs.url}"}
+
+
+def d_create_lead(params: dict) -> Recipe:
+    yield {"action": "navigate", "url": _url("lead/new")}
+    yield {"action": "wait", "ms": 2500}
+    yield {"action": "field", "field": "lead_name", "value": params["lead_name"]}
+    yield {"action": "save"}
+    obs = yield {"action": "wait", "ms": 1500}
+    yield {"action": "done", "answer": f"created lead at {obs.url}"}
+
+
+def d_create_warehouse(params: dict) -> Recipe:
+    yield {"action": "navigate", "url": _url("warehouse/new")}
+    yield {"action": "wait", "ms": 2500}
+    yield {"action": "field", "field": "warehouse_name",
+           "value": params["warehouse_name"]}
+    yield {"action": "save"}
+    obs = yield {"action": "wait", "ms": 1500}
+    yield {"action": "done", "answer": f"created warehouse at {obs.url}"}
+
+
+def d_create_territory(params: dict) -> Recipe:
+    yield {"action": "navigate", "url": _url("territory/new")}
+    yield {"action": "wait", "ms": 2500}
+    yield {"action": "field", "field": "territory_name",
+           "value": params["territory_name"]}
+    yield {"action": "link", "field": "parent_territory", "value": "All Territories"}
+    yield {"action": "save"}
+    obs = yield {"action": "wait", "ms": 1500}
+    yield {"action": "done", "answer": f"created territory at {obs.url}"}
+
+
+RECIPES.update({
+    "D01_customer_invoice_count": d_customer_invoice_count,
+    "D02_customer_invoice_total": d_customer_invoice_total,
+    "D03_customer_order_count": d_customer_order_count,
+    "D04_item_stock_in_warehouse": d_item_stock_in_warehouse,
+    "D05_item_selling_price": d_item_selling_price,
+    "D06_create_customer": d_create_customer,
+    "D07_create_contact": d_create_contact,
+    "D08_create_lead": d_create_lead,
+    "D09_create_warehouse": d_create_warehouse,
+    "D10_create_territory": d_create_territory,
+})

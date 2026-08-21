@@ -134,3 +134,54 @@ def test_every_write_template_declares_what_it_writes():
 
     for tmpl in TEMPLATES:
         assert (tmpl.writes is not None) == (tmpl.kind == "write"), tmpl.id
+
+
+def test_indist_instances_are_never_both_observed_and_evaluated():
+    """The in-distribution claim rests entirely on this.
+
+    That regime observes and evaluates the same templates, so the only thing
+    separating "automating an observed workflow" from "replaying a memorised
+    one" is that the parameter values differ. Nothing downstream would notice
+    a leak.
+    """
+    from shadow.bench.indist import (
+        INDIST_TEMPLATES, InstanceLeak, check_instance_holdout)
+
+    check_instance_holdout()
+    for template in INDIST_TEMPLATES:
+        observed = {tuple(sorted(p.items())) for p in template.observe_params}
+        evaluated = {tuple(sorted(p.items())) for p in template.eval_params}
+        assert observed and evaluated
+        assert not (observed & evaluated), template.id
+
+    # And the guard actually fires rather than passing vacuously.
+    leaky = INDIST_TEMPLATES[0].__class__(
+        id="D99", title="t", goal="g", kind="read", check="c",
+        observe_params=({"customer": "Same"},),
+        eval_params=({"customer": "Same"},))
+    import shadow.bench.indist as mod
+    original = mod.INDIST_TEMPLATES
+    mod.INDIST_TEMPLATES = (leaky,)
+    try:
+        with pytest.raises(InstanceLeak):
+            check_instance_holdout()
+    finally:
+        mod.INDIST_TEMPLATES = original
+
+
+def test_indist_templates_do_not_write_what_eval_writes():
+    """Keeps the two evaluations visibly separate.
+
+    The in-distribution set has its own tools and its own traffic, so an
+    overlap would not actually contaminate the held-out result -- but a
+    reader should not have to take that on trust.
+    """
+    from shadow.bench.indist import INDIST_TEMPLATES
+    from shadow.bench.tasks import EVAL_TEMPLATE_IDS, TEMPLATES
+
+    eval_writes = {t.writes for t in TEMPLATES
+                   if t.id in EVAL_TEMPLATE_IDS and t.writes}
+    indist_writes = {t.writes for t in INDIST_TEMPLATES if t.writes}
+    assert not (eval_writes & indist_writes), (
+        f"in-distribution writes overlap held-out writes: "
+        f"{sorted(eval_writes & indist_writes)}")

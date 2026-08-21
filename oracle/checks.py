@@ -261,3 +261,95 @@ def run_check(name: str, oc: OracleClient, params: dict, answer: str) -> CheckRe
         return fn(oc, params, answer)
     except Exception as exc:  # an oracle failure must never read as success
         return CheckResult(False, f"oracle error: {type(exc).__name__}: {exc}")
+
+
+# --------------------------------------------------------------------------
+# In-distribution (D…) checks.
+#
+# Same style as above: every one reads the answer back out of the database
+# through the REST API rather than trusting what the agent said.
+# --------------------------------------------------------------------------
+
+def customer_territory(oc: OracleClient, params: dict, answer: str, **_) -> CheckResult:
+    rows = oc.list("Customer", filters=[["name", "=", params["customer"]]],
+                   fields=["territory"], limit=1)
+    if not rows:
+        return CheckResult(False, f"no customer {params['customer']!r} in seed data")
+    expected = str(rows[0]["territory"] or "")
+    ok = expected.lower() in (answer or "").lower()
+    return CheckResult(ok, f"expected {expected!r}, answer {answer[:60]!r}")
+
+
+def customer_group_of(oc: OracleClient, params: dict, answer: str, **_) -> CheckResult:
+    rows = oc.list("Customer", filters=[["name", "=", params["customer"]]],
+                   fields=["customer_group"], limit=1)
+    if not rows:
+        return CheckResult(False, f"no customer {params['customer']!r} in seed data")
+    expected = str(rows[0]["customer_group"] or "")
+    ok = expected.lower() in (answer or "").lower()
+    return CheckResult(ok, f"expected {expected!r}, answer {answer[:60]!r}")
+
+
+def customers_in_group(oc: OracleClient, params: dict, answer: str, **_) -> CheckResult:
+    rows = oc.list("Customer",
+                   filters=[["customer_group", "=", params["customer_group"]]],
+                   fields=["name"], limit=500)
+    return _numeric(answer, float(len(rows)))
+
+
+def item_group_of(oc: OracleClient, params: dict, answer: str, **_) -> CheckResult:
+    rows = oc.list("Item", filters=[["name", "=", params["item_code"]]],
+                   fields=["item_group"], limit=1)
+    if not rows:
+        return CheckResult(False, f"no item {params['item_code']!r} in seed data")
+    expected = str(rows[0]["item_group"] or "")
+    ok = expected.lower() in (answer or "").lower()
+    return CheckResult(ok, f"expected {expected!r}, answer {answer[:60]!r}")
+
+
+def items_in_group(oc: OracleClient, params: dict, answer: str, **_) -> CheckResult:
+    rows = oc.list("Item", filters=[["item_group", "=", params["item_group"]]],
+                   fields=["name"], limit=500)
+    return _numeric(answer, float(len(rows)))
+
+
+def item_stock_in_warehouse(oc: OracleClient, params: dict, answer: str,
+                            **_) -> CheckResult:
+    rows = oc.list("Bin", filters=[["item_code", "=", params["item_code"]],
+                                   ["warehouse", "=", params["warehouse"]]],
+                   fields=["actual_qty"], limit=20)
+    expected = round(sum(float(r["actual_qty"] or 0) for r in rows), 3)
+    return _numeric(answer, expected)
+
+
+CHECKS.update({
+    "customer_territory": customer_territory,
+    "customer_group_of": customer_group_of,
+    "customers_in_group": customers_in_group,
+    "item_group_of": item_group_of,
+    "items_in_group": items_in_group,
+    "item_stock_in_warehouse": item_stock_in_warehouse,
+})
+
+
+def invoices_for_customer(oc: OracleClient, params: dict, answer: str,
+                          **_) -> CheckResult:
+    rows = oc.list("Sales Invoice",
+                   filters=[["customer", "=", params["customer"]]],
+                   fields=["name"], limit=500)
+    return _numeric(answer, float(len(rows)))
+
+
+def customer_invoice_total(oc: OracleClient, params: dict, answer: str,
+                           **_) -> CheckResult:
+    rows = oc.list("Sales Invoice",
+                   filters=[["customer", "=", params["customer"]]],
+                   fields=["grand_total"], limit=500)
+    expected = round(sum(float(r["grand_total"] or 0) for r in rows), 2)
+    return _numeric(answer, expected)
+
+
+CHECKS.update({
+    "invoices_for_customer": invoices_for_customer,
+    "customer_invoice_total": customer_invoice_total,
+})

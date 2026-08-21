@@ -163,7 +163,13 @@ def cmd_bench(args) -> int:
     if args.allow_writes:
         argv.append("--allow-writes")
     if args.fresh:
-        get_config().path("results").unlink(missing_ok=True)
+        results = get_config().path("results")
+        # Never delete a completed run: the offline-vs-model comparison is
+        # evidence. Archive it if it has not been archived already.
+        offline = results.with_name("results_offline.jsonl")
+        if results.exists() and not offline.exists():
+            offline.write_text(results.read_text())
+        results.unlink(missing_ok=True)
     sys.argv = argv
     return bench_main()
 

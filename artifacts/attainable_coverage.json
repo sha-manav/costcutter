@@ -106,8 +106,18 @@
       "template_id": "T09_create_sales_order",
       "attainable": false,
       "tool": null,
-      "detail": "step 0 returned 500: {'exception': \"TypeError: unsupported operand type(s) for *: 'NoneType' and 'float'\", 'exc_type': 'TypeError', '_exc_source': 'erpnext (app",
+      "detail": "doctype is a literal (['Customer']); cannot address Sales Order",
       "attempts": [
+        {
+          "tool": "create_record",
+          "ok": false,
+          "why": "step 0 returned 500: {'exception': \"TypeError: unsupported operand type(s) for *: 'NoneType' and 'float'\", 'exc_type': 'TypeError', '_exc_source': 'erpnext (app"
+        },
+        {
+          "tool": "create_record_2",
+          "ok": false,
+          "why": "step 0 returned 417: {'exception': 'frappe.exceptions.LinkValidationError: Could not find Territory: Cascadia 026', 'exc_type': 'LinkValidationError', 'exc': '["
+        },
         {
           "tool": "update_item_price",
           "ok": false,
@@ -119,14 +129,14 @@
           "why": "doctype is a literal (['Customer', 'Territory']); cannot address Sales Order"
         },
         {
+          "tool": "create_lead",
+          "ok": false,
+          "why": "doctype is a literal (['Lead']); cannot address Sales Order"
+        },
+        {
           "tool": "update_customer",
           "ok": false,
           "why": "doctype is a literal (['Customer']); cannot address Sales Order"
-        },
-        {
-          "tool": "create_record",
-          "ok": false,
-          "why": "step 0 returned 500: {'exception': \"TypeError: unsupported operand type(s) for *: 'NoneType' and 'float'\", 'exc_type': 'TypeError', '_exc_source': 'erpnext (app"
         }
       ]
     },
@@ -135,8 +145,18 @@
       "template_id": "T09_create_sales_order",
       "attainable": false,
       "tool": null,
-      "detail": "step 0 returned 500: {'exception': \"TypeError: unsupported operand type(s) for *: 'NoneType' and 'float'\", 'exc_type': 'TypeError', '_exc_source': 'erpnext (app",
+      "detail": "doctype is a literal (['Customer']); cannot address Sales Order",
       "attempts": [
+        {
+          "tool": "create_record",
+          "ok": false,
+          "why": "step 0 returned 500: {'exception': \"TypeError: unsupported operand type(s) for *: 'NoneType' and 'float'\", 'exc_type': 'TypeError', '_exc_source': 'erpnext (app"
+        },
+        {
+          "tool": "create_record_2",
+          "ok": false,
+          "why": "step 0 returned 417: {'exception': 'frappe.exceptions.LinkValidationError: Could not find Territory: Cascadia 026', 'exc_type': 'LinkValidationError', 'exc': '["
+        },
         {
           "tool": "update_item_price",
           "ok": false,
@@ -148,14 +168,14 @@
           "why": "doctype is a literal (['Customer', 'Territory']); cannot address Sales Order"
         },
         {
+          "tool": "create_lead",
+          "ok": false,
+          "why": "doctype is a literal (['Lead']); cannot address Sales Order"
+        },
+        {
           "tool": "update_customer",
           "ok": false,
           "why": "doctype is a literal (['Customer']); cannot address Sales Order"
-        },
-        {
-          "tool": "create_record",
-          "ok": false,
-          "why": "step 0 returned 500: {'exception': \"TypeError: unsupported operand type(s) for *: 'NoneType' and 'float'\", 'exc_type': 'TypeError', '_exc_source': 'erpnext (app"
         }
       ]
     },
@@ -164,8 +184,18 @@
       "template_id": "T09_create_sales_order",
       "attainable": false,
       "tool": null,
-      "detail": "step 0 returned 500: {'exception': \"TypeError: unsupported operand type(s) for *: 'NoneType' and 'float'\", 'exc_type': 'TypeError', '_exc_source': 'erpnext (app",
+      "detail": "doctype is a literal (['Customer']); cannot address Sales Order",
       "attempts": [
+        {
+          "tool": "create_record",
+          "ok": false,
+          "why": "step 0 returned 500: {'exception': \"TypeError: unsupported operand type(s) for *: 'NoneType' and 'float'\", 'exc_type': 'TypeError', '_exc_source': 'erpnext (app"
+        },
+        {
+          "tool": "create_record_2",
+          "ok": false,
+          "why": "step 0 returned 417: {'exception': 'frappe.exceptions.LinkValidationError: Could not find Territory: Cascadia 026', 'exc_type': 'LinkValidationError', 'exc': '["
+        },
         {
           "tool": "update_item_price",
           "ok": false,
@@ -177,14 +207,14 @@
           "why": "doctype is a literal (['Customer', 'Territory']); cannot address Sales Order"
         },
         {
+          "tool": "create_lead",
+          "ok": false,
+          "why": "doctype is a literal (['Lead']); cannot address Sales Order"
+        },
+        {
           "tool": "update_customer",
           "ok": false,
           "why": "doctype is a literal (['Customer']); cannot address Sales Order"
-        },
-        {
-          "tool": "create_record",
-          "ok": false,
-          "why": "step 0 returned 500: {'exception': \"TypeError: unsupported operand type(s) for *: 'NoneType' and 'float'\", 'exc_type': 'TypeError', '_exc_source': 'erpnext (app"
         }
       ]
     },
@@ -193,8 +223,18 @@
       "template_id": "T10_create_supplier",
       "attainable": false,
       "tool": null,
-      "detail": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Supplier, CUST-2026-00001]: supplier_name', 'exc_type': 'MandatoryError', 'exc': '[\"Trace",
+      "detail": "doctype is a literal (['Customer']); cannot address Supplier",
       "attempts": [
+        {
+          "tool": "create_record",
+          "ok": false,
+          "why": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Supplier, SUP-2026-00001]: supplier_name', 'exc_type': 'MandatoryError', 'exc': '[\"Traceb"
+        },
+        {
+          "tool": "create_record_2",
+          "ok": false,
+          "why": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Supplier, CUST-2026-00001]: supplier_name', 'exc_type': 'MandatoryError', 'exc': '[\"Trace"
+        },
         {
           "tool": "update_item_price",
           "ok": false,
@@ -206,14 +246,14 @@
           "why": "doctype is a literal (['Customer', 'Territory']); cannot address Supplier"
         },
         {
+          "tool": "create_lead",
+          "ok": false,
+          "why": "doctype is a literal (['Lead']); cannot address Supplier"
+        },
+        {
           "tool": "update_customer",
           "ok": false,
           "why": "doctype is a literal (['Customer']); cannot address Supplier"
-        },
-        {
-          "tool": "create_record",
-          "ok": false,
-          "why": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Supplier, CUST-2026-00001]: supplier_name', 'exc_type': 'MandatoryError', 'exc': '[\"Trace"
         }
       ]
     },
@@ -222,8 +262,18 @@
       "template_id": "T10_create_supplier",
       "attainable": false,
       "tool": null,
-      "detail": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Supplier, CUST-2026-00001]: supplier_name', 'exc_type': 'MandatoryError', 'exc': '[\"Trace",
+      "detail": "doctype is a literal (['Customer']); cannot address Supplier",
       "attempts": [
+        {
+          "tool": "create_record",
+          "ok": false,
+          "why": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Supplier, SUP-2026-00001]: supplier_name', 'exc_type': 'MandatoryError', 'exc': '[\"Traceb"
+        },
+        {
+          "tool": "create_record_2",
+          "ok": false,
+          "why": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Supplier, CUST-2026-00001]: supplier_name', 'exc_type': 'MandatoryError', 'exc': '[\"Trace"
+        },
         {
           "tool": "update_item_price",
           "ok": false,
@@ -235,14 +285,14 @@
           "why": "doctype is a literal (['Customer', 'Territory']); cannot address Supplier"
         },
         {
+          "tool": "create_lead",
+          "ok": false,
+          "why": "doctype is a literal (['Lead']); cannot address Supplier"
+        },
+        {
           "tool": "update_customer",
           "ok": false,
           "why": "doctype is a literal (['Customer']); cannot address Supplier"
-        },
-        {
-          "tool": "create_record",
-          "ok": false,
-          "why": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Supplier, CUST-2026-00001]: supplier_name', 'exc_type': 'MandatoryError', 'exc': '[\"Trace"
         }
       ]
     },
@@ -251,8 +301,18 @@
       "template_id": "T10_create_supplier",
       "attainable": false,
       "tool": null,
-      "detail": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Supplier, CUST-2026-00001]: supplier_name', 'exc_type': 'MandatoryError', 'exc': '[\"Trace",
+      "detail": "doctype is a literal (['Customer']); cannot address Supplier",
       "attempts": [
+        {
+          "tool": "create_record",
+          "ok": false,
+          "why": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Supplier, SUP-2026-00001]: supplier_name', 'exc_type': 'MandatoryError', 'exc': '[\"Traceb"
+        },
+        {
+          "tool": "create_record_2",
+          "ok": false,
+          "why": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Supplier, CUST-2026-00001]: supplier_name', 'exc_type': 'MandatoryError', 'exc': '[\"Trace"
+        },
         {
           "tool": "update_item_price",
           "ok": false,
@@ -264,14 +324,14 @@
           "why": "doctype is a literal (['Customer', 'Territory']); cannot address Supplier"
         },
         {
+          "tool": "create_lead",
+          "ok": false,
+          "why": "doctype is a literal (['Lead']); cannot address Supplier"
+        },
+        {
           "tool": "update_customer",
           "ok": false,
           "why": "doctype is a literal (['Customer']); cannot address Supplier"
-        },
-        {
-          "tool": "create_record",
-          "ok": false,
-          "why": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Supplier, CUST-2026-00001]: supplier_name', 'exc_type': 'MandatoryError', 'exc': '[\"Trace"
         }
       ]
     },
@@ -280,8 +340,18 @@
       "template_id": "T12_create_item",
       "attainable": false,
       "tool": null,
-      "detail": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Item, SH-PANEL-01]: item_group', 'exc_type': 'MandatoryError', 'exc': '[\"Traceback (most ",
+      "detail": "doctype is a literal (['Customer']); cannot address Item",
       "attempts": [
+        {
+          "tool": "create_record",
+          "ok": false,
+          "why": "step 0 returned 417: {'exception': 'frappe.exceptions.ValidationError: Item Code is required', 'exc_type': 'ValidationError', 'exc': '[\"Traceback (most recent c"
+        },
+        {
+          "tool": "create_record_2",
+          "ok": false,
+          "why": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Item, SH-GEAR-02]: item_group', 'exc_type': 'MandatoryError', 'exc': '[\"Traceback (most r"
+        },
         {
           "tool": "update_item_price",
           "ok": false,
@@ -293,14 +363,14 @@
           "why": "doctype is a literal (['Customer', 'Territory']); cannot address Item"
         },
         {
+          "tool": "create_lead",
+          "ok": false,
+          "why": "doctype is a literal (['Lead']); cannot address Item"
+        },
+        {
           "tool": "update_customer",
           "ok": false,
           "why": "doctype is a literal (['Customer']); cannot address Item"
-        },
-        {
-          "tool": "create_record",
-          "ok": false,
-          "why": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Item, SH-PANEL-01]: item_group', 'exc_type': 'MandatoryError', 'exc': '[\"Traceback (most "
         }
       ]
     },
@@ -309,8 +379,18 @@
       "template_id": "T12_create_item",
       "attainable": false,
       "tool": null,
-      "detail": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Item, SH-PANEL-01]: item_group', 'exc_type': 'MandatoryError', 'exc': '[\"Traceback (most ",
+      "detail": "doctype is a literal (['Customer']); cannot address Item",
       "attempts": [
+        {
+          "tool": "create_record",
+          "ok": false,
+          "why": "step 0 returned 417: {'exception': 'frappe.exceptions.ValidationError: Item Code is required', 'exc_type': 'ValidationError', 'exc': '[\"Traceback (most recent c"
+        },
+        {
+          "tool": "create_record_2",
+          "ok": false,
+          "why": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Item, SH-GEAR-02]: item_group', 'exc_type': 'MandatoryError', 'exc': '[\"Traceback (most r"
+        },
         {
           "tool": "update_item_price",
           "ok": false,
@@ -322,14 +402,14 @@
           "why": "doctype is a literal (['Customer', 'Territory']); cannot address Item"
         },
         {
+          "tool": "create_lead",
+          "ok": false,
+          "why": "doctype is a literal (['Lead']); cannot address Item"
+        },
+        {
           "tool": "update_customer",
           "ok": false,
           "why": "doctype is a literal (['Customer']); cannot address Item"
-        },
-        {
-          "tool": "create_record",
-          "ok": false,
-          "why": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Item, SH-PANEL-01]: item_group', 'exc_type': 'MandatoryError', 'exc': '[\"Traceback (most "
         }
       ]
     },
@@ -338,8 +418,18 @@
       "template_id": "T12_create_item",
       "attainable": false,
       "tool": null,
-      "detail": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Item, SH-PANEL-01]: item_group', 'exc_type': 'MandatoryError', 'exc': '[\"Traceback (most ",
+      "detail": "doctype is a literal (['Customer']); cannot address Item",
       "attempts": [
+        {
+          "tool": "create_record",
+          "ok": false,
+          "why": "step 0 returned 417: {'exception': 'frappe.exceptions.ValidationError: Item Code is required', 'exc_type': 'ValidationError', 'exc': '[\"Traceback (most recent c"
+        },
+        {
+          "tool": "create_record_2",
+          "ok": false,
+          "why": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Item, SH-GEAR-02]: item_group', 'exc_type': 'MandatoryError', 'exc': '[\"Traceback (most r"
+        },
         {
           "tool": "update_item_price",
           "ok": false,
@@ -351,14 +441,14 @@
           "why": "doctype is a literal (['Customer', 'Territory']); cannot address Item"
         },
         {
+          "tool": "create_lead",
+          "ok": false,
+          "why": "doctype is a literal (['Lead']); cannot address Item"
+        },
+        {
           "tool": "update_customer",
           "ok": false,
           "why": "doctype is a literal (['Customer']); cannot address Item"
-        },
-        {
-          "tool": "create_record",
-          "ok": false,
-          "why": "step 0 returned 417: {'exception': 'frappe.exceptions.MandatoryError: [Item, SH-PANEL-01]: item_group', 'exc_type': 'MandatoryError', 'exc': '[\"Traceback (most "
         }
       ]
     },
@@ -367,8 +457,18 @@
       "template_id": "T14_create_sales_invoice",
       "attainable": false,
       "tool": null,
-      "detail": "step 0 returned 500: {'exception': \"TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'\", 'exc_type': 'TypeError', '_exc_source': 'erpnext (app",
+      "detail": "doctype is a literal (['Customer']); cannot address Sales Invoice",
       "attempts": [
+        {
+          "tool": "create_record",
+          "ok": false,
+          "why": "step 0 returned 500: {'exception': \"TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'\", 'exc_type': 'TypeError', '_exc_source': 'erpnext (app"
+        },
+        {
+          "tool": "create_record_2",
+          "ok": false,
+          "why": "step 0 returned 417: {'exception': 'frappe.exceptions.LinkValidationError: Could not find Territory: Cascadia 026', 'exc_type': 'LinkValidationError', 'exc': '["
+        },
         {
           "tool": "update_item_price",
           "ok": false,
@@ -380,14 +480,14 @@
           "why": "doctype is a literal (['Customer', 'Territory']); cannot address Sales Invoice"
         },
         {
+          "tool": "create_lead",
+          "ok": false,
+          "why": "doctype is a literal (['Lead']); cannot address Sales Invoice"
+        },
+        {
           "tool": "update_customer",
           "ok": false,
           "why": "doctype is a literal (['Customer']); cannot address Sales Invoice"
-        },
-        {
-          "tool": "create_record",
-          "ok": false,
-          "why": "step 0 returned 500: {'exception': \"TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'\", 'exc_type': 'TypeError', '_exc_source': 'erpnext (app"
         }
       ]
     },
@@ -396,8 +496,18 @@
       "template_id": "T14_create_sales_invoice",
       "attainable": false,
       "tool": null,
-      "detail": "step 0 returned 500: {'exception': \"TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'\", 'exc_type': 'TypeError', '_exc_source': 'erpnext (app",
+      "detail": "doctype is a literal (['Customer']); cannot address Sales Invoice",
       "attempts": [
+        {
+          "tool": "create_record",
+          "ok": false,
+          "why": "step 0 returned 500: {'exception': \"TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'\", 'exc_type': 'TypeError', '_exc_source': 'erpnext (app"
+        },
+        {
+          "tool": "create_record_2",
+          "ok": false,
+          "why": "step 0 returned 417: {'exception': 'frappe.exceptions.LinkValidationError: Could not find Territory: Cascadia 026', 'exc_type': 'LinkValidationError', 'exc': '["
+        },
         {
           "tool": "update_item_price",
           "ok": false,
@@ -409,14 +519,14 @@
           "why": "doctype is a literal (['Customer', 'Territory']); cannot address Sales Invoice"
         },
         {
+          "tool": "create_lead",
+          "ok": false,
+          "why": "doctype is a literal (['Lead']); cannot address Sales Invoice"
+        },
+        {
           "tool": "update_customer",
           "ok": false,
           "why": "doctype is a literal (['Customer']); cannot address Sales Invoice"
-        },
-        {
-          "tool": "create_record",
-          "ok": false,
-          "why": "step 0 returned 500: {'exception': \"TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'\", 'exc_type': 'TypeError', '_exc_source': 'erpnext (app"
         }
       ]
     },
@@ -425,8 +535,18 @@
       "template_id": "T14_create_sales_invoice",
       "attainable": false,
       "tool": null,
-      "detail": "step 0 returned 500: {'exception': \"TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'\", 'exc_type': 'TypeError', '_exc_source': 'erpnext (app",
+      "detail": "doctype is a literal (['Customer']); cannot address Sales Invoice",
       "attempts": [
+        {
+          "tool": "create_record",
+          "ok": false,
+          "why": "step 0 returned 500: {'exception': \"TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'\", 'exc_type': 'TypeError', '_exc_source': 'erpnext (app"
+        },
+        {
+          "tool": "create_record_2",
+          "ok": false,
+          "why": "step 0 returned 417: {'exception': 'frappe.exceptions.LinkValidationError: Could not find Territory: Cascadia 026', 'exc_type': 'LinkValidationError', 'exc': '["
+        },
         {
           "tool": "update_item_price",
           "ok": false,
@@ -438,14 +558,14 @@
           "why": "doctype is a literal (['Customer', 'Territory']); cannot address Sales Invoice"
         },
         {
+          "tool": "create_lead",
+          "ok": false,
+          "why": "doctype is a literal (['Lead']); cannot address Sales Invoice"
+        },
+        {
           "tool": "update_customer",
           "ok": false,
           "why": "doctype is a literal (['Customer']); cannot address Sales Invoice"
-        },
-        {
-          "tool": "create_record",
-          "ok": false,
-          "why": "step 0 returned 500: {'exception': \"TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'\", 'exc_type': 'TypeError', '_exc_source': 'erpnext (app"
         }
       ]
     }

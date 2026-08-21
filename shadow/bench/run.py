@@ -84,6 +84,8 @@ def main() -> int:
                     help="expose synthesized write tools to condition B")
     ap.add_argument("--include-unverified", action="store_true")
     ap.add_argument("--out", default=None)
+    ap.add_argument("--fresh", action="store_true",
+                    help="start a new results file, archiving any completed run")
     ap.add_argument("--tasks", default=None, help="comma-separated task ids")
     ap.add_argument("--require-model", action="store_true",
                     help="fail rather than fall back to the offline provider")
@@ -96,6 +98,12 @@ def main() -> int:
     cfg = get_config()
     trials = args.trials or cfg.bench.trials
     out_path = Path(args.out) if args.out else cfg.path("results")
+    if args.fresh and out_path.exists():
+        archive = out_path.with_name("results_offline.jsonl")
+        if not archive.exists():
+            archive.write_text(out_path.read_text())
+            print(f"archived the previous run to {archive}")
+        out_path.unlink()
     catalog = read_catalog(cfg.path("tools"))
     tasks = eval_tasks(cfg)
     if args.tasks:

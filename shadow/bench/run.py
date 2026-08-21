@@ -14,7 +14,8 @@ from typing import Any
 
 from shadow.capture.schema import ToolCatalog, read_catalog
 from shadow.config import Config, get_config
-from shadow.llm import make_client
+from shadow.llm import MissingCredentials, make_client, resolve_model_provider
+from shadow.bench.exclusive import instance_lock
 from shadow.bench.tasks import Task, eval_tasks
 from shadow.route.agent import run_tool_task
 from shadow.route.browser_agent import RunResult, run_browser_task
@@ -158,7 +159,13 @@ def main() -> int:
         tasks = smoke[:1]
         trials = 1
 
-    provider = make_client(cfg.models.agent, cfg.models.provider).provider
+    try:
+        provider = resolve_model_provider(cfg.models.agent, cfg.models.provider)
+    except MissingCredentials as exc:
+        if args.require_model:
+            print(f"--require-model: {exc}", file=sys.stderr)
+            return 2
+        raise
     if args.require_model and provider != "litellm":
         print(f"--require-model given but the resolved provider is {provider!r}; "
               "set models.provider and supply credentials", file=sys.stderr)
@@ -170,10 +177,12 @@ def main() -> int:
     print(f"catalog: {len(catalog.tools)} tools "
           f"({sum(1 for t in catalog.tools if t.verified)} verified)")
 
-    for condition in args.conditions.split(","):
-        run_condition(condition.strip(), tasks, cfg, catalog, trials, out_path,
-                      args.allow_writes, not args.include_unverified,
-                      tool_k=args.tool_k, resume=args.resume)
+    with instance_lock("bench.run"):
+        for condition in args.conditions.split(","):
+            run_condition(condition.strip(), tasks, cfg, catalog, trials,
+                          out_path, args.allow_writes,
+                          not args.include_unverified,
+                          tool_k=args.tool_k, resume=args.resume)
     print(f"results appended to {out_path}")
     return 0
 

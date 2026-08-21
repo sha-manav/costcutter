@@ -15,13 +15,15 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
 from shadow.capture.schema import read_catalog
 from shadow.config import Config, get_config
-from shadow.llm import make_client
+from shadow.llm import MissingCredentials, make_client, resolve_model_provider
+from shadow.bench.exclusive import instance_lock
 from shadow.bench.tasks import Task, eval_tasks
 from shadow.route.agent import run_tool_task
 from shadow.route.recipes import RECIPES
@@ -56,6 +58,8 @@ class CollateralRun:
     intended: dict[str, int] = field(default_factory=dict)
     collateral: dict[str, int] = field(default_factory=dict)
     tools_called: list[str] = field(default_factory=list)
+    # tool / tool_failed / browser_fallback, per acting step
+    served_by: list[str] = field(default_factory=list)
     detail: str = ""
 
     @property
@@ -110,6 +114,8 @@ def run(cfg: Config | None = None, trials: int = 1,
                 intended=intended, collateral=collateral,
                 tools_called=[s.action.get("name", "?") for s in result.steps
                               if s.action.get("action") == "tool"],
+                served_by=[s.served_by for s in result.steps
+                           if s.action.get("action") != "done"],
                 detail=check.detail[:160])
             results.append(record)
             flag = "COLLATERAL " + json.dumps(collateral) if collateral else "clean"
@@ -137,8 +143,26 @@ def run(cfg: Config | None = None, trials: int = 1,
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--trials", type=int, default=1)
+    ap.add_argument("--require-model", action="store_true",
+                    help="fail rather than fall back to the offline provider")
     args = ap.parse_args()
-    run(get_config(), args.trials)
+    cfg = get_config()
+    # The whole point is to re-test the finding against a capable model.
+    # Silently re-measuring the lexical router would answer a question we
+    # already have an answer to.
+    try:
+        provider = resolve_model_provider(cfg.models.agent, cfg.models.provider)
+    except MissingCredentials as exc:
+        if args.require_model:
+            print(f"--require-model: {exc}", file=sys.stderr)
+            return 2
+        raise
+    if args.require_model and provider != "litellm":
+        print(f"--require-model given but the resolved provider is "
+              f"{provider!r}", file=sys.stderr)
+        return 2
+    with instance_lock("bench.collateral"):
+        run(cfg, args.trials)
     return 0
 
 

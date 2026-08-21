@@ -248,6 +248,22 @@ class MissingCredentials(RuntimeError):
     pass
 
 
+def resolve_model_provider(model: str, provider: str = "auto") -> str:
+    """The provider a run would actually use, or raise saying why it cannot.
+
+    Naming ``litellm`` in the config is not the same as being able to call
+    it. Checking only the configured name lets `--require-model` pass and
+    then die on the first request -- after the harness has already reset the
+    database out from under whatever else was running.
+    """
+    resolved = make_client(model, provider).provider
+    if resolved == "litellm" and not _credentials_present():
+        raise MissingCredentials(
+            "provider resolves to litellm but no model credentials are in the "
+            "environment; export ANTHROPIC_API_KEY (or another supported key)")
+    return resolved
+
+
 def make_client(model: str, provider: str = "auto") -> LLMClient:
     """Build a client. ``auto`` uses litellm when credentials exist.
 

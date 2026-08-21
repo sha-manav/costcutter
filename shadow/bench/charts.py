@@ -53,19 +53,40 @@ def coverage_curve(sweep_path: Path, out_path: Path) -> Path | None:
 
 def cost_per_success(rows: list[dict[str, Any]], out_path: Path,
                      cfg: Config) -> Path:
-    """Chart 2 — cost per successful task, A vs B."""
+    """Chart 2 — cost per successful task, A vs B, priced both ways.
+
+    The second pair reprices cache reads at the full input rate. Caching is
+    structurally kinder to condition B — its prefix is fixed, A re-sends a
+    page snapshot that changes every step — so showing only the billed
+    number would hand B an advantage the reader cannot see.
+    """
     a = score_condition(rows, "A_browser", cfg)
     b = score_condition(rows, "B_tools", cfg)
-    fig, ax = plt.subplots(figsize=(5.2, 4.0), dpi=160)
-    values = [a.usd_per_successful_task, b.usd_per_successful_task]
-    labels = ["A: browser only", "B: tools + fallback"]
-    bars = ax.bar(labels, values, color=[PALETTE["A"], PALETTE["B"]],
-                  width=0.55, zorder=3)
-    for bar, value in zip(bars, values):
-        ax.text(bar.get_x() + bar.get_width() / 2, value,
-                f"${value:.5f}", ha="center", va="bottom", fontsize=9)
+    fig, ax = plt.subplots(figsize=(6.4, 4.0), dpi=160)
+    groups = ["as billed\n(cache discounted)", "cache repriced\nat full input rate"]
+    a_vals = [a.usd_per_successful_task, a.usd_per_successful_task_uncached]
+    b_vals = [b.usd_per_successful_task, b.usd_per_successful_task_uncached]
+    # An infinite cost (a condition that never succeeded) cannot be drawn;
+    # it is annotated instead so the bar is not silently read as zero.
+    def finite(v: float) -> float:
+        return 0.0 if v in (float("inf"), float("-inf")) else v
+
+    x = range(len(groups))
+    width = 0.36
+    bars_a = ax.bar([i - width / 2 for i in x], [finite(v) for v in a_vals],
+                    width, label="A: browser only", color=PALETTE["A"], zorder=3)
+    bars_b = ax.bar([i + width / 2 for i in x], [finite(v) for v in b_vals],
+                    width, label="B: tools + fallback", color=PALETTE["B"], zorder=3)
+    for bars, vals in ((bars_a, a_vals), (bars_b, b_vals)):
+        for bar, value in zip(bars, vals):
+            text = "no success" if value == float("inf") else f"${value:.5f}"
+            ax.text(bar.get_x() + bar.get_width() / 2, finite(value), text,
+                    ha="center", va="bottom", fontsize=8)
+    ax.set_xticks(list(x))
+    ax.set_xticklabels(groups, fontsize=9)
     ax.set_ylabel("USD per successful task")
     ax.set_title("Cost per successful task on held-out templates")
+    ax.legend(frameon=False, fontsize=8)
     _style(ax)
     fig.tight_layout()
     out_path.parent.mkdir(parents=True, exist_ok=True)

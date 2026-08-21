@@ -13,7 +13,8 @@ from shadow.distill.induce import trim_episode
 from shadow.distill.provenance import ProvenanceEngine
 from shadow.bench.charts import render_all
 from shadow.bench.metrics import (
-    _direction, compare, endpoint_recall, load_results, score_condition,
+    Comparison, _direction, compare, endpoint_recall, load_results,
+    score_condition,
 )
 
 from oracle.api_surface import classify_endpoint
@@ -129,6 +130,34 @@ def router_behaviour(rows: list[dict[str, Any]]) -> dict[str, Any]:
     return out
 
 
+def cross_model(cfg: Config) -> dict[str, Any]:
+    """The same A/B comparison repeated on another model.
+
+    The absolute cost of a run says as much about the price list as about
+    the tools. The ratio between conditions is the part that should survive
+    a change of model, so it is measured on a second one rather than argued.
+    """
+    out: dict[str, Any] = {}
+    for path in sorted(cfg.path("artifacts").glob("results_model_*.jsonl")):
+        rows = load_results(path)
+        if not rows:
+            continue
+        model = path.stem[len("results_model_"):]
+        a = score_condition(rows, "A_browser", cfg)
+        b = score_condition(rows, "B_tools", cfg)
+        pair = Comparison(a=a, b=b)
+        out[model] = {
+            "source": path.name,
+            "simulated_policy": a.simulated_policy or b.simulated_policy,
+            "A_browser": a.to_dict(), "B_tools": b.to_dict(),
+            "cost_ratio_per_successful_task": round(pair.cost_ratio, 3),
+            "cost_ratio_per_successful_task_uncached": round(
+                pair.cost_ratio_uncached, 3),
+            "p95_latency_ratio": round(pair.p95_ratio, 3),
+        }
+    return out
+
+
 def build_report(cfg: Config | None = None) -> dict[str, Any]:
     cfg = cfg or get_config()
     rows = load_results(cfg.path("results"))
@@ -175,6 +204,12 @@ def build_report(cfg: Config | None = None) -> dict[str, Any]:
     attain = cfg.path("artifacts") / "attainable_coverage.json"
     if attain.exists():
         report["attainable_coverage"] = json.loads(attain.read_text())
+    collateral = cfg.path("artifacts") / "collateral_writes.json"
+    if collateral.exists():
+        report["collateral_writes"] = json.loads(collateral.read_text())
+    models = cross_model(cfg)
+    if models:
+        report["cross_model"] = models
     return report
 
 
@@ -330,6 +365,51 @@ def markdown_tables(report: dict[str, Any]) -> str:
                   "| template | attainable |", "| --- | --- |"]
         for name, rate in attain.get("by_template", {}).items():
             lines.append(f"| {name} | {rate:.0%} |")
+
+    models = report.get("cross_model") or {}
+    if models:
+        lines += ["", "### The same comparison on a second model", "",
+                  "Absolute cost tracks the price list. The ratio between the "
+                  "two conditions is the claim, so it is repeated on a cheaper "
+                  "model rather than assumed to carry.", "",
+                  "| model | A success | B success | A $/success | B $/success | "
+                  "ratio (as billed) | ratio (cache at full rate) | B task coverage |",
+                  "| --- | --- | --- | --- | --- | --- | --- | --- |"]
+        for name, entry in models.items():
+            ma, mb = entry["A_browser"], entry["B_tools"]
+            tag = " *(simulated)*" if entry["simulated_policy"] else ""
+            lines.append(
+                f"| `{name}`{tag} | {ma['success_rate']:.0%} | "
+                f"{mb['success_rate']:.0%} | "
+                f"${ma['usd_per_successful_task']:.5f} | "
+                f"${mb['usd_per_successful_task']:.5f} | "
+                f"{_direction(entry['cost_ratio_per_successful_task'], 'cheaper', 'more expensive')} | "
+                f"{_direction(entry['cost_ratio_per_successful_task_uncached'], 'cheaper', 'more expensive')} | "
+                f"{mb['task_coverage']:.0%} |")
+
+    collateral = report.get("collateral_writes")
+    if collateral:
+        lines += ["", "### Collateral writes with the write tools exposed", "",
+                  "The oracle checks a post-condition, so it is blind to "
+                  "anything else a run touched. This diffs record counts "
+                  "across every watched type around each run, so a tool that "
+                  "created something nobody asked for is measured rather than "
+                  "assumed absent.", "",
+                  f"Model `{collateral.get('model', '?')}` "
+                  f"({collateral.get('provider', '?')}): "
+                  f"**{collateral['runs_with_collateral']}/{collateral['runs']}** "
+                  f"runs wrote a record outside what the task entitled them "
+                  f"to; **{collateral['passes_with_collateral']}** of those "
+                  f"{'was' if collateral['passes_with_collateral'] == 1 else 'were'} "
+                  f"still scored as a pass.", "",
+                  "| task | scored | tools called | unintended records |",
+                  "| --- | --- | --- | --- |"]
+        for entry in collateral.get("results", []):
+            tools = ", ".join(f"`{t}`" for t in entry["tools_called"]) or "—"
+            extra = ", ".join(f"{k} +{v}" for k, v in entry["collateral"].items())
+            lines.append(f"| {entry['task_id']} | "
+                         f"{'pass' if entry['success'] else 'fail'} | {tools} | "
+                         f"{extra or 'none'} |")
 
     sweep = report.get("coverage_sweep")
     if sweep:

@@ -125,9 +125,20 @@ def main() -> int:
                     help="one task per condition, for checking a provider cheaply")
     ap.add_argument("--tool-k", type=int, default=None,
                     help="tools retrieved into the prompt (default: config)")
+    ap.add_argument("--model", default=None,
+                    help="agent model id, overriding config. Must have a cost "
+                         "entry or scoring will refuse the run")
     args = ap.parse_args()
 
     cfg = get_config()
+    if args.model:
+        if args.model not in cfg.costs:
+            # Refuse now rather than after the run: metrics.py will not score
+            # a model with no price, and that would waste the whole run.
+            print(f"no cost entry for {args.model!r}; add it to config.yaml "
+                  "costs before running", file=sys.stderr)
+            return 2
+        cfg.models.agent = args.model
     trials = args.trials or cfg.bench.trials
     out_path = Path(args.out) if args.out else cfg.path("results")
     if args.fresh and out_path.exists():

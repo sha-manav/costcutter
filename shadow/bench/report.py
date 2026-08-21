@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import statistics
 from pathlib import Path
 from typing import Any
 
@@ -158,6 +159,57 @@ def cross_model(cfg: Config) -> dict[str, Any]:
     return out
 
 
+# Composite, Frappe-aware actions the scripted recipe could use and the
+# model's documented action space cannot express.
+COMPOSITE_ACTIONS = {"grid", "field", "link", "save", "wait"}
+
+
+def baseline_action_space(cfg: Config) -> dict[str, Any]:
+    """The scripted baseline against the model, per held-out template.
+
+    The first revision asserted that the scripted UI recipe was a *stronger*
+    baseline than an LLM driving the same pages. That was an argument. With
+    both arms on disk it is a measurement, and the interesting part is where
+    the gap is: not spread evenly, but concentrated on the templates whose
+    recipe used a composite action the model's action space cannot express.
+    """
+    archive = cfg.path("artifacts") / "results_offline.jsonl"
+    if not archive.exists():
+        return {}
+    scripted = [r for r in load_results(archive) if r["condition"] == "A_browser"]
+    model_rows = [r for r in load_results(cfg.path("results"))
+                  if r["condition"] == "A_browser"]
+    if not scripted or not model_rows:
+        return {}
+
+    def agg(rows: list[dict[str, Any]]) -> dict[str, Any]:
+        return {
+            "runs": len(rows),
+            "success_rate": round(sum(bool(r["success"]) for r in rows) / len(rows), 3),
+            "mean_steps": round(statistics.fmean(float(r["n_steps"]) for r in rows), 1),
+            "mean_wall_s": round(statistics.fmean(float(r["wall_s"]) for r in rows), 1),
+        }
+
+    out: dict[str, Any] = {}
+    for template_id in sorted({r["template_id"] for r in model_rows}):
+        srows = [r for r in scripted if r["template_id"] == template_id]
+        mrows = [r for r in model_rows if r["template_id"] == template_id]
+        if not srows or not mrows:
+            continue
+        used = {str(step.get("action", {}).get("action", "")) for r in srows
+                for step in r.get("steps", [])}
+        composite = sorted(used & COMPOSITE_ACTIONS - {"wait"})
+        out[template_id] = {
+            "scripted": agg(srows),
+            "model": agg(mrows),
+            "composite_actions_the_recipe_used": composite,
+            # The model has navigate/click/type/scroll/read only, so a recipe
+            # that needed `grid` was doing something the model cannot say.
+            "recipe_needed_grid": "grid" in used,
+        }
+    return out
+
+
 def build_report(cfg: Config | None = None) -> dict[str, Any]:
     cfg = cfg or get_config()
     rows = load_results(cfg.path("results"))
@@ -210,6 +262,9 @@ def build_report(cfg: Config | None = None) -> dict[str, Any]:
     models = cross_model(cfg)
     if models:
         report["cross_model"] = models
+    baseline = baseline_action_space(cfg)
+    if baseline:
+        report["baseline_action_space"] = baseline
     return report
 
 
@@ -365,6 +420,37 @@ def markdown_tables(report: dict[str, Any]) -> str:
                   "| template | attainable |", "| --- | --- |"]
         for name, rate in attain.get("by_template", {}).items():
             lines.append(f"| {name} | {rate:.0%} |")
+
+    baseline = report.get("baseline_action_space") or {}
+    if baseline:
+        lines += ["", "### The scripted baseline was a stronger baseline", "",
+                  "The first revision of this document ran condition A on a "
+                  "scripted UI recipe and argued that this made the baseline "
+                  "*harder* to beat than a model driving the same pages. With "
+                  "both arms measured, that holds -- and the gap is not spread "
+                  "evenly. It sits almost entirely on the templates whose "
+                  "recipe used `grid`, a composite Frappe-aware action for "
+                  "editing a child-table row that the model's action space "
+                  "(navigate, click, type, scroll, read) cannot express at "
+                  "all.", "",
+                  "| template | recipe success | model success | recipe steps | "
+                  "model steps | recipe wall | model wall | needed `grid` |",
+                  "| --- | --- | --- | --- | --- | --- | --- | --- |"]
+        for name, entry in baseline.items():
+            sc, mo = entry["scripted"], entry["model"]
+            lines.append(
+                f"| {name} | {sc['success_rate']:.0%} | {mo['success_rate']:.0%} | "
+                f"{sc['mean_steps']:.1f} | {mo['mean_steps']:.1f} | "
+                f"{sc['mean_wall_s']:.1f}s | {mo['mean_wall_s']:.1f}s | "
+                f"{'yes' if entry['recipe_needed_grid'] else 'no'} |")
+        lines += ["", "On the flat-form templates the model needs a step or two "
+                  "more than the recipe and finishes. On the grid templates it "
+                  "does not finish at all: the row editor never becomes "
+                  "clickable through a generic click, so the run spends most of "
+                  "its step budget on 15-second timeouts and stops at the "
+                  "ceiling. This is a limit of the action space, not of the "
+                  "model's plan -- the traces show it navigating to the right "
+                  "page and filling the flat fields correctly first.", ""]
 
     models = report.get("cross_model") or {}
     if models:

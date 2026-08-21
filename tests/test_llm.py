@@ -246,3 +246,22 @@ def test_cost_can_be_repriced_without_the_cache_discount():
     assert usd(cfg, usage) == pytest.approx(price.cached_input)
     assert usd(cfg, usage, price_cache_at_full=True) == pytest.approx(price.input)
     assert price.cached_input < price.input
+
+
+def test_both_cost_rows_reach_the_scored_condition():
+    """The report has to be able to state the comparison both ways, so the
+    scorer carries the repriced total alongside the billed one."""
+    from shadow.bench.metrics import score_condition
+
+    cfg = get_config()
+    rows = [{
+        "condition": "B_tools", "task_id": "T#0", "template_id": "T",
+        "success": True, "wall_s": 1.0, "n_steps": 1, "steps": [],
+        "usage": {"model": "claude-sonnet-5", "input_tokens": 100,
+                  "cached_input_tokens": 10_000, "cache_write_tokens": 0,
+                  "output_tokens": 10},
+    }]
+    m = score_condition(rows, "B_tools", cfg)
+    assert m.cached_input_tokens == 10_000
+    # Repricing cache reads upward can only ever cost more, never less.
+    assert m.usd_per_successful_task_uncached > m.usd_per_successful_task

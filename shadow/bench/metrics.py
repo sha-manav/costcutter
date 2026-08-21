@@ -86,6 +86,16 @@ class ConditionMetrics:
     usd_per_task: float = 0.0
     usd_per_successful_task: float = 0.0
     total_usd: float = 0.0
+    # The same runs priced with cache reads billed at the full input rate.
+    # Caching is not neutral between the conditions, so the comparison is
+    # reported both ways instead of banking the discount silently.
+    usd_per_task_uncached: float = 0.0
+    usd_per_successful_task_uncached: float = 0.0
+    total_usd_uncached: float = 0.0
+    input_tokens: int = 0
+    cached_input_tokens: int = 0
+    cache_write_tokens: int = 0
+    output_tokens: int = 0
     p50_latency_s: float = 0.0
     p95_latency_s: float = 0.0
     mean_steps: float = 0.0
@@ -104,7 +114,9 @@ class ConditionMetrics:
         d = dict(self.__dict__)
         for key in ("success_rate", "pass_hat_k", "coverage", "task_coverage"):
             d[key] = round(d[key], 4)
-        for key in ("usd_per_task", "usd_per_successful_task", "total_usd"):
+        for key in ("usd_per_task", "usd_per_successful_task", "total_usd",
+                    "usd_per_task_uncached", "usd_per_successful_task_uncached",
+                    "total_usd_uncached"):
             d[key] = round(d[key], 6)
         for key in ("p50_latency_s", "p95_latency_s", "mean_steps"):
             d[key] = round(d[key], 3)
@@ -139,11 +151,20 @@ def score_condition(rows: list[dict[str, Any]], condition: str,
     costs = [usd(cfg, r["usage"]) for r in rows]
     m.total_usd = sum(costs)
     m.usd_per_task = m.total_usd / len(rows)
-    successful_cost = sum(c for c, ok in zip(costs, successes))
     n_success = sum(successes)
     # Reported per SUCCESSFUL task: the cost of failed attempts still counts,
     # otherwise a condition can look cheap by failing fast.
     m.usd_per_successful_task = (m.total_usd / n_success) if n_success else float("inf")
+
+    uncached = [usd(cfg, r["usage"], price_cache_at_full=True) for r in rows]
+    m.total_usd_uncached = sum(uncached)
+    m.usd_per_task_uncached = m.total_usd_uncached / len(rows)
+    m.usd_per_successful_task_uncached = (
+        (m.total_usd_uncached / n_success) if n_success else float("inf"))
+
+    for key in ("input_tokens", "cached_input_tokens", "cache_write_tokens",
+                "output_tokens"):
+        setattr(m, key, sum(int(r["usage"].get(key, 0) or 0) for r in rows))
 
     latencies = [float(r["wall_s"]) for r in rows]
     m.p50_latency_s = _pct(latencies, 0.50)
@@ -199,6 +220,14 @@ class Comparison:
         return self.a.usd_per_successful_task / self.b.usd_per_successful_task
 
     @property
+    def cost_ratio_uncached(self) -> float:
+        """Cost ratio with cache reads repriced at the full input rate."""
+        if self.b.usd_per_successful_task_uncached in (0, float("inf")):
+            return float("inf")
+        return (self.a.usd_per_successful_task_uncached
+                / self.b.usd_per_successful_task_uncached)
+
+    @property
     def p95_ratio(self) -> float:
         return (self.a.p95_latency_s / self.b.p95_latency_s
                 if self.b.p95_latency_s else float("inf"))
@@ -220,7 +249,9 @@ class Comparison:
             f"steps {self.b.mean_steps:.1f}\n"
             f"coverage: {self.b.coverage:.0%} of actions served by synthesized "
             f"tools; {self.b.task_coverage:.0%} of tasks finished on tools alone\n"
-            f"cost per successful task: {_direction(self.cost_ratio, 'cheaper', 'more expensive')}\n"
+            f"cost per successful task: {_direction(self.cost_ratio, 'cheaper', 'more expensive')}"
+            f"  (cache repriced at full input rate: "
+            f"{_direction(self.cost_ratio_uncached, 'cheaper', 'more expensive')})\n"
             f"p95 latency: {_direction(self.p95_ratio, 'faster', 'slower')}")
 
 

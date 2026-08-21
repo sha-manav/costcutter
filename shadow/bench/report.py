@@ -143,6 +143,8 @@ def build_report(cfg: Config | None = None) -> dict[str, Any]:
             "coverage_on_eval": round(comparison.b.coverage, 4),
             "task_coverage_on_eval": round(comparison.b.task_coverage, 4),
             "cost_ratio_per_successful_task": round(comparison.cost_ratio, 3),
+            "cost_ratio_per_successful_task_uncached": round(
+                comparison.cost_ratio_uncached, 3),
             "p50_latency_ratio": round(comparison.p50_ratio, 3),
             "p95_latency_ratio": round(comparison.p95_ratio, 3),
             "success_a": round(comparison.a.success_rate, 4),
@@ -197,6 +199,8 @@ def markdown_tables(report: dict[str, Any]) -> str:
         row("pass^k across trials", "pass_hat_k", "{:.0%}"),
         row("USD per attempted task", "usd_per_task", "${:.5f}"),
         row("USD per successful task", "usd_per_successful_task", "${:.5f}"),
+        row("USD per successful task, cache at full rate",
+            "usd_per_successful_task_uncached", "${:.5f}"),
         row("p50 latency (s)", "p50_latency_s", "{:.1f}"),
         row("p95 latency (s)", "p95_latency_s", "{:.1f}"),
         row("mean steps", "mean_steps", "{:.1f}"),
@@ -204,8 +208,26 @@ def markdown_tables(report: dict[str, Any]) -> str:
         row("tasks finished on tools alone", "task_coverage", "{:.0%}"),
         f"| tool calls that failed | {a['failed_tool_actions']} | "
         f"{b['failed_tool_actions']} |",
+        f"| input tokens (uncached) | {a['input_tokens']:,} | "
+        f"{b['input_tokens']:,} |",
+        f"| input tokens read from cache | {a['cached_input_tokens']:,} | "
+        f"{b['cached_input_tokens']:,} |",
+        f"| tokens written to cache | {a['cache_write_tokens']:,} | "
+        f"{b['cache_write_tokens']:,} |",
+        f"| output tokens | {a['output_tokens']:,} | {b['output_tokens']:,} |",
         "",
-        f"Cost per successful task: **{_direction(head['cost_ratio_per_successful_task'], 'cheaper', 'more expensive')}**. "
+        "Cost is reported twice. Prompt caching is not neutral between these "
+        "two conditions: the tool agent's prefix is fixed and cacheable, while "
+        "the browser agent re-sends a page snapshot that changes every step "
+        "and cannot be cached. The discount therefore flows to condition B by "
+        "construction, so the second row reprices cache reads at the full "
+        "input rate to show the comparison without it. Cache writes are billed "
+        "at 1.25x the input rate in both rows.",
+        "",
+        f"Cost per successful task: **{_direction(head['cost_ratio_per_successful_task'], 'cheaper', 'more expensive')}** "
+        f"with caching priced as billed, "
+        f"**{_direction(head['cost_ratio_per_successful_task_uncached'], 'cheaper', 'more expensive')}** "
+        f"with cache reads repriced at the full input rate. "
         f"p95 latency: **{_direction(head['p95_latency_ratio'], 'faster', 'slower')}**. "
         f"p50 latency: **{_direction(head['p50_latency_ratio'], 'faster', 'slower')}**.",
         "",

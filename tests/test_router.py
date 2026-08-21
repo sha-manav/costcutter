@@ -171,3 +171,36 @@ def test_the_browser_fallback_runs_at_most_once_per_task(monkeypatch):
     # is not hidden -- only the cost of re-driving the browser is avoided.
     served = [s.served_by for s in result.steps]
     assert served.count("browser_fallback") == cfg.bench.max_steps
+
+
+def test_displacement_ignores_templates_the_browser_also_fails():
+    """Displacement is about a tool crowding out a *capable* fallback.
+
+    On a template the browser cannot complete either, a failed tool call
+    displaced nothing -- counting it would inflate the rate with runs that
+    were never winnable and make the metric useless for deciding whether to
+    ship a tool.
+    """
+    from shadow.bench.metrics import displacement
+
+    def row(template, ok, used_tool):
+        steps = [{"action": {"action": "tool" if used_tool else "click"},
+                  "served_by": "tool" if used_tool else "browser"}]
+        return {"template_id": template, "success": ok, "steps": steps}
+
+    rows = [row("winnable", False, True), row("winnable", True, True),
+            row("dead", False, True), row("dead", False, True)]
+    d = displacement(rows, {"winnable": 1.0, "dead": 0.0})
+    assert "dead" not in d["by_template"]
+    assert d["by_template"]["winnable"]["displaced"] == 1
+    assert d["runs"] == 2
+
+
+def test_a_failure_with_no_tool_call_is_not_displacement():
+    """If no tool was selected, nothing crowded anything out."""
+    from shadow.bench.metrics import displacement
+
+    rows = [{"template_id": "t", "success": False,
+             "steps": [{"action": {"action": "browser_task"},
+                        "served_by": "browser_fallback"}]}]
+    assert displacement(rows, {"t": 1.0})["displaced"] == 0

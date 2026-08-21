@@ -84,6 +84,43 @@ def _pct(values: list[float], q: float) -> float:
     return ordered[idx]
 
 
+def displacement(rows: list[dict[str, Any]],
+                 baseline: dict[str, float]) -> dict[str, Any]:
+    """Runs a tool path lost that the browser alone completes.
+
+    A named failure mode of tool synthesis: a plausible-looking tool crowds
+    out a capable fallback. The agent selects a synthesized tool, the tool
+    does not satisfy the goal, and the run then fails -- on a template the
+    browser-only condition passes. The cost is not the wasted call, it is
+    the capability that was displaced.
+
+    `baseline` maps template_id to the browser-only success rate, so a
+    template both conditions fail cannot be counted: nothing was displaced
+    there.
+    """
+    out: dict[str, Any] = {"runs": 0, "displaced": 0, "by_template": {}}
+    for template_id in sorted({r["template_id"] for r in rows}):
+        # Only templates the browser reliably completes can be displaced.
+        if baseline.get(template_id, 0.0) < 1.0:
+            continue
+        trows = [r for r in rows if r["template_id"] == template_id]
+        hits = [r for r in trows
+                if not r["success"] and any(
+                    str(step.get("action", {}).get("action", "")) == "tool"
+                    for step in _acting_steps(r))]
+        out["runs"] += len(trows)
+        out["displaced"] += len(hits)
+        if trows:
+            out["by_template"][template_id] = {
+                "runs": len(trows),
+                "displaced": len(hits),
+                "rate": round(len(hits) / len(trows), 3),
+                "baseline_success": baseline[template_id],
+            }
+    out["rate"] = round(out["displaced"] / out["runs"], 4) if out["runs"] else 0.0
+    return out
+
+
 @dataclass
 class ConditionMetrics:
     condition: str

@@ -14,8 +14,8 @@ from shadow.distill.induce import trim_episode
 from shadow.distill.provenance import ProvenanceEngine
 from shadow.bench.charts import render_all
 from shadow.bench.metrics import (
-    Comparison, _direction, compare, endpoint_recall, load_results,
-    score_condition,
+    Comparison, _direction, compare, displacement, endpoint_recall,
+    load_results, score_condition,
 )
 
 from oracle.api_surface import classify_endpoint
@@ -238,6 +238,9 @@ def build_report(cfg: Config | None = None) -> dict[str, Any]:
             "verified_tools": sum(1 for t in catalog.tools if t.verified),
             "tools_with_support_3_plus": sum(1 for t in catalog.tools if t.support >= 3),
         },
+        "displacement": displacement(
+            [r for r in rows if r["condition"] == "B_tools"],
+            {t: v["success_rate"] for t, v in comparison.a.per_template.items()}),
         "synthesis_ground_truth": synthesis_ground_truth(cfg),
         "router_behaviour": router_behaviour(rows),
     }
@@ -420,6 +423,26 @@ def markdown_tables(report: dict[str, Any]) -> str:
                   "| template | attainable |", "| --- | --- |"]
         for name, rate in attain.get("by_template", {}).items():
             lines.append(f"| {name} | {rate:.0%} |")
+
+    disp = report.get("displacement") or {}
+    if disp.get("by_template"):
+        lines += ["", "### Displacement", "",
+                  "A named failure mode of tool synthesis: a plausible-looking "
+                  "tool crowds out a capable fallback. The agent selects a "
+                  "synthesized tool, the tool does not satisfy the goal, and "
+                  "the run fails -- on a template the browser alone completes. "
+                  "The cost is not the wasted call, it is the capability that "
+                  "was displaced. Templates the browser cannot complete are "
+                  "excluded: nothing was displaced there.", "",
+                  f"**{disp['displaced']}/{disp['runs']} runs "
+                  f"({disp['rate']:.0%})** on browser-completable templates "
+                  f"were lost this way.", "",
+                  "| template | browser-only success | runs | displaced | rate |",
+                  "| --- | --- | --- | --- | --- |"]
+        for name, entry in disp["by_template"].items():
+            lines.append(
+                f"| {name} | {entry['baseline_success']:.0%} | {entry['runs']} | "
+                f"{entry['displaced']} | {entry['rate']:.0%} |")
 
     baseline = report.get("baseline_action_space") or {}
     if baseline:

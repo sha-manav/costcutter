@@ -1,12 +1,34 @@
 [
   {
     "session": 0,
-    "template_id": "T07_items_below_price",
+    "template_id": "T19_create_supplier_group",
     "params": {
-      "max_rate": 300
+      "supplier_group_name": "Castings 000"
     },
-    "ts_start": 1787250658.725111,
-    "ts_end": 1787250663.4064136,
+    "ts_start": 1787269332.6751373,
+    "ts_end": 1787269348.4805937,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 0,
+    "template_id": "T05_item_price",
+    "params": {
+      "item_code": "SH-BELT-01"
+    },
+    "ts_start": 1787269359.4808428,
+    "ts_end": 1787269363.083918,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 0,
+    "template_id": "T18_create_item_group",
+    "params": {
+      "item_group_name": "Enclosures 002"
+    },
+    "ts_start": 1787269374.0841835,
+    "ts_end": 1787269390.2235978,
     "ok": true,
     "error": null
   },
@@ -14,21 +36,44 @@
     "session": 0,
     "template_id": "T01_customer_outstanding",
     "params": {
-      "customer": "Borealis Freight"
+      "customer": "Acme Industrial"
     },
-    "ts_start": 1787250674.4068031,
-    "ts_end": 1787250679.0129678,
+    "ts_start": 1787269401.2238622,
+    "ts_end": 1787269406.0353727,
     "ok": true,
     "error": null
   },
   {
     "session": 0,
-    "template_id": "T08_create_customer",
+    "template_id": "T19_create_supplier_group",
     "params": {
-      "customer_name": "Anvil Machining 002"
+      "supplier_group_name": "Tooling 004"
     },
-    "ts_start": 1787250690.0132813,
-    "ts_end": 1787250714.8035765,
+    "ts_start": 1787269417.0357354,
+    "ts_end": 1787269432.6023011,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 0,
+    "template_id": "T11_update_item_price",
+    "params": {
+      "item_code": "SH-GEAR-02",
+      "new_rate": 151.5
+    },
+    "ts_start": 1787269443.6024992,
+    "ts_end": 1787269452.7705936,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 0,
+    "template_id": "T07_items_below_price",
+    "params": {
+      "max_rate": 50
+    },
+    "ts_start": 1787269463.77085,
+    "ts_end": 1787269467.788757,
     "ok": true,
     "error": null
   },
@@ -36,10 +81,178 @@
     "session": 0,
     "template_id": "T04_customer_open_orders",
     "params": {
-      "customer": "Acme Industrial"
+      "customer": "Juniper Analytics"
     },
-    "ts_start": 1787250725.8039074,
-    "ts_end": 1787250730.1073678,
+    "ts_start": 1787269478.7890391,
+    "ts_end": 1787269482.7360332,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 0,
+    "template_id": "T11_update_item_price",
+    "params": {
+      "item_code": "SH-SENSOR-02",
+      "new_rate": 333.0
+    },
+    "ts_start": 1787269493.7362723,
+    "ts_end": 1787269502.9649155,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 0,
+    "template_id": "T13_update_customer_group",
+    "params": {
+      "customer": "Lumen Optics",
+      "customer_group": "Individual"
+    },
+    "ts_start": 1787269513.9651725,
+    "ts_end": 1787269529.9326212,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 0,
+    "template_id": "T07_items_below_price",
+    "params": {
+      "max_rate": 150
+    },
+    "ts_start": 1787269540.9328363,
+    "ts_end": 1787269545.5230024,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 0,
+    "template_id": "T04_customer_open_orders",
+    "params": {
+      "customer": "Delta Mining Co"
+    },
+    "ts_start": 1787269556.5232599,
+    "ts_end": 1787269560.133395,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 0,
+    "template_id": "T02_overdue_invoices",
+    "params": {},
+    "ts_start": 1787269571.1335883,
+    "ts_end": 1787269574.7256057,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 0,
+    "template_id": "T01_customer_outstanding",
+    "params": {
+      "customer": "Cobalt Robotics"
+    },
+    "ts_start": 1787269585.7258043,
+    "ts_end": 1787269589.2856715,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 0,
+    "template_id": "T13_update_customer_group",
+    "params": {
+      "customer": "Kestrel Aviation",
+      "customer_group": "Commercial"
+    },
+    "ts_start": 1787269600.2859344,
+    "ts_end": 1787269616.3443549,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 0,
+    "template_id": "T08_create_customer",
+    "params": {
+      "customer_name": "Willow Ceramics 015"
+    },
+    "ts_start": 1787269627.3445907,
+    "ts_end": 1787269651.8144784,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 0,
+    "template_id": "T05_item_price",
+    "params": {
+      "item_code": "SH-GEAR-01"
+    },
+    "ts_start": 1787269662.8147,
+    "ts_end": 1787269666.8537211,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 0,
+    "template_id": "T20_create_territory",
+    "params": {
+      "territory_name": "Great Lakes 017"
+    },
+    "ts_start": 1787269677.8541203,
+    "ts_end": 1787269693.4028199,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 0,
+    "template_id": "T18_create_item_group",
+    "params": {
+      "item_group_name": "Sensors 018"
+    },
+    "ts_start": 1787269704.4030733,
+    "ts_end": 1787269719.8718584,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 0,
+    "template_id": "T16_create_lead",
+    "params": {
+      "company_name": "Vellum Press 019",
+      "first_name": "Dana"
+    },
+    "ts_start": 1787269730.8720896,
+    "ts_end": 1787269738.0650628,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 0,
+    "template_id": "T16_create_lead",
+    "params": {
+      "company_name": "Quartz Analytics 020",
+      "first_name": "Sofia"
+    },
+    "ts_start": 1787269749.0653315,
+    "ts_end": 1787269756.8277066,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 0,
+    "template_id": "T20_create_territory",
+    "params": {
+      "territory_name": "Great Lakes 021"
+    },
+    "ts_start": 1787269767.8279257,
+    "ts_end": 1787269783.388361,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 0,
+    "template_id": "T08_create_customer",
+    "params": {
+      "customer_name": "Willow Ceramics 022"
+    },
+    "ts_start": 1787269794.3886087,
+    "ts_end": 1787269818.79987,
     "ok": true,
     "error": null
   },
@@ -49,43 +262,51 @@
     "params": {
       "customer": "Ironwood Timber"
     },
-    "ts_start": 1787250741.1076303,
-    "ts_end": 1787250744.7488418,
+    "ts_start": 1787269829.8001494,
+    "ts_end": 1787269833.4309492,
     "ok": true,
     "error": null
   },
   {
     "session": 0,
-    "template_id": "T05_item_price",
+    "template_id": "T18_create_item_group",
     "params": {
-      "item_code": "SH-GEAR-01"
+      "item_group_name": "Fasteners 024"
     },
-    "ts_start": 1787250755.749088,
-    "ts_end": 1787250759.3458734,
+    "ts_start": 1787269844.431215,
+    "ts_end": 1787269859.9059033,
     "ok": true,
     "error": null
   },
   {
     "session": 0,
-    "template_id": "T13_update_customer_group",
-    "params": {
-      "customer": "Ironwood Timber",
-      "customer_group": "Commercial"
-    },
-    "ts_start": 1787250770.346191,
-    "ts_end": 1787250786.5085385,
+    "template_id": "T02_overdue_invoices",
+    "params": {},
+    "ts_start": 1787269870.9061341,
+    "ts_end": 1787269874.9813273,
     "ok": true,
     "error": null
   },
   {
     "session": 0,
-    "template_id": "T13_update_customer_group",
+    "template_id": "T20_create_territory",
     "params": {
-      "customer": "Ironwood Timber",
-      "customer_group": "Individual"
+      "territory_name": "Cascadia 026"
     },
-    "ts_start": 1787250797.5087335,
-    "ts_end": 1787250813.2211835,
+    "ts_start": 1787269885.9816844,
+    "ts_end": 1787269901.4038892,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 0,
+    "template_id": "T16_create_lead",
+    "params": {
+      "company_name": "Pinewood Freight 027",
+      "first_name": "Sofia"
+    },
+    "ts_start": 1787269912.4041364,
+    "ts_end": 1787269919.6545079,
     "ok": true,
     "error": null
   },
@@ -95,8 +316,8 @@
     "params": {
       "item_code": "SH-MOTOR-01"
     },
-    "ts_start": 1787250824.2214508,
-    "ts_end": 1787250828.3423367,
+    "ts_start": 1787269930.6547582,
+    "ts_end": 1787269934.1696858,
     "ok": true,
     "error": null
   },
@@ -104,19 +325,53 @@
     "session": 0,
     "template_id": "T02_overdue_invoices",
     "params": {},
-    "ts_start": 1787250839.3425815,
-    "ts_end": 1787250842.9604998,
+    "ts_start": 1787269945.1699088,
+    "ts_end": 1787269948.751748,
     "ok": true,
     "error": null
   },
   {
     "session": 0,
-    "template_id": "T01_customer_outstanding",
+    "template_id": "T19_create_supplier_group",
     "params": {
-      "customer": "Fjord Marine"
+      "supplier_group_name": "Tooling 030"
     },
-    "ts_start": 1787250853.960739,
-    "ts_end": 1787250857.6414735,
+    "ts_start": 1787269959.7519774,
+    "ts_end": 1787269975.2977943,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 0,
+    "template_id": "T07_items_below_price",
+    "params": {
+      "max_rate": 200
+    },
+    "ts_start": 1787269986.2980728,
+    "ts_end": 1787269990.8712554,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 0,
+    "template_id": "T13_update_customer_group",
+    "params": {
+      "customer": "Juniper Analytics",
+      "customer_group": "Individual"
+    },
+    "ts_start": 1787270001.871457,
+    "ts_end": 1787270017.9776597,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 0,
+    "template_id": "T17_create_warehouse",
+    "params": {
+      "warehouse_name": "Yard Two 033"
+    },
+    "ts_start": 1787270028.9779634,
+    "ts_end": 1787270035.7065265,
     "ok": true,
     "error": null
   },
@@ -125,382 +380,102 @@
     "template_id": "T11_update_item_price",
     "params": {
       "item_code": "SH-GEAR-02",
-      "new_rate": 24.1
-    },
-    "ts_start": 1787250868.6416912,
-    "ts_end": 1787250877.8925064,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 0,
-    "template_id": "T02_overdue_invoices",
-    "params": {},
-    "ts_start": 1787250888.8928056,
-    "ts_end": 1787250892.9643786,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 0,
-    "template_id": "T11_update_item_price",
-    "params": {
-      "item_code": "SH-SENSOR-02",
-      "new_rate": 71.25
-    },
-    "ts_start": 1787250903.9646256,
-    "ts_end": 1787250913.2736979,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 0,
-    "template_id": "T02_overdue_invoices",
-    "params": {},
-    "ts_start": 1787250924.2738783,
-    "ts_end": 1787250927.8406205,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 0,
-    "template_id": "T11_update_item_price",
-    "params": {
-      "item_code": "SH-CABLE-01",
-      "new_rate": 71.25
-    },
-    "ts_start": 1787250938.840814,
-    "ts_end": 1787250948.0507698,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 0,
-    "template_id": "T05_item_price",
-    "params": {
-      "item_code": "SH-GEAR-01"
-    },
-    "ts_start": 1787250959.0509772,
-    "ts_end": 1787250963.0305984,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 0,
-    "template_id": "T13_update_customer_group",
-    "params": {
-      "customer": "Fjord Marine",
-      "customer_group": "Commercial"
-    },
-    "ts_start": 1787250974.030815,
-    "ts_end": 1787250989.687972,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 0,
-    "template_id": "T08_create_customer",
-    "params": {
-      "customer_name": "Vantage Rail 018"
-    },
-    "ts_start": 1787251000.6882434,
-    "ts_end": 1787251025.871625,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 0,
-    "template_id": "T08_create_customer",
-    "params": {
-      "customer_name": "Emberline Foods 019"
-    },
-    "ts_start": 1787251036.8720143,
-    "ts_end": 1787251061.743936,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 0,
-    "template_id": "T04_customer_open_orders",
-    "params": {
-      "customer": "Acme Industrial"
-    },
-    "ts_start": 1787251072.744191,
-    "ts_end": 1787251076.7734706,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 0,
-    "template_id": "T01_customer_outstanding",
-    "params": {
-      "customer": "Halcyon Media"
-    },
-    "ts_start": 1787251087.7737238,
-    "ts_end": 1787251091.414081,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 0,
-    "template_id": "T07_items_below_price",
-    "params": {
-      "max_rate": 50
-    },
-    "ts_start": 1787251102.4142907,
-    "ts_end": 1787251106.444415,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 0,
-    "template_id": "T07_items_below_price",
-    "params": {
-      "max_rate": 300
-    },
-    "ts_start": 1787251117.444673,
-    "ts_end": 1787251121.5056179,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 1,
-    "template_id": "T05_item_price",
-    "params": {
-      "item_code": "SH-SENSOR-01"
-    },
-    "ts_start": 1787251132.5059755,
-    "ts_end": 1787251136.445804,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 1,
-    "template_id": "T11_update_item_price",
-    "params": {
-      "item_code": "SH-CABLE-01",
-      "new_rate": 24.1
-    },
-    "ts_start": 1787251147.4460807,
-    "ts_end": 1787251156.835191,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 1,
-    "template_id": "T02_overdue_invoices",
-    "params": {},
-    "ts_start": 1787251167.835487,
-    "ts_end": 1787251171.6087897,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 1,
-    "template_id": "T13_update_customer_group",
-    "params": {
-      "customer": "Halcyon Media",
-      "customer_group": "Commercial"
-    },
-    "ts_start": 1787251182.609114,
-    "ts_end": 1787251198.2889807,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 1,
-    "template_id": "T13_update_customer_group",
-    "params": {
-      "customer": "Juniper Analytics",
-      "customer_group": "Individual"
-    },
-    "ts_start": 1787251209.289291,
-    "ts_end": 1787251224.9211168,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 1,
-    "template_id": "T01_customer_outstanding",
-    "params": {
-      "customer": "Granite Construction"
-    },
-    "ts_start": 1787251235.9213896,
-    "ts_end": 1787251239.6740472,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 1,
-    "template_id": "T07_items_below_price",
-    "params": {
-      "max_rate": 200
-    },
-    "ts_start": 1787251250.674341,
-    "ts_end": 1787251254.8054318,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 1,
-    "template_id": "T05_item_price",
-    "params": {
-      "item_code": "SH-MOTOR-01"
-    },
-    "ts_start": 1787251265.8057268,
-    "ts_end": 1787251269.451293,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 1,
-    "template_id": "T08_create_customer",
-    "params": {
-      "customer_name": "Yarrow Textiles 032"
-    },
-    "ts_start": 1787251280.4515483,
-    "ts_end": 1787251304.9728768,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 1,
-    "template_id": "T07_items_below_price",
-    "params": {
-      "max_rate": 200
-    },
-    "ts_start": 1787251315.9731119,
-    "ts_end": 1787251320.0126398,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 1,
-    "template_id": "T08_create_customer",
-    "params": {
-      "customer_name": "Xenon Displays 034"
-    },
-    "ts_start": 1787251331.0128834,
-    "ts_end": 1787251355.5640812,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 1,
-    "template_id": "T04_customer_open_orders",
-    "params": {
-      "customer": "Delta Mining Co"
-    },
-    "ts_start": 1787251366.5644104,
-    "ts_end": 1787251370.8087752,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 1,
-    "template_id": "T02_overdue_invoices",
-    "params": {},
-    "ts_start": 1787251381.8090603,
-    "ts_end": 1787251385.4547014,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 1,
-    "template_id": "T08_create_customer",
-    "params": {
-      "customer_name": "Xenon Displays 037"
-    },
-    "ts_start": 1787251396.4550445,
-    "ts_end": 1787251421.075122,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 1,
-    "template_id": "T01_customer_outstanding",
-    "params": {
-      "customer": "Acme Industrial"
-    },
-    "ts_start": 1787251432.0753024,
-    "ts_end": 1787251435.87818,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 1,
-    "template_id": "T07_items_below_price",
-    "params": {
-      "max_rate": 150
-    },
-    "ts_start": 1787251446.8785346,
-    "ts_end": 1787251451.0240877,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 1,
-    "template_id": "T02_overdue_invoices",
-    "params": {},
-    "ts_start": 1787251462.0244212,
-    "ts_end": 1787251466.009294,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 1,
-    "template_id": "T11_update_item_price",
-    "params": {
-      "item_code": "SH-PANEL-01",
       "new_rate": 151.5
     },
-    "ts_start": 1787251477.0095007,
-    "ts_end": 1787251486.398984,
+    "ts_start": 1787270046.706747,
+    "ts_end": 1787270055.8818913,
     "ok": true,
     "error": null
   },
   {
-    "session": 1,
-    "template_id": "T04_customer_open_orders",
+    "session": 0,
+    "template_id": "T15_create_contact",
     "params": {
-      "customer": "Acme Industrial"
+      "first_name": "Rosa",
+      "last_name": "Lindqvist 035"
     },
-    "ts_start": 1787251497.3992403,
-    "ts_end": 1787251501.1146514,
+    "ts_start": 1787270066.882145,
+    "ts_end": 1787270073.983579,
     "ok": true,
     "error": null
   },
   {
-    "session": 1,
-    "template_id": "T11_update_item_price",
+    "session": 0,
+    "template_id": "T17_create_warehouse",
     "params": {
-      "item_code": "SH-BEARING-02",
-      "new_rate": 71.25
+      "warehouse_name": "Transit Dock 036"
     },
-    "ts_start": 1787251512.1149607,
-    "ts_end": 1787251521.973414,
+    "ts_start": 1787270084.9838557,
+    "ts_end": 1787270091.6661918,
     "ok": true,
     "error": null
   },
   {
-    "session": 1,
-    "template_id": "T04_customer_open_orders",
+    "session": 0,
+    "template_id": "T17_create_warehouse",
     "params": {
-      "customer": "Juniper Analytics"
+      "warehouse_name": "Cold Store 037"
     },
-    "ts_start": 1787251532.9736621,
-    "ts_end": 1787251536.657127,
+    "ts_start": 1787270102.6664267,
+    "ts_end": 1787270109.4066727,
     "ok": true,
     "error": null
   },
   {
-    "session": 1,
+    "session": 0,
+    "template_id": "T08_create_customer",
+    "params": {
+      "customer_name": "Yarrow Textiles 038"
+    },
+    "ts_start": 1787270120.4068863,
+    "ts_end": 1787270144.795386,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 0,
     "template_id": "T01_customer_outstanding",
     "params": {
       "customer": "Everest Outfitters"
     },
-    "ts_start": 1787251547.6574502,
-    "ts_end": 1787251551.3409438,
+    "ts_start": 1787270155.7956336,
+    "ts_end": 1787270159.390792,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 0,
+    "template_id": "T15_create_contact",
+    "params": {
+      "first_name": "Priya",
+      "last_name": "Alvarez 040"
+    },
+    "ts_start": 1787270170.3910217,
+    "ts_end": 1787270177.4222157,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 0,
+    "template_id": "T15_create_contact",
+    "params": {
+      "first_name": "Kwame",
+      "last_name": "Okonkwo 041"
+    },
+    "ts_start": 1787270188.4224432,
+    "ts_end": 1787270195.3893561,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T13_update_customer_group",
+    "params": {
+      "customer": "Lumen Optics",
+      "customer_group": "Individual"
+    },
+    "ts_start": 1787270206.3895798,
+    "ts_end": 1787270221.9822176,
     "ok": true,
     "error": null
   },
@@ -511,8 +486,174 @@
       "customer": "Kestrel Aviation",
       "customer_group": "Individual"
     },
-    "ts_start": 1787251562.3412151,
-    "ts_end": 1787251578.2583547,
+    "ts_start": 1787270232.9825144,
+    "ts_end": 1787270248.9004476,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T18_create_item_group",
+    "params": {
+      "item_group_name": "Bearings 044"
+    },
+    "ts_start": 1787270259.9006977,
+    "ts_end": 1787270275.368121,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T16_create_lead",
+    "params": {
+      "company_name": "Ridgeline Tools 045",
+      "first_name": "Sofia"
+    },
+    "ts_start": 1787270286.368376,
+    "ts_end": 1787270293.6184146,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T15_create_contact",
+    "params": {
+      "first_name": "Rosa",
+      "last_name": "Mensah 046"
+    },
+    "ts_start": 1787270304.6186194,
+    "ts_end": 1787270311.6307764,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T04_customer_open_orders",
+    "params": {
+      "customer": "Cobalt Robotics"
+    },
+    "ts_start": 1787270322.6309755,
+    "ts_end": 1787270326.2200065,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T07_items_below_price",
+    "params": {
+      "max_rate": 100
+    },
+    "ts_start": 1787270337.220198,
+    "ts_end": 1787270341.2402675,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T01_customer_outstanding",
+    "params": {
+      "customer": "Borealis Freight"
+    },
+    "ts_start": 1787270352.240506,
+    "ts_end": 1787270355.8510945,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T20_create_territory",
+    "params": {
+      "territory_name": "Iberia 050"
+    },
+    "ts_start": 1787270366.8513498,
+    "ts_end": 1787270382.3708563,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T01_customer_outstanding",
+    "params": {
+      "customer": "Borealis Freight"
+    },
+    "ts_start": 1787270393.3711097,
+    "ts_end": 1787270396.9251454,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T11_update_item_price",
+    "params": {
+      "item_code": "SH-GEAR-02",
+      "new_rate": 71.25
+    },
+    "ts_start": 1787270407.9253895,
+    "ts_end": 1787270417.1334972,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T08_create_customer",
+    "params": {
+      "customer_name": "Anvil Machining 053"
+    },
+    "ts_start": 1787270428.1337826,
+    "ts_end": 1787270452.6531436,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T18_create_item_group",
+    "params": {
+      "item_group_name": "Bearings 054"
+    },
+    "ts_start": 1787270463.6533947,
+    "ts_end": 1787270479.20356,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T17_create_warehouse",
+    "params": {
+      "warehouse_name": "Overflow Bay 055"
+    },
+    "ts_start": 1787270490.203782,
+    "ts_end": 1787270497.4167619,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T19_create_supplier_group",
+    "params": {
+      "supplier_group_name": "Tooling 056"
+    },
+    "ts_start": 1787270508.4170246,
+    "ts_end": 1787270524.4970562,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T20_create_territory",
+    "params": {
+      "territory_name": "Nordics 057"
+    },
+    "ts_start": 1787270535.4972982,
+    "ts_end": 1787270550.969064,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T02_overdue_invoices",
+    "params": {},
+    "ts_start": 1787270561.9693232,
+    "ts_end": 1787270565.5836713,
     "ok": true,
     "error": null
   },
@@ -520,10 +661,469 @@
     "session": 1,
     "template_id": "T05_item_price",
     "params": {
-      "item_code": "SH-SENSOR-01"
+      "item_code": "SH-VALVE-01"
     },
-    "ts_start": 1787251589.259451,
-    "ts_end": 1787251592.8057,
+    "ts_start": 1787270576.5839245,
+    "ts_end": 1787270580.5293767,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T19_create_supplier_group",
+    "params": {
+      "supplier_group_name": "Fabrication 060"
+    },
+    "ts_start": 1787270591.529572,
+    "ts_end": 1787270607.08644,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T05_item_price",
+    "params": {
+      "item_code": "SH-BELT-01"
+    },
+    "ts_start": 1787270618.0866704,
+    "ts_end": 1787270621.6376753,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T11_update_item_price",
+    "params": {
+      "item_code": "SH-BEARING-02",
+      "new_rate": 92.4
+    },
+    "ts_start": 1787270632.6379373,
+    "ts_end": 1787270641.8254504,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T17_create_warehouse",
+    "params": {
+      "warehouse_name": "Cold Store 063"
+    },
+    "ts_start": 1787270652.8257344,
+    "ts_end": 1787270659.619563,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T07_items_below_price",
+    "params": {
+      "max_rate": 300
+    },
+    "ts_start": 1787270670.6197984,
+    "ts_end": 1787270674.630256,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T19_create_supplier_group",
+    "params": {
+      "supplier_group_name": "Castings 065"
+    },
+    "ts_start": 1787270685.6305175,
+    "ts_end": 1787270701.222278,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T15_create_contact",
+    "params": {
+      "first_name": "Kwame",
+      "last_name": "Raman 066"
+    },
+    "ts_start": 1787270712.2225425,
+    "ts_end": 1787270719.2685218,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T07_items_below_price",
+    "params": {
+      "max_rate": 150
+    },
+    "ts_start": 1787270730.2688153,
+    "ts_end": 1787270734.3907034,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T11_update_item_price",
+    "params": {
+      "item_code": "SH-GEAR-02",
+      "new_rate": 24.1
+    },
+    "ts_start": 1787270745.3910282,
+    "ts_end": 1787270754.6585348,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T13_update_customer_group",
+    "params": {
+      "customer": "Lumen Optics",
+      "customer_group": "Commercial"
+    },
+    "ts_start": 1787270765.6588228,
+    "ts_end": 1787270781.8505743,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T16_create_lead",
+    "params": {
+      "company_name": "Halcyon Robotics 070",
+      "first_name": "Elias"
+    },
+    "ts_start": 1787270792.8508277,
+    "ts_end": 1787270800.744196,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T04_customer_open_orders",
+    "params": {
+      "customer": "Cobalt Robotics"
+    },
+    "ts_start": 1787270811.7444499,
+    "ts_end": 1787270815.8658237,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T16_create_lead",
+    "params": {
+      "company_name": "Quartz Analytics 072",
+      "first_name": "Mei"
+    },
+    "ts_start": 1787270826.8661036,
+    "ts_end": 1787270834.610484,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T08_create_customer",
+    "params": {
+      "customer_name": "Basalt Quarry 073"
+    },
+    "ts_start": 1787270845.6106915,
+    "ts_end": 1787270870.1456876,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T08_create_customer",
+    "params": {
+      "customer_name": "Xenon Displays 074"
+    },
+    "ts_start": 1787270881.1459713,
+    "ts_end": 1787270906.139798,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T15_create_contact",
+    "params": {
+      "first_name": "Priya",
+      "last_name": "Alvarez 075"
+    },
+    "ts_start": 1787270917.1399968,
+    "ts_end": 1787270924.2548716,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T18_create_item_group",
+    "params": {
+      "item_group_name": "Enclosures 076"
+    },
+    "ts_start": 1787270935.2551882,
+    "ts_end": 1787270950.8570766,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T20_create_territory",
+    "params": {
+      "territory_name": "Nordics 077"
+    },
+    "ts_start": 1787270961.8573203,
+    "ts_end": 1787270977.940303,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T01_customer_outstanding",
+    "params": {
+      "customer": "Borealis Freight"
+    },
+    "ts_start": 1787270988.9405515,
+    "ts_end": 1787270992.64259,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T05_item_price",
+    "params": {
+      "item_code": "SH-BELT-01"
+    },
+    "ts_start": 1787271003.6428246,
+    "ts_end": 1787271007.266749,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T04_customer_open_orders",
+    "params": {
+      "customer": "Acme Industrial"
+    },
+    "ts_start": 1787271018.2669685,
+    "ts_end": 1787271021.8441164,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T02_overdue_invoices",
+    "params": {},
+    "ts_start": 1787271032.84436,
+    "ts_end": 1787271036.771571,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T02_overdue_invoices",
+    "params": {},
+    "ts_start": 1787271047.7719297,
+    "ts_end": 1787271051.3456173,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 1,
+    "template_id": "T17_create_warehouse",
+    "params": {
+      "warehouse_name": "Cold Store 083"
+    },
+    "ts_start": 1787271062.3458855,
+    "ts_end": 1787271069.0453706,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T16_create_lead",
+    "params": {
+      "company_name": "Quartz Analytics 084",
+      "first_name": "Sofia"
+    },
+    "ts_start": 1787271080.0456395,
+    "ts_end": 1787271087.3728704,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T16_create_lead",
+    "params": {
+      "company_name": "Ridgeline Tools 085",
+      "first_name": "Elias"
+    },
+    "ts_start": 1787271098.373163,
+    "ts_end": 1787271105.7121239,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T20_create_territory",
+    "params": {
+      "territory_name": "Great Lakes 086"
+    },
+    "ts_start": 1787271116.7123897,
+    "ts_end": 1787271132.7583222,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T01_customer_outstanding",
+    "params": {
+      "customer": "Granite Construction"
+    },
+    "ts_start": 1787271143.758549,
+    "ts_end": 1787271147.7562554,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T20_create_territory",
+    "params": {
+      "territory_name": "Benelux 088"
+    },
+    "ts_start": 1787271158.7566857,
+    "ts_end": 1787271174.3235264,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T04_customer_open_orders",
+    "params": {
+      "customer": "Juniper Analytics"
+    },
+    "ts_start": 1787271185.3237891,
+    "ts_end": 1787271188.932085,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T18_create_item_group",
+    "params": {
+      "item_group_name": "Bearings 090"
+    },
+    "ts_start": 1787271199.9323313,
+    "ts_end": 1787271215.421279,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T15_create_contact",
+    "params": {
+      "first_name": "Priya",
+      "last_name": "Alvarez 091"
+    },
+    "ts_start": 1787271226.4215152,
+    "ts_end": 1787271233.8596742,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T08_create_customer",
+    "params": {
+      "customer_name": "Yarrow Textiles 092"
+    },
+    "ts_start": 1787271244.8599257,
+    "ts_end": 1787271269.3118074,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T15_create_contact",
+    "params": {
+      "first_name": "Kwame",
+      "last_name": "Okonkwo 093"
+    },
+    "ts_start": 1787271280.3120716,
+    "ts_end": 1787271287.3506942,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T01_customer_outstanding",
+    "params": {
+      "customer": "Everest Outfitters"
+    },
+    "ts_start": 1787271298.3509521,
+    "ts_end": 1787271301.94826,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T04_customer_open_orders",
+    "params": {
+      "customer": "Delta Mining Co"
+    },
+    "ts_start": 1787271312.9485178,
+    "ts_end": 1787271316.5355842,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T15_create_contact",
+    "params": {
+      "first_name": "Tomas",
+      "last_name": "Mensah 096"
+    },
+    "ts_start": 1787271327.5357883,
+    "ts_end": 1787271334.4906328,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T13_update_customer_group",
+    "params": {
+      "customer": "Juniper Analytics",
+      "customer_group": "Commercial"
+    },
+    "ts_start": 1787271345.4909313,
+    "ts_end": 1787271361.1202111,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T11_update_item_price",
+    "params": {
+      "item_code": "SH-PANEL-01",
+      "new_rate": 333.0
+    },
+    "ts_start": 1787271372.1205225,
+    "ts_end": 1787271381.4250896,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T02_overdue_invoices",
+    "params": {},
+    "ts_start": 1787271392.4253087,
+    "ts_end": 1787271396.0078385,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T04_customer_open_orders",
+    "params": {
+      "customer": "Ironwood Timber"
+    },
+    "ts_start": 1787271407.008083,
+    "ts_end": 1787271410.569162,
     "ok": true,
     "error": null
   },
@@ -533,51 +1133,8 @@
     "params": {
       "max_rate": 75
     },
-    "ts_start": 1787251603.805962,
-    "ts_end": 1787251607.8614864,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 2,
-    "template_id": "T02_overdue_invoices",
-    "params": {},
-    "ts_start": 1787251618.86169,
-    "ts_end": 1787251625.984206,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 2,
-    "template_id": "T01_customer_outstanding",
-    "params": {
-      "customer": "Halcyon Media"
-    },
-    "ts_start": 1787251636.9844446,
-    "ts_end": 1787251640.9108098,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 2,
-    "template_id": "T01_customer_outstanding",
-    "params": {
-      "customer": "Cobalt Robotics"
-    },
-    "ts_start": 1787251651.9110477,
-    "ts_end": 1787251655.4781094,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 2,
-    "template_id": "T13_update_customer_group",
-    "params": {
-      "customer": "Kestrel Aviation",
-      "customer_group": "Individual"
-    },
-    "ts_start": 1787251666.4783602,
-    "ts_end": 1787251682.5294194,
+    "ts_start": 1787271421.5694392,
+    "ts_end": 1787271425.6345687,
     "ok": true,
     "error": null
   },
@@ -585,75 +1142,10 @@
     "session": 2,
     "template_id": "T05_item_price",
     "params": {
-      "item_code": "SH-BELT-01"
+      "item_code": "SH-GEAR-01"
     },
-    "ts_start": 1787251693.5296817,
-    "ts_end": 1787251697.5941207,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 2,
-    "template_id": "T02_overdue_invoices",
-    "params": {},
-    "ts_start": 1787251708.5943453,
-    "ts_end": 1787251712.2501717,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 2,
-    "template_id": "T11_update_item_price",
-    "params": {
-      "item_code": "SH-SENSOR-02",
-      "new_rate": 71.25
-    },
-    "ts_start": 1787251723.250448,
-    "ts_end": 1787251732.4974847,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 2,
-    "template_id": "T13_update_customer_group",
-    "params": {
-      "customer": "Fjord Marine",
-      "customer_group": "Individual"
-    },
-    "ts_start": 1787251743.497708,
-    "ts_end": 1787251759.1316319,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 2,
-    "template_id": "T02_overdue_invoices",
-    "params": {},
-    "ts_start": 1787251770.1318731,
-    "ts_end": 1787251773.7156587,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 2,
-    "template_id": "T11_update_item_price",
-    "params": {
-      "item_code": "SH-SENSOR-02",
-      "new_rate": 235.0
-    },
-    "ts_start": 1787251784.7158844,
-    "ts_end": 1787251794.513148,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 2,
-    "template_id": "T08_create_customer",
-    "params": {
-      "customer_name": "Anvil Machining 059"
-    },
-    "ts_start": 1787251805.5134168,
-    "ts_end": 1787251830.5722537,
+    "ts_start": 1787271436.634867,
+    "ts_end": 1787271440.1621494,
     "ok": true,
     "error": null
   },
@@ -663,8 +1155,195 @@
     "params": {
       "item_code": "SH-BEARING-01"
     },
-    "ts_start": 1787251841.5724688,
-    "ts_end": 1787251845.1755495,
+    "ts_start": 1787271451.178362,
+    "ts_end": 1787271455.2292483,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T17_create_warehouse",
+    "params": {
+      "warehouse_name": "Yard Two 104"
+    },
+    "ts_start": 1787271466.2294867,
+    "ts_end": 1787271472.970205,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T11_update_item_price",
+    "params": {
+      "item_code": "SH-GEAR-02",
+      "new_rate": 333.0
+    },
+    "ts_start": 1787271483.9704497,
+    "ts_end": 1787271493.22742,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T19_create_supplier_group",
+    "params": {
+      "supplier_group_name": "Castings 106"
+    },
+    "ts_start": 1787271504.2276502,
+    "ts_end": 1787271519.8165731,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T16_create_lead",
+    "params": {
+      "company_name": "Pinewood Freight 107",
+      "first_name": "Owen"
+    },
+    "ts_start": 1787271530.816883,
+    "ts_end": 1787271538.59553,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T08_create_customer",
+    "params": {
+      "customer_name": "Willow Ceramics 108"
+    },
+    "ts_start": 1787271549.5958009,
+    "ts_end": 1787271573.9974773,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T01_customer_outstanding",
+    "params": {
+      "customer": "Delta Mining Co"
+    },
+    "ts_start": 1787271584.9977016,
+    "ts_end": 1787271588.5995207,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T02_overdue_invoices",
+    "params": {},
+    "ts_start": 1787271599.5997674,
+    "ts_end": 1787271603.5570872,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T17_create_warehouse",
+    "params": {
+      "warehouse_name": "Cold Store 111"
+    },
+    "ts_start": 1787271614.557316,
+    "ts_end": 1787271621.2355978,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T07_items_below_price",
+    "params": {
+      "max_rate": 75
+    },
+    "ts_start": 1787271632.2358277,
+    "ts_end": 1787271636.7871194,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T11_update_item_price",
+    "params": {
+      "item_code": "SH-CABLE-01",
+      "new_rate": 92.4
+    },
+    "ts_start": 1787271647.787337,
+    "ts_end": 1787271656.9706004,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T18_create_item_group",
+    "params": {
+      "item_group_name": "Sensors 114"
+    },
+    "ts_start": 1787271667.9708984,
+    "ts_end": 1787271683.5198748,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T20_create_territory",
+    "params": {
+      "territory_name": "Cascadia 115"
+    },
+    "ts_start": 1787271694.520118,
+    "ts_end": 1787271710.0011456,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T13_update_customer_group",
+    "params": {
+      "customer": "Lumen Optics",
+      "customer_group": "Individual"
+    },
+    "ts_start": 1787271721.0013902,
+    "ts_end": 1787271736.6515536,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T18_create_item_group",
+    "params": {
+      "item_group_name": "Enclosures 117"
+    },
+    "ts_start": 1787271747.6517773,
+    "ts_end": 1787271763.1838021,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T19_create_supplier_group",
+    "params": {
+      "supplier_group_name": "Logistics Partners 118"
+    },
+    "ts_start": 1787271774.1841817,
+    "ts_end": 1787271789.9377522,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T02_overdue_invoices",
+    "params": {},
+    "ts_start": 1787271800.938039,
+    "ts_end": 1787271804.5045884,
+    "ok": true,
+    "error": null
+  },
+  {
+    "session": 2,
+    "template_id": "T07_items_below_price",
+    "params": {
+      "max_rate": 200
+    },
+    "ts_start": 1787271815.5048935,
+    "ts_end": 1787271819.5807302,
     "ok": true,
     "error": null
   },
@@ -674,97 +1353,30 @@
     "params": {
       "item_code": "SH-SENSOR-01"
     },
-    "ts_start": 1787251856.176015,
-    "ts_end": 1787251860.207709,
+    "ts_start": 1787271830.5810113,
+    "ts_end": 1787271834.1106033,
     "ok": true,
     "error": null
   },
   {
     "session": 2,
-    "template_id": "T07_items_below_price",
+    "template_id": "T19_create_supplier_group",
     "params": {
-      "max_rate": 100
+      "supplier_group_name": "Electronics 122"
     },
-    "ts_start": 1787251871.207982,
-    "ts_end": 1787251875.2618299,
+    "ts_start": 1787271845.1108775,
+    "ts_end": 1787271860.7438166,
     "ok": true,
     "error": null
   },
   {
     "session": 2,
-    "template_id": "T04_customer_open_orders",
+    "template_id": "T17_create_warehouse",
     "params": {
-      "customer": "Cobalt Robotics"
+      "warehouse_name": "Overflow Bay 123"
     },
-    "ts_start": 1787251886.2621143,
-    "ts_end": 1787251889.966715,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 2,
-    "template_id": "T04_customer_open_orders",
-    "params": {
-      "customer": "Delta Mining Co"
-    },
-    "ts_start": 1787251900.9669967,
-    "ts_end": 1787251904.7195432,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 2,
-    "template_id": "T11_update_item_price",
-    "params": {
-      "item_code": "SH-PANEL-01",
-      "new_rate": 235.0
-    },
-    "ts_start": 1787251915.719821,
-    "ts_end": 1787251925.0049064,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 2,
-    "template_id": "T04_customer_open_orders",
-    "params": {
-      "customer": "Cobalt Robotics"
-    },
-    "ts_start": 1787251936.005127,
-    "ts_end": 1787251939.623275,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 2,
-    "template_id": "T08_create_customer",
-    "params": {
-      "customer_name": "Emberline Foods 067"
-    },
-    "ts_start": 1787251950.623573,
-    "ts_end": 1787251975.525009,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 2,
-    "template_id": "T07_items_below_price",
-    "params": {
-      "max_rate": 300
-    },
-    "ts_start": 1787251986.5252056,
-    "ts_end": 1787251990.5662344,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 2,
-    "template_id": "T08_create_customer",
-    "params": {
-      "customer_name": "Dunes Solar 069"
-    },
-    "ts_start": 1787252001.5665689,
-    "ts_end": 1787252026.0655167,
+    "ts_start": 1787271871.7440808,
+    "ts_end": 1787271878.5202436,
     "ok": true,
     "error": null
   },
@@ -772,286 +1384,22 @@
     "session": 2,
     "template_id": "T13_update_customer_group",
     "params": {
-      "customer": "Halcyon Media",
+      "customer": "Juniper Analytics",
       "customer_group": "Individual"
     },
-    "ts_start": 1787252037.0657406,
-    "ts_end": 1787252052.8020582,
+    "ts_start": 1787271889.520471,
+    "ts_end": 1787271905.1387088,
     "ok": true,
     "error": null
   },
   {
     "session": 2,
-    "template_id": "T01_customer_outstanding",
-    "params": {
-      "customer": "Acme Industrial"
-    },
-    "ts_start": 1787252063.8022919,
-    "ts_end": 1787252067.4289582,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 3,
-    "template_id": "T13_update_customer_group",
-    "params": {
-      "customer": "Halcyon Media",
-      "customer_group": "Individual"
-    },
-    "ts_start": 1787252078.4293165,
-    "ts_end": 1787252094.1394277,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 3,
-    "template_id": "T02_overdue_invoices",
-    "params": {},
-    "ts_start": 1787252105.1397257,
-    "ts_end": 1787252108.8207428,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 3,
-    "template_id": "T04_customer_open_orders",
-    "params": {
-      "customer": "Halcyon Media"
-    },
-    "ts_start": 1787252119.8210478,
-    "ts_end": 1787252123.4048939,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 3,
-    "template_id": "T02_overdue_invoices",
-    "params": {},
-    "ts_start": 1787252134.4051154,
-    "ts_end": 1787252137.9638953,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 3,
-    "template_id": "T05_item_price",
-    "params": {
-      "item_code": "SH-GEAR-01"
-    },
-    "ts_start": 1787252148.9642026,
-    "ts_end": 1787252152.50133,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 3,
-    "template_id": "T04_customer_open_orders",
-    "params": {
-      "customer": "Delta Mining Co"
-    },
-    "ts_start": 1787252163.501552,
-    "ts_end": 1787252167.2081387,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 3,
     "template_id": "T08_create_customer",
     "params": {
-      "customer_name": "Willow Ceramics 078"
+      "customer_name": "Dunes Solar 125"
     },
-    "ts_start": 1787252178.2083514,
-    "ts_end": 1787252202.8144917,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 3,
-    "template_id": "T07_items_below_price",
-    "params": {
-      "max_rate": 300
-    },
-    "ts_start": 1787252213.8147848,
-    "ts_end": 1787252218.4165754,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 3,
-    "template_id": "T08_create_customer",
-    "params": {
-      "customer_name": "Zephyr Turbines 080"
-    },
-    "ts_start": 1787252229.416872,
-    "ts_end": 1787252253.926653,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 3,
-    "template_id": "T13_update_customer_group",
-    "params": {
-      "customer": "Ironwood Timber",
-      "customer_group": "Commercial"
-    },
-    "ts_start": 1787252264.9268441,
-    "ts_end": 1787252281.1711822,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 3,
-    "template_id": "T08_create_customer",
-    "params": {
-      "customer_name": "Xenon Displays 082"
-    },
-    "ts_start": 1787252292.1714447,
-    "ts_end": 1787252316.602203,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 3,
-    "template_id": "T05_item_price",
-    "params": {
-      "item_code": "SH-GEAR-01"
-    },
-    "ts_start": 1787252327.6024318,
-    "ts_end": 1787252331.2243366,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 3,
-    "template_id": "T01_customer_outstanding",
-    "params": {
-      "customer": "Fjord Marine"
-    },
-    "ts_start": 1787252342.2245657,
-    "ts_end": 1787252345.8342462,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 3,
-    "template_id": "T01_customer_outstanding",
-    "params": {
-      "customer": "Acme Industrial"
-    },
-    "ts_start": 1787252356.8345022,
-    "ts_end": 1787252360.5591638,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 3,
-    "template_id": "T07_items_below_price",
-    "params": {
-      "max_rate": 150
-    },
-    "ts_start": 1787252371.5594194,
-    "ts_end": 1787252376.1151547,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 3,
-    "template_id": "T05_item_price",
-    "params": {
-      "item_code": "SH-GEAR-01"
-    },
-    "ts_start": 1787252387.1154804,
-    "ts_end": 1787252390.6525657,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 3,
-    "template_id": "T01_customer_outstanding",
-    "params": {
-      "customer": "Granite Construction"
-    },
-    "ts_start": 1787252401.6528633,
-    "ts_end": 1787252405.3182385,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 3,
-    "template_id": "T07_items_below_price",
-    "params": {
-      "max_rate": 50
-    },
-    "ts_start": 1787252416.3185265,
-    "ts_end": 1787252420.3336496,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 3,
-    "template_id": "T13_update_customer_group",
-    "params": {
-      "customer": "Ironwood Timber",
-      "customer_group": "Commercial"
-    },
-    "ts_start": 1787252431.333931,
-    "ts_end": 1787252447.14531,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 3,
-    "template_id": "T11_update_item_price",
-    "params": {
-      "item_code": "SH-PANEL-01",
-      "new_rate": 92.4
-    },
-    "ts_start": 1787252458.1455944,
-    "ts_end": 1787252467.4665718,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 3,
-    "template_id": "T11_update_item_price",
-    "params": {
-      "item_code": "SH-CABLE-01",
-      "new_rate": 235.0
-    },
-    "ts_start": 1787252478.4668071,
-    "ts_end": 1787252487.6674476,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 3,
-    "template_id": "T04_customer_open_orders",
-    "params": {
-      "customer": "Juniper Analytics"
-    },
-    "ts_start": 1787252498.6676445,
-    "ts_end": 1787252502.25974,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 3,
-    "template_id": "T11_update_item_price",
-    "params": {
-      "item_code": "SH-PANEL-01",
-      "new_rate": 235.0
-    },
-    "ts_start": 1787252513.2600331,
-    "ts_end": 1787252522.5504634,
-    "ok": true,
-    "error": null
-  },
-  {
-    "session": 3,
-    "template_id": "T02_overdue_invoices",
-    "params": {},
-    "ts_start": 1787252533.5507011,
-    "ts_end": 1787252537.2009404,
+    "ts_start": 1787271916.138947,
+    "ts_end": 1787271940.9409075,
     "ok": true,
     "error": null
   }

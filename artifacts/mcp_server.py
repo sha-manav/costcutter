@@ -1,7 +1,7 @@
 """Auto-generated MCP server — do not edit.
 
 Synthesized by Shadow from observed HTTP traffic.
-Tools: 8 (8 verified).
+Tools: 9 (9 verified).
 
     python mcp_server.py [--allow-writes]
 """

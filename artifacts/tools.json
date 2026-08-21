@@ -1,6 +1,470 @@
 {
   "tools": [
     {
+      "name": "create_record",
+      "description": "Create records of a caller-specified record type in the ERP system.",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "doctype": {
+            "type": "string",
+            "enum": [
+              "Supplier Group",
+              "Item Group",
+              "Territory",
+              "Warehouse",
+              "Contact"
+            ],
+            "description": "doc for step 0",
+            "examples": [
+              "Supplier Group"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "description": "doc for step 0",
+            "examples": [
+              "new-supplier-group-pdqlutcwgy"
+            ]
+          },
+          "supplier_group_name": {
+            "type": "string",
+            "description": "doc for step 0",
+            "examples": [
+              "Castings 000"
+            ]
+          },
+          "item_group_name": {
+            "type": "string",
+            "description": "doc for step 0",
+            "examples": [
+              "Enclosures 002"
+            ]
+          },
+          "territory_name": {
+            "type": "string",
+            "description": "doc for step 0",
+            "examples": [
+              "Great Lakes 017"
+            ]
+          },
+          "warehouse_name": {
+            "type": "string",
+            "description": "doc for step 0",
+            "examples": [
+              "Yard Two 033"
+            ]
+          },
+          "first_name": {
+            "type": "string",
+            "description": "doc for step 0",
+            "examples": [
+              "Rosa"
+            ]
+          },
+          "last_name": {
+            "type": "string",
+            "description": "doc for step 0",
+            "examples": [
+              "Lindqvist 035"
+            ]
+          }
+        },
+        "required": [
+          "doctype",
+          "name"
+        ]
+      },
+      "steps": [
+        {
+          "method": "POST",
+          "path_template": "/api/method/frappe.desk.form.save.savedocs",
+          "query_bindings": {},
+          "body_bindings": {
+            "doc::$.docstatus": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.doctype": {
+              "kind": "user_param",
+              "literal_value": null,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": "doctype",
+              "example_value": "Supplier Group",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.name": {
+              "kind": "user_param",
+              "literal_value": null,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": "name",
+              "example_value": "new-supplier-group-pdqlutcwgy",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.__islocal": {
+              "kind": "literal",
+              "literal_value": 1,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 1,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.__unsaved": {
+              "kind": "literal",
+              "literal_value": 1,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 1,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.owner": {
+              "kind": "literal",
+              "literal_value": "Administrator",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "Administrator",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.is_group": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.supplier_group_name": {
+              "kind": "user_param",
+              "literal_value": null,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": "supplier_group_name",
+              "example_value": "Castings 000",
+              "confidence": 1.0,
+              "required": false
+            },
+            "doc::$.parent_supplier_group": {
+              "kind": "literal",
+              "literal_value": "All Supplier Groups",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "All Supplier Groups",
+              "confidence": 1.0,
+              "required": true
+            },
+            "action": {
+              "kind": "literal",
+              "literal_value": "Save",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "Save",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.item_group_name": {
+              "kind": "user_param",
+              "literal_value": null,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": "item_group_name",
+              "example_value": "Enclosures 002",
+              "confidence": 1.0,
+              "required": false
+            },
+            "doc::$.parent_item_group": {
+              "kind": "literal",
+              "literal_value": "All Item Groups",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "All Item Groups",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.territory_name": {
+              "kind": "user_param",
+              "literal_value": null,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": "territory_name",
+              "example_value": "Great Lakes 017",
+              "confidence": 1.0,
+              "required": false
+            },
+            "doc::$.parent_territory": {
+              "kind": "literal",
+              "literal_value": "All Territories",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "All Territories",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.disabled": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.is_rejected_warehouse": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.company": {
+              "kind": "literal",
+              "literal_value": "Shadow Traders",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "Shadow Traders",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.warehouse_name": {
+              "kind": "user_param",
+              "literal_value": null,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": "warehouse_name",
+              "example_value": "Yard Two 033",
+              "confidence": 1.0,
+              "required": false
+            },
+            "doc::$.sync_with_google_contacts": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.status": {
+              "kind": "literal",
+              "literal_value": "Passive",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "Passive",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.pulled_from_google_contacts": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.is_primary_contact": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.unsubscribed": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.first_name": {
+              "kind": "user_param",
+              "literal_value": null,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": "first_name",
+              "example_value": "Rosa",
+              "confidence": 1.0,
+              "required": false
+            },
+            "doc::$.last_name": {
+              "kind": "user_param",
+              "literal_value": null,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": "last_name",
+              "example_value": "Lindqvist 035",
+              "confidence": 1.0,
+              "required": false
+            }
+          },
+          "header_bindings": {},
+          "path_bindings": {},
+          "body_encoding": "form"
+        }
+      ],
+      "mutation_class": "write",
+      "support": 41,
+      "verified": true,
+      "source_episode_ids": [
+        "ep0002",
+        "ep0004",
+        "ep0006",
+        "ep0018",
+        "ep0019",
+        "ep0021",
+        "ep0024",
+        "ep0026",
+        "ep0030",
+        "ep0033",
+        "ep0035",
+        "ep0042",
+        "ep0044",
+        "ep0048",
+        "ep0051",
+        "ep0052",
+        "ep0053",
+        "ep0054",
+        "ep0057",
+        "ep0060",
+        "ep0062",
+        "ep0063",
+        "ep0070",
+        "ep0071",
+        "ep0072",
+        "ep0078",
+        "ep0080",
+        "ep0082",
+        "ep0084",
+        "ep0085",
+        "ep0087",
+        "ep0090",
+        "ep0096",
+        "ep0098",
+        "ep0102",
+        "ep0105",
+        "ep0106",
+        "ep0108",
+        "ep0109",
+        "ep0112",
+        "ep0113"
+      ],
+      "signature": "POST /api/method/frappe.desk.form.save.savedocs",
+      "verify_note": "",
+      "response_shape": {
+        "$.docs[].name": "str",
+        "$.docs[].owner": "str",
+        "$.docs[].creation": "str",
+        "$.docs[].modified": "str",
+        "$.docs[].modified_by": "str",
+        "$.docs[].docstatus": "int",
+        "$.docs[].idx": "int",
+        "$.docs[].supplier_group_name": "str",
+        "$.docs[].parent_supplier_group": "str",
+        "$.docs[].is_group": "int",
+        "$.docs[].payment_terms": "NoneType",
+        "$.docs[].lft": "int",
+        "$.docs[].rgt": "int",
+        "$.docs[].old_parent": "str",
+        "$.docs[].doctype": "str",
+        "$.docs[].localname": "str",
+        "$.docinfo.user_info.Administrator.fullname": "str",
+        "$.docinfo.user_info.Administrator.image": "NoneType",
+        "$.docinfo.user_info.Administrator.name": "str",
+        "$.docinfo.user_info.Administrator.email": "str",
+        "$.docinfo.user_info.Administrator.time_zone": "str",
+        "$.docinfo.doctype": "str",
+        "$.docinfo.name": "str",
+        "$.docinfo.permissions.select": "int",
+        "$.docinfo.permissions.read": "int",
+        "$.docinfo.permissions.write": "int",
+        "$.docinfo.permissions.create": "int",
+        "$.docinfo.permissions.delete": "int",
+        "$.docinfo.permissions.submit": "int",
+        "$.docinfo.permissions.cancel": "int",
+        "$.docinfo.permissions.amend": "int",
+        "$.docinfo.permissions.print": "int",
+        "$.docinfo.permissions.email": "int",
+        "$.docinfo.permissions.report": "int",
+        "$.docinfo.permissions.import": "int",
+        "$.docinfo.permissions.export": "int",
+        "$.docinfo.permissions.share": "int",
+        "$.docinfo.is_document_followed": "NoneType",
+        "$.docinfo.tags": "str",
+        "$.docinfo.document_email": "NoneType"
+      },
+      "example_args": {
+        "doctype": "Supplier Group",
+        "name": "new-supplier-group-pdqlutcwgy",
+        "supplier_group_name": "Castings 000",
+        "item_group_name": "Enclosures 002",
+        "territory_name": "Great Lakes 017",
+        "warehouse_name": "Yard Two 033",
+        "first_name": "Rosa",
+        "last_name": "Lindqvist 035"
+      },
+      "n_from_response_bindings": 0
+    },
+    {
       "name": "list_records",
       "description": "List records of a caller-specified record type in the ERP system.",
       "params_schema": {
@@ -52,6 +516,12 @@
             "description": "filters for step 0",
             "examples": [
               [
+                [
+                  "Item Price",
+                  "item_code",
+                  "=",
+                  "SH-BELT-01"
+                ],
                 [
                   "Item Price",
                   "price_list",
@@ -136,6 +606,12 @@
               "transform": "identity",
               "param_name": "filters",
               "example_value": [
+                [
+                  "Item Price",
+                  "item_code",
+                  "=",
+                  "SH-BELT-01"
+                ],
                 [
                   "Item Price",
                   "price_list",
@@ -232,6 +708,12 @@
               "example_value": [
                 [
                   "Item Price",
+                  "item_code",
+                  "=",
+                  "SH-BELT-01"
+                ],
+                [
+                  "Item Price",
                   "price_list",
                   "=",
                   "Standard Selling"
@@ -280,53 +762,39 @@
         }
       ],
       "mutation_class": "read",
-      "support": 44,
+      "support": 30,
       "verified": true,
       "source_episode_ids": [
-        "ep0002",
         "ep0003",
-        "ep0006",
+        "ep0005",
+        "ep0008",
         "ep0009",
         "ep0012",
-        "ep0016",
-        "ep0019",
-        "ep0020",
-        "ep0021",
+        "ep0013",
+        "ep0017",
         "ep0023",
         "ep0025",
         "ep0028",
         "ep0031",
-        "ep0033",
-        "ep0034",
-        "ep0036",
         "ep0038",
-        "ep0040",
-        "ep0042",
-        "ep0043",
         "ep0045",
         "ep0046",
-        "ep0049",
-        "ep0050",
+        "ep0047",
+        "ep0055",
         "ep0056",
-        "ep0057",
         "ep0058",
-        "ep0059",
-        "ep0060",
-        "ep0062",
-        "ep0064",
-        "ep0066",
-        "ep0068",
-        "ep0069",
-        "ep0071",
-        "ep0072",
+        "ep0061",
+        "ep0073",
         "ep0074",
+        "ep0075",
         "ep0076",
-        "ep0077",
-        "ep0078",
-        "ep0080",
         "ep0081",
-        "ep0084",
-        "ep0086"
+        "ep0083",
+        "ep0088",
+        "ep0089",
+        "ep0093",
+        "ep0094",
+        "ep0103"
       ],
       "signature": "POST /api/method/frappe.desk.reportview.get | POST /api/method/frappe.desk.reportview.get_count",
       "verify_note": "",
@@ -358,12 +826,1357 @@
         "filters": [
           [
             "Item Price",
+            "item_code",
+            "=",
+            "SH-BELT-01"
+          ],
+          [
+            "Item Price",
             "price_list",
             "=",
             "Standard Selling"
           ]
         ],
         "order_by": "`tabItem Price`.`modified` asc"
+      },
+      "n_from_response_bindings": 0
+    },
+    {
+      "name": "create_record_2",
+      "description": "Create records of a caller-specified record type in the ERP system. Generalised from tasks that share this state-changing step.",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "doctype": {
+            "type": "string",
+            "description": "doc for step 0",
+            "examples": [
+              "Warehouse"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "description": "doc for step 0",
+            "examples": [
+              "new-warehouse-eizekxrnrh"
+            ]
+          },
+          "doctype_2": {
+            "type": "string",
+            "enum": [
+              "Warehouse",
+              "Contact",
+              "Customer"
+            ],
+            "description": "doc for step 1",
+            "examples": [
+              "Warehouse"
+            ]
+          },
+          "name_2": {
+            "type": "string",
+            "description": "doc for step 1",
+            "examples": [
+              "new-warehouse-cmymmzczkm"
+            ]
+          },
+          "first_name": {
+            "type": "string",
+            "description": "doc for step 0",
+            "examples": [
+              "Priya"
+            ]
+          },
+          "last_name": {
+            "type": "string",
+            "description": "doc for step 0",
+            "examples": [
+              "Alvarez 040"
+            ]
+          },
+          "first_name_2": {
+            "type": "string",
+            "description": "doc for step 1",
+            "examples": [
+              "Kwame"
+            ]
+          },
+          "last_name_2": {
+            "type": "string",
+            "description": "doc for step 1",
+            "examples": [
+              "Okonkwo 041"
+            ]
+          },
+          "creation": {
+            "type": "string",
+            "format": "date",
+            "description": "doc for step 0",
+            "examples": [
+              "2026-08-20 13:54:57.606903"
+            ]
+          },
+          "modified": {
+            "type": "string",
+            "format": "date",
+            "description": "doc for step 0",
+            "examples": [
+              "2026-08-20 19:44:10.161120"
+            ]
+          },
+          "price_list_rate": {
+            "type": "number",
+            "description": "doc for step 0",
+            "examples": [
+              71.25
+            ]
+          },
+          "customer_name": {
+            "type": "string",
+            "description": "doc for step 1",
+            "examples": [
+              "Anvil Machining 053"
+            ]
+          },
+          "territory": {
+            "type": "string",
+            "description": "doc for step 1",
+            "examples": [
+              "Cascadia 026"
+            ]
+          },
+          "customer_name_2": {
+            "type": "string",
+            "description": "doc for step 0",
+            "examples": [
+              "Basalt Quarry 073"
+            ]
+          },
+          "customer_group": {
+            "type": "string",
+            "description": "doc for step 0",
+            "examples": [
+              "Commercial"
+            ]
+          },
+          "territory_2": {
+            "type": "string",
+            "description": "doc for step 0",
+            "examples": [
+              "Cascadia 026"
+            ]
+          }
+        },
+        "required": [
+          "doctype",
+          "doctype_2",
+          "name",
+          "name_2"
+        ]
+      },
+      "steps": [
+        {
+          "method": "POST",
+          "path_template": "/api/method/frappe.desk.form.save.savedocs",
+          "query_bindings": {},
+          "body_bindings": {
+            "doc::$.docstatus": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.doctype": {
+              "kind": "user_param",
+              "literal_value": null,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": "doctype",
+              "example_value": "Warehouse",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.name": {
+              "kind": "user_param",
+              "literal_value": null,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": "name",
+              "example_value": "new-warehouse-eizekxrnrh",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.__islocal": {
+              "kind": "literal",
+              "literal_value": 1,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 1,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.__unsaved": {
+              "kind": "literal",
+              "literal_value": 1,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 1,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.owner": {
+              "kind": "literal",
+              "literal_value": "Administrator",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "Administrator",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.disabled": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.is_group": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.is_rejected_warehouse": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.company": {
+              "kind": "literal",
+              "literal_value": "Shadow Traders",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "Shadow Traders",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.warehouse_name": {
+              "kind": "literal",
+              "literal_value": "Transit Dock 036",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "Transit Dock 036",
+              "confidence": 1.0,
+              "required": true
+            },
+            "action": {
+              "kind": "literal",
+              "literal_value": "Save",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "Save",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.sync_with_google_contacts": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.status": {
+              "kind": "literal",
+              "literal_value": "Passive",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "Passive",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.pulled_from_google_contacts": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.is_primary_contact": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.unsubscribed": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.first_name": {
+              "kind": "user_param",
+              "literal_value": null,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": "first_name",
+              "example_value": "Priya",
+              "confidence": 1.0,
+              "required": false
+            },
+            "doc::$.last_name": {
+              "kind": "user_param",
+              "literal_value": null,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": "last_name",
+              "example_value": "Alvarez 040",
+              "confidence": 1.0,
+              "required": false
+            },
+            "doc::$.creation": {
+              "kind": "user_param",
+              "literal_value": null,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": "creation",
+              "example_value": "2026-08-20 13:54:57.606903",
+              "confidence": 1.0,
+              "required": false
+            },
+            "doc::$.modified": {
+              "kind": "user_param",
+              "literal_value": null,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": "modified",
+              "example_value": "2026-08-20 19:44:10.161120",
+              "confidence": 1.0,
+              "required": false
+            },
+            "doc::$.modified_by": {
+              "kind": "literal",
+              "literal_value": "Administrator",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "Administrator",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.idx": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.item_code": {
+              "kind": "literal",
+              "literal_value": "SH-GEAR-02",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "SH-GEAR-02",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.uom": {
+              "kind": "literal",
+              "literal_value": "Nos",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "Nos",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.packing_unit": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.item_name": {
+              "kind": "literal",
+              "literal_value": "Spur Gear 24T",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "Spur Gear 24T",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.item_description": {
+              "kind": "literal",
+              "literal_value": "Spur Gear 24T",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "Spur Gear 24T",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.price_list": {
+              "kind": "literal",
+              "literal_value": "Standard Selling",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "Standard Selling",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.buying": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.selling": {
+              "kind": "literal",
+              "literal_value": 1,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 1,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.currency": {
+              "kind": "literal",
+              "literal_value": "USD",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "USD",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.price_list_rate": {
+              "kind": "user_param",
+              "literal_value": null,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": "price_list_rate",
+              "example_value": 71.25,
+              "confidence": 1.0,
+              "required": false
+            },
+            "doc::$.valid_from": {
+              "kind": "literal",
+              "literal_value": "2026-08-20",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "2026-08-20",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.lead_time_days": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.naming_series": {
+              "kind": "literal",
+              "literal_value": "CUST-.YYYY.-",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "CUST-.YYYY.-",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.customer_type": {
+              "kind": "literal",
+              "literal_value": "Company",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "Company",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.is_internal_customer": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.language": {
+              "kind": "literal",
+              "literal_value": "en-US",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "en-US",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.so_required": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.dn_required": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.is_frozen": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.represents_company": {
+              "kind": "literal",
+              "literal_value": "",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.customer_name": {
+              "kind": "user_param",
+              "literal_value": null,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": "customer_name_2",
+              "example_value": "Basalt Quarry 073",
+              "confidence": 1.0,
+              "required": false
+            },
+            "doc::$.customer_group": {
+              "kind": "user_param",
+              "literal_value": null,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": "customer_group",
+              "example_value": "Commercial",
+              "confidence": 1.0,
+              "required": false
+            },
+            "doc::$.territory": {
+              "kind": "user_param",
+              "literal_value": null,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": "territory_2",
+              "example_value": "Cascadia 026",
+              "confidence": 1.0,
+              "required": false
+            },
+            "doc::$.mobile_no": {
+              "kind": "literal",
+              "literal_value": "",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.email_id": {
+              "kind": "literal",
+              "literal_value": "",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.default_commission_rate": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.exempt_from_sales_tax": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            }
+          },
+          "header_bindings": {},
+          "path_bindings": {},
+          "body_encoding": "form"
+        },
+        {
+          "method": "POST",
+          "path_template": "/api/method/frappe.desk.form.save.savedocs",
+          "query_bindings": {},
+          "body_bindings": {
+            "doc::$.docstatus": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.doctype": {
+              "kind": "user_param",
+              "literal_value": null,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": "doctype_2",
+              "example_value": "Warehouse",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.name": {
+              "kind": "user_param",
+              "literal_value": null,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": "name_2",
+              "example_value": "new-warehouse-cmymmzczkm",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.__islocal": {
+              "kind": "literal",
+              "literal_value": 1,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 1,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.__unsaved": {
+              "kind": "literal",
+              "literal_value": 1,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 1,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.owner": {
+              "kind": "literal",
+              "literal_value": "Administrator",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "Administrator",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.disabled": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.is_group": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.is_rejected_warehouse": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.company": {
+              "kind": "literal",
+              "literal_value": "Shadow Traders",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "Shadow Traders",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.warehouse_name": {
+              "kind": "literal",
+              "literal_value": "Cold Store 037",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "Cold Store 037",
+              "confidence": 1.0,
+              "required": true
+            },
+            "action": {
+              "kind": "literal",
+              "literal_value": "Save",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "Save",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.sync_with_google_contacts": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.status": {
+              "kind": "literal",
+              "literal_value": "Passive",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "Passive",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.pulled_from_google_contacts": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.is_primary_contact": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.unsubscribed": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.first_name": {
+              "kind": "user_param",
+              "literal_value": null,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": "first_name_2",
+              "example_value": "Kwame",
+              "confidence": 1.0,
+              "required": false
+            },
+            "doc::$.last_name": {
+              "kind": "user_param",
+              "literal_value": null,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": "last_name_2",
+              "example_value": "Okonkwo 041",
+              "confidence": 1.0,
+              "required": false
+            },
+            "doc::$.naming_series": {
+              "kind": "literal",
+              "literal_value": "CUST-.YYYY.-",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "CUST-.YYYY.-",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.customer_type": {
+              "kind": "literal",
+              "literal_value": "Company",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "Company",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.is_internal_customer": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.language": {
+              "kind": "literal",
+              "literal_value": "en-US",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "en-US",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.so_required": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.dn_required": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.is_frozen": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.represents_company": {
+              "kind": "literal",
+              "literal_value": "",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.customer_name": {
+              "kind": "user_param",
+              "literal_value": null,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": "customer_name",
+              "example_value": "Anvil Machining 053",
+              "confidence": 1.0,
+              "required": false
+            },
+            "doc::$.customer_group": {
+              "kind": "literal",
+              "literal_value": "Commercial",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "Commercial",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.territory": {
+              "kind": "user_param",
+              "literal_value": null,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": "territory",
+              "example_value": "Cascadia 026",
+              "confidence": 1.0,
+              "required": false
+            },
+            "doc::$.creation": {
+              "kind": "literal",
+              "literal_value": "2026-08-20 13:54:57.193486",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "2026-08-20 13:54:57.193486",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.modified": {
+              "kind": "literal",
+              "literal_value": "2026-08-20 19:45:27.332440",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "2026-08-20 19:45:27.332440",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.modified_by": {
+              "kind": "literal",
+              "literal_value": "Administrator",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "Administrator",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.idx": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.mobile_no": {
+              "kind": "literal",
+              "literal_value": "",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.email_id": {
+              "kind": "literal",
+              "literal_value": "",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.default_commission_rate": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.exempt_from_sales_tax": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            }
+          },
+          "header_bindings": {},
+          "path_bindings": {},
+          "body_encoding": "form"
+        }
+      ],
+      "mutation_class": "write",
+      "support": 6,
+      "verified": true,
+      "source_episode_ids": [
+        "ep0036",
+        "ep0039",
+        "ep0050",
+        "ep0065",
+        "ep0069",
+        "ep0114"
+      ],
+      "signature": "POST /api/method/frappe.desk.form.save.savedocs | POST /api/method/frappe.desk.form.save.savedocs",
+      "verify_note": "",
+      "response_shape": {
+        "$.docs[].name": "str",
+        "$.docs[].owner": "str",
+        "$.docs[].creation": "str",
+        "$.docs[].modified": "str",
+        "$.docs[].modified_by": "str",
+        "$.docs[].docstatus": "int",
+        "$.docs[].idx": "int",
+        "$.docs[].disabled": "int",
+        "$.docs[].warehouse_name": "str",
+        "$.docs[].is_group": "int",
+        "$.docs[].parent_warehouse": "NoneType",
+        "$.docs[].is_rejected_warehouse": "int",
+        "$.docs[].account": "NoneType",
+        "$.docs[].company": "str",
+        "$.docs[].email_id": "NoneType",
+        "$.docs[].phone_no": "NoneType",
+        "$.docs[].mobile_no": "NoneType",
+        "$.docs[].address_line_1": "NoneType",
+        "$.docs[].address_line_2": "NoneType",
+        "$.docs[].city": "NoneType",
+        "$.docs[].state": "NoneType",
+        "$.docs[].pin": "NoneType",
+        "$.docs[].warehouse_type": "NoneType",
+        "$.docs[].default_in_transit_warehouse": "NoneType",
+        "$.docs[].lft": "int",
+        "$.docs[].rgt": "int",
+        "$.docs[].old_parent": "str",
+        "$.docs[].doctype": "str",
+        "$.docs[].__onload.account": "str",
+        "$.docs[].localname": "str",
+        "$.docinfo.user_info.Administrator.fullname": "str",
+        "$.docinfo.user_info.Administrator.image": "NoneType",
+        "$.docinfo.user_info.Administrator.name": "str",
+        "$.docinfo.user_info.Administrator.email": "str",
+        "$.docinfo.user_info.Administrator.time_zone": "str",
+        "$.docinfo.doctype": "str",
+        "$.docinfo.name": "str",
+        "$.docinfo.permissions.select": "int",
+        "$.docinfo.permissions.read": "int",
+        "$.docinfo.permissions.write": "int"
+      },
+      "example_args": {
+        "doctype": "Warehouse",
+        "name": "new-warehouse-eizekxrnrh",
+        "doctype_2": "Warehouse",
+        "name_2": "new-warehouse-cmymmzczkm",
+        "first_name": "Priya",
+        "last_name": "Alvarez 040",
+        "first_name_2": "Kwame",
+        "last_name_2": "Okonkwo 041",
+        "creation": "2026-08-20 13:54:57.606903",
+        "modified": "2026-08-20 19:44:10.161120",
+        "price_list_rate": 71.25,
+        "customer_name": "Anvil Machining 053",
+        "territory": "Cascadia 026",
+        "customer_name_2": "Basalt Quarry 073",
+        "customer_group": "Commercial",
+        "territory_2": "Cascadia 026"
+      },
+      "n_from_response_bindings": 0
+    },
+    {
+      "name": "list_records_2",
+      "description": "List records of a caller-specified record type in the ERP system.",
+      "params_schema": {
+        "type": "object",
+        "properties": {
+          "doctype": {
+            "type": "string",
+            "enum": [
+              "Sales Invoice",
+              "Item Price",
+              "Sales Order"
+            ],
+            "description": "doctype for step 0",
+            "examples": [
+              "Sales Invoice"
+            ]
+          },
+          "filters": {
+            "type": "array",
+            "description": "filters for step 0",
+            "examples": [
+              [
+                [
+                  "Sales Invoice",
+                  "status",
+                  "=",
+                  "Overdue"
+                ]
+              ]
+            ]
+          }
+        },
+        "required": [
+          "doctype",
+          "filters"
+        ]
+      },
+      "steps": [
+        {
+          "method": "POST",
+          "path_template": "/api/method/frappe.desk.reportview.get_count",
+          "query_bindings": {},
+          "body_bindings": {
+            "doctype": {
+              "kind": "user_param",
+              "literal_value": null,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": "doctype",
+              "example_value": "Sales Invoice",
+              "confidence": 1.0,
+              "required": true
+            },
+            "filters": {
+              "kind": "user_param",
+              "literal_value": null,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": "filters",
+              "example_value": [
+                [
+                  "Sales Invoice",
+                  "status",
+                  "=",
+                  "Overdue"
+                ]
+              ],
+              "confidence": 1.0,
+              "required": true
+            },
+            "fields": {
+              "kind": "literal",
+              "literal_value": [],
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": [],
+              "confidence": 1.0,
+              "required": true
+            },
+            "distinct": {
+              "kind": "literal",
+              "literal_value": "false",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "false",
+              "confidence": 1.0,
+              "required": true
+            },
+            "limit": {
+              "kind": "literal",
+              "literal_value": "1001",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "1001",
+              "confidence": 1.0,
+              "required": true
+            }
+          },
+          "header_bindings": {},
+          "path_bindings": {},
+          "body_encoding": "form"
+        }
+      ],
+      "mutation_class": "read",
+      "support": 6,
+      "verified": true,
+      "source_episode_ids": [
+        "ep0029",
+        "ep0049",
+        "ep0064",
+        "ep0067",
+        "ep0077",
+        "ep0110"
+      ],
+      "signature": "POST /api/method/frappe.desk.reportview.get_count",
+      "verify_note": "",
+      "response_shape": {
+        "$.message": "int"
+      },
+      "example_args": {
+        "doctype": "Sales Invoice",
+        "filters": [
+          [
+            "Sales Invoice",
+            "status",
+            "=",
+            "Overdue"
+          ]
+        ]
       },
       "n_from_response_bindings": 0
     },
@@ -393,31 +2206,21 @@
               ]
             ]
           },
-          "modified": {
-            "type": "string",
-            "format": "date",
-            "description": "doc for step 2",
-            "examples": [
-              "2026-08-20 13:54:57.606903"
-            ]
-          },
           "price_list_rate": {
             "type": "number",
             "enum": [
-              "24.1",
-              "71.25",
               "151.5",
-              "235"
+              "333",
+              "92.4"
             ],
             "description": "doc for step 2",
             "examples": [
-              24.1
+              151.5
             ]
           }
         },
         "required": [
           "filters",
-          "modified",
           "price_list_rate"
         ]
       },
@@ -642,14 +2445,14 @@
               "required": true
             },
             "doc::$.modified": {
-              "kind": "user_param",
+              "kind": "from_response",
               "literal_value": null,
-              "source_step_index": null,
-              "json_path": null,
+              "source_step_index": 1,
+              "json_path": "$.docs[0].creation",
               "transform": "identity",
-              "param_name": "modified",
+              "param_name": null,
               "example_value": "2026-08-20 13:54:57.606903",
-              "confidence": 1.0,
+              "confidence": 0.8333333333333334,
               "required": true
             },
             "doc::$.modified_by": {
@@ -791,7 +2594,7 @@
               "json_path": null,
               "transform": "identity",
               "param_name": "price_list_rate",
-              "example_value": 24.1,
+              "example_value": 151.5,
               "confidence": 1.0,
               "required": true
             },
@@ -857,18 +2660,15 @@
         }
       ],
       "mutation_class": "write",
-      "support": 9,
+      "support": 6,
       "verified": true,
       "source_episode_ids": [
-        "ep0011",
-        "ep0013",
-        "ep0015",
-        "ep0024",
-        "ep0039",
-        "ep0041",
-        "ep0054",
-        "ep0061",
-        "ep0085"
+        "ep0007",
+        "ep0010",
+        "ep0059",
+        "ep0092",
+        "ep0097",
+        "ep0104"
       ],
       "signature": "POST /api/method/frappe.desk.reportview.get | GET /api/method/frappe.desk.form.load.getdoc | POST /api/method/frappe.desk.form.save.savedocs",
       "verify_note": "",
@@ -929,10 +2729,9 @@
             "Standard Selling"
           ]
         ],
-        "modified": "2026-08-20 13:54:57.606903",
-        "price_list_rate": 24.1
+        "price_list_rate": 151.5
       },
-      "n_from_response_bindings": 12
+      "n_from_response_bindings": 13
     },
     {
       "name": "create_customer",
@@ -944,14 +2743,14 @@
             "type": "string",
             "description": "doc for step 1",
             "examples": [
-              "new-customer-ohrlfrnusz"
+              "new-customer-qdommjwtuv"
             ]
           },
           "customer_name": {
             "type": "string",
             "description": "doc for step 1",
             "examples": [
-              "Anvil Machining 002"
+              "Willow Ceramics 015"
             ]
           }
         },
@@ -1071,7 +2870,7 @@
               "json_path": null,
               "transform": "identity",
               "param_name": "name",
-              "example_value": "new-customer-ohrlfrnusz",
+              "example_value": "new-customer-qdommjwtuv",
               "confidence": 1.0,
               "required": true
             },
@@ -1214,7 +3013,7 @@
               "json_path": null,
               "transform": "identity",
               "param_name": "customer_name",
-              "example_value": "Anvil Machining 002",
+              "example_value": "Willow Ceramics 015",
               "confidence": 1.0,
               "required": true
             },
@@ -1258,16 +3057,14 @@
         }
       ],
       "mutation_class": "write",
-      "support": 7,
+      "support": 5,
       "verified": true,
       "source_episode_ids": [
-        "ep0004",
-        "ep0030",
-        "ep0032",
-        "ep0035",
-        "ep0055",
-        "ep0063",
-        "ep0073"
+        "ep0016",
+        "ep0022",
+        "ep0037",
+        "ep0086",
+        "ep0100"
       ],
       "signature": "POST /api/method/frappe.desk.search.search_link | POST /api/method/frappe.desk.form.save.savedocs",
       "verify_note": "",
@@ -1314,134 +3111,100 @@
         "$.docs[].tax_category": "NoneType"
       },
       "example_args": {
-        "name": "new-customer-ohrlfrnusz",
-        "customer_name": "Anvil Machining 002"
+        "name": "new-customer-qdommjwtuv",
+        "customer_name": "Willow Ceramics 015"
       },
       "n_from_response_bindings": 1
     },
     {
-      "name": "list_customers",
-      "description": "List customer records in the ERP system (2 steps).",
+      "name": "create_lead",
+      "description": "Create lead records in the ERP system (4 steps).",
       "params_schema": {
         "type": "object",
         "properties": {
+          "ref_docname": {
+            "type": "string",
+            "description": "ref_docname for step 0",
+            "examples": [
+              "new-lead-ckjtkmnybb"
+            ]
+          },
           "name": {
             "type": "string",
-            "description": "name for step 0",
+            "description": "doc for step 1",
             "examples": [
-              "Ironwood Timber"
+              "new-lead-ckjtkmnybb"
+            ]
+          },
+          "company_name": {
+            "type": "string",
+            "description": "doc for step 1",
+            "examples": [
+              "Pinewood Freight 027"
+            ]
+          },
+          "lead_name": {
+            "type": "string",
+            "description": "doc for step 1",
+            "examples": [
+              "Pinewood Freight 027"
+            ]
+          },
+          "first_name": {
+            "type": "string",
+            "description": "doc for step 1",
+            "examples": [
+              "Sofia"
             ]
           }
         },
         "required": [
-          "name"
+          "company_name",
+          "first_name",
+          "lead_name",
+          "name",
+          "ref_docname"
         ]
       },
       "steps": [
         {
-          "method": "GET",
-          "path_template": "/api/method/frappe.desk.form.load.getdoc",
-          "query_bindings": {
-            "doctype": {
+          "method": "POST",
+          "path_template": "/api/method/erpnext.crm.utils.get_open_activities",
+          "query_bindings": {},
+          "body_bindings": {
+            "ref_doctype": {
               "kind": "literal",
-              "literal_value": "Customer",
+              "literal_value": "Lead",
               "source_step_index": null,
               "json_path": null,
               "transform": "identity",
               "param_name": null,
-              "example_value": "Customer",
+              "example_value": "Lead",
               "confidence": 1.0,
               "required": true
             },
-            "name": {
+            "ref_docname": {
               "kind": "user_param",
               "literal_value": null,
               "source_step_index": null,
               "json_path": null,
               "transform": "identity",
-              "param_name": "name",
-              "example_value": "Ironwood Timber",
+              "param_name": "ref_docname",
+              "example_value": "new-lead-ckjtkmnybb",
               "confidence": 1.0,
               "required": true
             }
           },
-          "body_bindings": {},
           "header_bindings": {},
           "path_bindings": {},
-          "body_encoding": "none"
+          "body_encoding": "form"
         },
         {
           "method": "POST",
-          "path_template": "/api/method/frappe.desk.search.search_link",
+          "path_template": "/api/method/frappe.desk.form.save.savedocs",
           "query_bindings": {},
           "body_bindings": {
-            "txt": {
-              "kind": "from_response",
-              "literal_value": null,
-              "source_step_index": 0,
-              "json_path": "$.docs[0].customer_group",
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "Commercial",
-              "confidence": 1.0,
-              "required": true
-            },
-            "doctype": {
-              "kind": "literal",
-              "literal_value": "Customer Group",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "Customer Group",
-              "confidence": 1.0,
-              "required": true
-            },
-            "ignore_user_permissions": {
-              "kind": "literal",
-              "literal_value": "0",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "0",
-              "confidence": 1.0,
-              "required": true
-            },
-            "reference_doctype": {
-              "kind": "literal",
-              "literal_value": "Customer",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "Customer",
-              "confidence": 1.0,
-              "required": true
-            },
-            "page_length": {
-              "kind": "literal",
-              "literal_value": "10",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "10",
-              "confidence": 1.0,
-              "required": true
-            },
-            "filters::$.is_group[0]": {
-              "kind": "literal",
-              "literal_value": "=",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "=",
-              "confidence": 1.0,
-              "required": true
-            },
-            "filters::$.is_group[1]": {
+            "doc::$.docstatus": {
               "kind": "literal",
               "literal_value": 0,
               "source_step_index": null,
@@ -1451,137 +3214,310 @@
               "example_value": 0,
               "confidence": 1.0,
               "required": true
+            },
+            "doc::$.doctype": {
+              "kind": "literal",
+              "literal_value": "Lead",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "Lead",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.name": {
+              "kind": "user_param",
+              "literal_value": null,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": "name",
+              "example_value": "new-lead-ckjtkmnybb",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.__islocal": {
+              "kind": "literal",
+              "literal_value": 1,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 1,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.__unsaved": {
+              "kind": "literal",
+              "literal_value": 1,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 1,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.owner": {
+              "kind": "literal",
+              "literal_value": "Administrator",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "Administrator",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.naming_series": {
+              "kind": "literal",
+              "literal_value": "CRM-LEAD-.YYYY.-",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "CRM-LEAD-.YYYY.-",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.lead_owner": {
+              "kind": "literal",
+              "literal_value": "Administrator",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "Administrator",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.status": {
+              "kind": "literal",
+              "literal_value": "Lead",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "Lead",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.type": {
+              "kind": "literal",
+              "literal_value": "",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.request_type": {
+              "kind": "literal",
+              "literal_value": "",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.no_of_employees": {
+              "kind": "literal",
+              "literal_value": "1-10",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "1-10",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.country": {
+              "kind": "literal",
+              "literal_value": "United States",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "United States",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.qualification_status": {
+              "kind": "literal",
+              "literal_value": "Unqualified",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "Unqualified",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.company": {
+              "kind": "literal",
+              "literal_value": "Shadow Traders",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "Shadow Traders",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.language": {
+              "kind": "literal",
+              "literal_value": "en-US",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "en-US",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.disabled": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.unsubscribed": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.blog_subscriber": {
+              "kind": "literal",
+              "literal_value": 0,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": 0,
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.company_name": {
+              "kind": "user_param",
+              "literal_value": null,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": "company_name",
+              "example_value": "Pinewood Freight 027",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.lead_name": {
+              "kind": "user_param",
+              "literal_value": null,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": "lead_name",
+              "example_value": "Pinewood Freight 027",
+              "confidence": 1.0,
+              "required": true
+            },
+            "doc::$.first_name": {
+              "kind": "user_param",
+              "literal_value": null,
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": "first_name",
+              "example_value": "Sofia",
+              "confidence": 1.0,
+              "required": true
+            },
+            "action": {
+              "kind": "literal",
+              "literal_value": "Save",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "Save",
+              "confidence": 1.0,
+              "required": true
             }
           },
           "header_bindings": {},
           "path_bindings": {},
           "body_encoding": "form"
-        }
-      ],
-      "mutation_class": "read",
-      "support": 6,
-      "verified": true,
-      "source_episode_ids": [
-        "ep0007",
-        "ep0017",
-        "ep0026",
-        "ep0048",
-        "ep0067",
-        "ep0082"
-      ],
-      "signature": "GET /api/method/frappe.desk.form.load.getdoc | POST /api/method/frappe.desk.search.search_link",
-      "verify_note": "",
-      "response_shape": {
-        "$.message[].value": "str",
-        "$.message[].description": "str"
-      },
-      "example_args": {
-        "name": "Ironwood Timber"
-      },
-      "n_from_response_bindings": 1
-    },
-    {
-      "name": "list_records_2",
-      "description": "List records of a caller-specified record type in the ERP system.",
-      "params_schema": {
-        "type": "object",
-        "properties": {
-          "doctype": {
-            "type": "string",
-            "enum": [
-              "Sales Invoice",
-              "Item Price"
-            ],
-            "description": "doctype for step 0",
-            "examples": [
-              "Sales Invoice"
-            ]
-          },
-          "filters": {
-            "type": "array",
-            "description": "filters for step 0",
-            "examples": [
-              [
-                [
-                  "Sales Invoice",
-                  "status",
-                  "=",
-                  "Overdue"
-                ]
-              ]
-            ]
-          }
         },
-        "required": [
-          "doctype",
-          "filters"
-        ]
-      },
-      "steps": [
         {
           "method": "POST",
-          "path_template": "/api/method/frappe.desk.reportview.get_count",
+          "path_template": "/api/method/erpnext.crm.utils.get_open_activities",
           "query_bindings": {},
           "body_bindings": {
-            "doctype": {
-              "kind": "user_param",
+            "ref_doctype": {
+              "kind": "literal",
+              "literal_value": "Lead",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "Lead",
+              "confidence": 1.0,
+              "required": true
+            },
+            "ref_docname": {
+              "kind": "from_response",
               "literal_value": null,
+              "source_step_index": 1,
+              "json_path": "$.docinfo.name",
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "CRM-LEAD-2026-00003",
+              "confidence": 1.0,
+              "required": true
+            }
+          },
+          "header_bindings": {},
+          "path_bindings": {},
+          "body_encoding": "form"
+        },
+        {
+          "method": "POST",
+          "path_template": "/api/method/erpnext.crm.utils.get_open_activities",
+          "query_bindings": {},
+          "body_bindings": {
+            "ref_doctype": {
+              "kind": "literal",
+              "literal_value": "Lead",
               "source_step_index": null,
               "json_path": null,
               "transform": "identity",
-              "param_name": "doctype",
-              "example_value": "Sales Invoice",
+              "param_name": null,
+              "example_value": "Lead",
               "confidence": 1.0,
               "required": true
             },
-            "filters": {
-              "kind": "user_param",
+            "ref_docname": {
+              "kind": "from_response",
               "literal_value": null,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": "filters",
-              "example_value": [
-                [
-                  "Sales Invoice",
-                  "status",
-                  "=",
-                  "Overdue"
-                ]
-              ],
-              "confidence": 1.0,
-              "required": true
-            },
-            "fields": {
-              "kind": "literal",
-              "literal_value": [],
-              "source_step_index": null,
-              "json_path": null,
+              "source_step_index": 1,
+              "json_path": "$.docinfo.name",
               "transform": "identity",
               "param_name": null,
-              "example_value": [],
-              "confidence": 1.0,
-              "required": true
-            },
-            "distinct": {
-              "kind": "literal",
-              "literal_value": "false",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "false",
-              "confidence": 1.0,
-              "required": true
-            },
-            "limit": {
-              "kind": "literal",
-              "literal_value": "1001",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "1001",
+              "example_value": "CRM-LEAD-2026-00003",
               "confidence": 1.0,
               "required": true
             }
@@ -1591,545 +3527,27 @@
           "body_encoding": "form"
         }
       ],
-      "mutation_class": "read",
+      "mutation_class": "write",
       "support": 5,
       "verified": true,
       "source_episode_ids": [
-        "ep0014",
-        "ep0022",
-        "ep0037",
-        "ep0053",
-        "ep0070"
+        "ep0027",
+        "ep0043",
+        "ep0066",
+        "ep0068",
+        "ep0099"
       ],
-      "signature": "POST /api/method/frappe.desk.reportview.get_count",
+      "signature": "POST /api/method/erpnext.crm.utils.get_open_activities | POST /api/method/frappe.desk.form.save.savedocs | POST /api/method/erpnext.crm.utils.get_open_activities | POST /api/method/erpnext.crm.utils.get_open_activities",
       "verify_note": "",
-      "response_shape": {
-        "$.message": "int"
-      },
+      "response_shape": {},
       "example_args": {
-        "doctype": "Sales Invoice",
-        "filters": [
-          [
-            "Sales Invoice",
-            "status",
-            "=",
-            "Overdue"
-          ]
-        ]
+        "ref_docname": "new-lead-ckjtkmnybb",
+        "name": "new-lead-ckjtkmnybb",
+        "company_name": "Pinewood Freight 027",
+        "lead_name": "Pinewood Freight 027",
+        "first_name": "Sofia"
       },
-      "n_from_response_bindings": 0
-    },
-    {
-      "name": "list_records_3",
-      "description": "List records of a caller-specified record type in the ERP system.",
-      "params_schema": {
-        "type": "object",
-        "properties": {
-          "doctype": {
-            "type": "string",
-            "description": "doctype for step 0",
-            "examples": [
-              "Sales Order"
-            ]
-          },
-          "fields": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "fields for step 0",
-            "examples": [
-              [
-                "`tabSales Order`.`name`",
-                "`tabSales Order`.`owner`",
-                "`tabSales Order`.`creation`",
-                "`tabSales Order`.`modified`",
-                "`tabSales Order`.`modified_by`",
-                "`tabSales Order`.`_user_tags`",
-                "`tabSales Order`.`_comments`",
-                "`tabSales Order`.`_assign`",
-                "`tabSales Order`.`_liked_by`",
-                "`tabSales Order`.`docstatus`",
-                "`tabSales Order`.`idx`",
-                "`tabSales Order`.`delivery_date`",
-                "`tabSales Order`.`total`",
-                "`tabSales Order`.`net_total`",
-                "`tabSales Order`.`total_taxes_and_charges`",
-                "`tabSales Order`.`grand_total`",
-                "`tabSales Order`.`rounding_adjustment`",
-                "`tabSales Order`.`rounded_total`",
-                "`tabSales Order`.`advance_paid`",
-                "`tabSales Order`.`discount_amount`",
-                "`tabSales Order`.`status`",
-                "`tabSales Order`.`per_delivered`",
-                "`tabSales Order`.`per_billed`",
-                "`tabSales Order`.`customer_name`",
-                "`tabSales Order`.`base_grand_total`",
-                "`tabSales Order`.`currency`",
-                "`tabSales Order`.`order_type`",
-                "`tabSales Order`.`skip_delivery_note`",
-                "`tabSales Order`.`_seen`",
-                "`tabSales Order`.`party_account_currency`"
-              ]
-            ]
-          },
-          "filters": {
-            "type": "array",
-            "description": "filters for step 0",
-            "examples": [
-              [
-                [
-                  "Sales Order",
-                  "customer",
-                  "=",
-                  "Acme Industrial"
-                ]
-              ]
-            ]
-          },
-          "order_by": {
-            "type": "string",
-            "description": "order_by for step 0",
-            "examples": [
-              "`tabSales Order`.`modified` desc"
-            ]
-          },
-          "filters_2": {
-            "type": "array",
-            "description": "filters for step 1",
-            "examples": [
-              [
-                [
-                  "Sales Order",
-                  "customer",
-                  "=",
-                  "Ironwood Timber"
-                ]
-              ]
-            ]
-          }
-        },
-        "required": [
-          "doctype",
-          "fields",
-          "filters",
-          "filters_2",
-          "order_by"
-        ]
-      },
-      "steps": [
-        {
-          "method": "POST",
-          "path_template": "/api/method/frappe.desk.reportview.get",
-          "query_bindings": {},
-          "body_bindings": {
-            "doctype": {
-              "kind": "user_param",
-              "literal_value": null,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": "doctype",
-              "example_value": "Sales Order",
-              "confidence": 1.0,
-              "required": true
-            },
-            "fields": {
-              "kind": "user_param",
-              "literal_value": null,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": "fields",
-              "example_value": [
-                "`tabSales Order`.`name`",
-                "`tabSales Order`.`owner`",
-                "`tabSales Order`.`creation`",
-                "`tabSales Order`.`modified`",
-                "`tabSales Order`.`modified_by`",
-                "`tabSales Order`.`_user_tags`",
-                "`tabSales Order`.`_comments`",
-                "`tabSales Order`.`_assign`",
-                "`tabSales Order`.`_liked_by`",
-                "`tabSales Order`.`docstatus`",
-                "`tabSales Order`.`idx`",
-                "`tabSales Order`.`delivery_date`",
-                "`tabSales Order`.`total`",
-                "`tabSales Order`.`net_total`",
-                "`tabSales Order`.`total_taxes_and_charges`",
-                "`tabSales Order`.`grand_total`",
-                "`tabSales Order`.`rounding_adjustment`",
-                "`tabSales Order`.`rounded_total`",
-                "`tabSales Order`.`advance_paid`",
-                "`tabSales Order`.`discount_amount`",
-                "`tabSales Order`.`status`",
-                "`tabSales Order`.`per_delivered`",
-                "`tabSales Order`.`per_billed`",
-                "`tabSales Order`.`customer_name`",
-                "`tabSales Order`.`base_grand_total`",
-                "`tabSales Order`.`currency`",
-                "`tabSales Order`.`order_type`",
-                "`tabSales Order`.`skip_delivery_note`",
-                "`tabSales Order`.`_seen`",
-                "`tabSales Order`.`party_account_currency`"
-              ],
-              "confidence": 1.0,
-              "required": true
-            },
-            "filters": {
-              "kind": "user_param",
-              "literal_value": null,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": "filters",
-              "example_value": [
-                [
-                  "Sales Order",
-                  "customer",
-                  "=",
-                  "Acme Industrial"
-                ]
-              ],
-              "confidence": 1.0,
-              "required": true
-            },
-            "order_by": {
-              "kind": "user_param",
-              "literal_value": null,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": "order_by",
-              "example_value": "`tabSales Order`.`modified` desc",
-              "confidence": 1.0,
-              "required": true
-            },
-            "start": {
-              "kind": "literal",
-              "literal_value": "0",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "0",
-              "confidence": 1.0,
-              "required": true
-            },
-            "page_length": {
-              "kind": "literal",
-              "literal_value": "20",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "20",
-              "confidence": 1.0,
-              "required": true
-            },
-            "view": {
-              "kind": "literal",
-              "literal_value": "List",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "List",
-              "confidence": 1.0,
-              "required": true
-            },
-            "with_comment_count": {
-              "kind": "literal",
-              "literal_value": "1",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "1",
-              "confidence": 1.0,
-              "required": true
-            }
-          },
-          "header_bindings": {},
-          "path_bindings": {},
-          "body_encoding": "form"
-        },
-        {
-          "method": "POST",
-          "path_template": "/api/method/frappe.desk.reportview.get",
-          "query_bindings": {},
-          "body_bindings": {
-            "doctype": {
-              "kind": "user_param",
-              "literal_value": null,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": "doctype",
-              "example_value": "Sales Order",
-              "confidence": 1.0,
-              "required": true
-            },
-            "fields": {
-              "kind": "user_param",
-              "literal_value": null,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": "fields",
-              "example_value": [
-                "`tabSales Order`.`name`",
-                "`tabSales Order`.`owner`",
-                "`tabSales Order`.`creation`",
-                "`tabSales Order`.`modified`",
-                "`tabSales Order`.`modified_by`",
-                "`tabSales Order`.`_user_tags`",
-                "`tabSales Order`.`_comments`",
-                "`tabSales Order`.`_assign`",
-                "`tabSales Order`.`_liked_by`",
-                "`tabSales Order`.`docstatus`",
-                "`tabSales Order`.`idx`",
-                "`tabSales Order`.`delivery_date`",
-                "`tabSales Order`.`total`",
-                "`tabSales Order`.`net_total`",
-                "`tabSales Order`.`total_taxes_and_charges`",
-                "`tabSales Order`.`grand_total`",
-                "`tabSales Order`.`rounding_adjustment`",
-                "`tabSales Order`.`rounded_total`",
-                "`tabSales Order`.`advance_paid`",
-                "`tabSales Order`.`discount_amount`",
-                "`tabSales Order`.`status`",
-                "`tabSales Order`.`per_delivered`",
-                "`tabSales Order`.`per_billed`",
-                "`tabSales Order`.`customer_name`",
-                "`tabSales Order`.`base_grand_total`",
-                "`tabSales Order`.`currency`",
-                "`tabSales Order`.`order_type`",
-                "`tabSales Order`.`skip_delivery_note`",
-                "`tabSales Order`.`_seen`",
-                "`tabSales Order`.`party_account_currency`"
-              ],
-              "confidence": 1.0,
-              "required": true
-            },
-            "filters": {
-              "kind": "user_param",
-              "literal_value": null,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": "filters_2",
-              "example_value": [
-                [
-                  "Sales Order",
-                  "customer",
-                  "=",
-                  "Ironwood Timber"
-                ]
-              ],
-              "confidence": 1.0,
-              "required": true
-            },
-            "order_by": {
-              "kind": "user_param",
-              "literal_value": null,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": "order_by",
-              "example_value": "`tabSales Order`.`modified` desc",
-              "confidence": 1.0,
-              "required": true
-            },
-            "start": {
-              "kind": "literal",
-              "literal_value": "0",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "0",
-              "confidence": 1.0,
-              "required": true
-            },
-            "page_length": {
-              "kind": "literal",
-              "literal_value": "20",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "20",
-              "confidence": 1.0,
-              "required": true
-            },
-            "view": {
-              "kind": "literal",
-              "literal_value": "List",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "List",
-              "confidence": 1.0,
-              "required": true
-            },
-            "with_comment_count": {
-              "kind": "literal",
-              "literal_value": "1",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "1",
-              "confidence": 1.0,
-              "required": true
-            }
-          },
-          "header_bindings": {},
-          "path_bindings": {},
-          "body_encoding": "form"
-        },
-        {
-          "method": "POST",
-          "path_template": "/api/method/frappe.desk.reportview.get_count",
-          "query_bindings": {},
-          "body_bindings": {
-            "doctype": {
-              "kind": "user_param",
-              "literal_value": null,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": "doctype",
-              "example_value": "Sales Order",
-              "confidence": 1.0,
-              "required": true
-            },
-            "filters": {
-              "kind": "user_param",
-              "literal_value": null,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": "filters_2",
-              "example_value": [
-                [
-                  "Sales Order",
-                  "customer",
-                  "=",
-                  "Ironwood Timber"
-                ]
-              ],
-              "confidence": 1.0,
-              "required": true
-            },
-            "fields": {
-              "kind": "literal",
-              "literal_value": [],
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": [],
-              "confidence": 1.0,
-              "required": true
-            },
-            "distinct": {
-              "kind": "literal",
-              "literal_value": "false",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "false",
-              "confidence": 1.0,
-              "required": true
-            },
-            "limit": {
-              "kind": "literal",
-              "literal_value": "1001",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "1001",
-              "confidence": 1.0,
-              "required": true
-            }
-          },
-          "header_bindings": {},
-          "path_bindings": {},
-          "body_encoding": "form"
-        }
-      ],
-      "mutation_class": "read",
-      "support": 4,
-      "verified": true,
-      "source_episode_ids": [
-        "ep0005",
-        "ep0010",
-        "ep0029",
-        "ep0079"
-      ],
-      "signature": "POST /api/method/frappe.desk.reportview.get | POST /api/method/frappe.desk.reportview.get | POST /api/method/frappe.desk.reportview.get_count",
-      "verify_note": "",
-      "response_shape": {
-        "$.message": "int"
-      },
-      "example_args": {
-        "doctype": "Sales Order",
-        "fields": [
-          "`tabSales Order`.`name`",
-          "`tabSales Order`.`owner`",
-          "`tabSales Order`.`creation`",
-          "`tabSales Order`.`modified`",
-          "`tabSales Order`.`modified_by`",
-          "`tabSales Order`.`_user_tags`",
-          "`tabSales Order`.`_comments`",
-          "`tabSales Order`.`_assign`",
-          "`tabSales Order`.`_liked_by`",
-          "`tabSales Order`.`docstatus`",
-          "`tabSales Order`.`idx`",
-          "`tabSales Order`.`delivery_date`",
-          "`tabSales Order`.`total`",
-          "`tabSales Order`.`net_total`",
-          "`tabSales Order`.`total_taxes_and_charges`",
-          "`tabSales Order`.`grand_total`",
-          "`tabSales Order`.`rounding_adjustment`",
-          "`tabSales Order`.`rounded_total`",
-          "`tabSales Order`.`advance_paid`",
-          "`tabSales Order`.`discount_amount`",
-          "`tabSales Order`.`status`",
-          "`tabSales Order`.`per_delivered`",
-          "`tabSales Order`.`per_billed`",
-          "`tabSales Order`.`customer_name`",
-          "`tabSales Order`.`base_grand_total`",
-          "`tabSales Order`.`currency`",
-          "`tabSales Order`.`order_type`",
-          "`tabSales Order`.`skip_delivery_note`",
-          "`tabSales Order`.`_seen`",
-          "`tabSales Order`.`party_account_currency`"
-        ],
-        "filters": [
-          [
-            "Sales Order",
-            "customer",
-            "=",
-            "Acme Industrial"
-          ]
-        ],
-        "order_by": "`tabSales Order`.`modified` desc",
-        "filters_2": [
-          [
-            "Sales Order",
-            "customer",
-            "=",
-            "Ironwood Timber"
-          ]
-        ]
-      },
-      "n_from_response_bindings": 0
+      "n_from_response_bindings": 2
     },
     {
       "name": "update_customer",
@@ -2141,18 +3559,30 @@
             "type": "string",
             "description": "name for step 0",
             "examples": [
-              "Ironwood Timber"
+              "Lumen Optics"
             ]
           },
           "customer_name": {
             "type": "string",
             "description": "doc for step 1",
             "examples": [
-              "Ironwood Timber"
+              "Lumen Optics"
+            ]
+          },
+          "customer_group": {
+            "type": "string",
+            "enum": [
+              "Individual",
+              "Commercial"
+            ],
+            "description": "doc for step 1",
+            "examples": [
+              "Individual"
             ]
           }
         },
         "required": [
+          "customer_group",
           "customer_name",
           "name"
         ]
@@ -2180,7 +3610,7 @@
               "json_path": null,
               "transform": "identity",
               "param_name": "name",
-              "example_value": "Ironwood Timber",
+              "example_value": "Lumen Optics",
               "confidence": 1.0,
               "required": true
             }
@@ -2202,7 +3632,7 @@
               "json_path": null,
               "transform": "identity",
               "param_name": "name",
-              "example_value": "Ironwood Timber",
+              "example_value": "Lumen Optics",
               "confidence": 1.0,
               "required": true
             },
@@ -2224,7 +3654,7 @@
               "json_path": "$.docs[0].creation",
               "transform": "identity",
               "param_name": null,
-              "example_value": "2026-08-20 13:54:57.175318",
+              "example_value": "2026-08-20 13:54:57.193486",
               "confidence": 1.0,
               "required": true
             },
@@ -2235,8 +3665,8 @@
               "json_path": "$.docs[0].creation",
               "transform": "identity",
               "param_name": null,
-              "example_value": "2026-08-20 13:54:57.175318",
-              "confidence": 1.0,
+              "example_value": "2026-08-20 13:54:57.193486",
+              "confidence": 0.6,
               "required": true
             },
             "doc::$.modified_by": {
@@ -2290,7 +3720,7 @@
               "json_path": null,
               "transform": "identity",
               "param_name": "customer_name",
-              "example_value": "Ironwood Timber",
+              "example_value": "Lumen Optics",
               "confidence": 1.0,
               "required": true
             },
@@ -2306,12 +3736,12 @@
               "required": true
             },
             "doc::$.customer_group": {
-              "kind": "literal",
-              "literal_value": "Individual",
+              "kind": "user_param",
+              "literal_value": null,
               "source_step_index": null,
               "json_path": null,
               "transform": "identity",
-              "param_name": null,
+              "param_name": "customer_group",
               "example_value": "Individual",
               "confidence": 1.0,
               "required": true
@@ -2499,13 +3929,14 @@
         }
       ],
       "mutation_class": "write",
-      "support": 4,
+      "support": 5,
       "verified": true,
       "source_episode_ids": [
-        "ep0008",
-        "ep0027",
-        "ep0044",
-        "ep0052"
+        "ep0011",
+        "ep0032",
+        "ep0041",
+        "ep0091",
+        "ep0107"
       ],
       "signature": "GET /api/method/frappe.desk.form.load.getdoc | POST /api/method/frappe.desk.form.save.savedocs",
       "verify_note": "",
@@ -2552,477 +3983,249 @@
         "$.docs[].tax_category": "NoneType"
       },
       "example_args": {
-        "name": "Ironwood Timber",
-        "customer_name": "Ironwood Timber"
+        "name": "Lumen Optics",
+        "customer_name": "Lumen Optics",
+        "customer_group": "Individual"
       },
       "n_from_response_bindings": 8
     },
     {
-      "name": "create_record",
-      "description": "Create records of a caller-specified record type in the ERP system. Generalised from tasks that share this state-changing step.",
+      "name": "list_records_3",
+      "description": "List records of a caller-specified record type in the ERP system.",
       "params_schema": {
         "type": "object",
         "properties": {
           "doctype": {
             "type": "string",
-            "description": "doc for step 0",
+            "description": "doctype for step 0",
             "examples": [
-              "Customer"
+              "Sales Invoice"
             ]
           },
-          "name": {
-            "type": "string",
-            "description": "doc for step 0",
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "fields for step 0",
             "examples": [
-              "new-customer-jmjtfbehid"
+              [
+                "`tabSales Invoice`.`name`",
+                "`tabSales Invoice`.`owner`",
+                "`tabSales Invoice`.`creation`",
+                "`tabSales Invoice`.`modified`",
+                "`tabSales Invoice`.`modified_by`",
+                "`tabSales Invoice`.`_user_tags`",
+                "`tabSales Invoice`.`_comments`",
+                "`tabSales Invoice`.`_assign`",
+                "`tabSales Invoice`.`_liked_by`",
+                "`tabSales Invoice`.`docstatus`",
+                "`tabSales Invoice`.`idx`",
+                "`tabSales Invoice`.`total`",
+                "`tabSales Invoice`.`net_total`",
+                "`tabSales Invoice`.`total_taxes_and_charges`",
+                "`tabSales Invoice`.`grand_total`",
+                "`tabSales Invoice`.`rounding_adjustment`",
+                "`tabSales Invoice`.`rounded_total`",
+                "`tabSales Invoice`.`total_advance`",
+                "`tabSales Invoice`.`outstanding_amount`",
+                "`tabSales Invoice`.`discount_amount`",
+                "`tabSales Invoice`.`total_billing_amount`",
+                "`tabSales Invoice`.`paid_amount`",
+                "`tabSales Invoice`.`change_amount`",
+                "`tabSales Invoice`.`write_off_amount`",
+                "`tabSales Invoice`.`status`",
+                "`tabSales Invoice`.`title`",
+                "`tabSales Invoice`.`customer`",
+                "`tabSales Invoice`.`customer_name`",
+                "`tabSales Invoice`.`base_grand_total`",
+                "`tabSales Invoice`.`due_date`",
+                "`tabSales Invoice`.`company`",
+                "`tabSales Invoice`.`currency`",
+                "`tabSales Invoice`.`is_return`",
+                "`tabSales Invoice`.`_seen`",
+                "`tabSales Invoice`.`party_account_currency`"
+              ]
             ]
           },
-          "customer_name": {
-            "type": "string",
-            "description": "doc for step 0",
+          "filters": {
+            "type": "array",
+            "description": "filters for step 0",
             "examples": [
-              "Vantage Rail 018"
+              [
+                [
+                  "Sales Invoice",
+                  "status",
+                  "=",
+                  "Overdue"
+                ]
+              ]
             ]
           },
-          "name_2": {
+          "order_by": {
             "type": "string",
-            "description": "doc for step 1",
+            "description": "order_by for step 0",
             "examples": [
-              "new-customer-imcpmdcctw"
+              "`tabSales Invoice`.`modified` desc"
             ]
           },
-          "customer_name_2": {
-            "type": "string",
-            "description": "doc for step 1",
+          "filters_2": {
+            "type": "array",
+            "description": "filters for step 1",
             "examples": [
-              "Emberline Foods 019"
-            ]
-          },
-          "customer_group": {
-            "type": "string",
-            "description": "doc for step 1",
-            "examples": [
-              "Commercial"
-            ]
-          },
-          "territory": {
-            "type": "string",
-            "description": "doc for step 1",
-            "examples": [
-              "Rest Of The World"
-            ]
-          },
-          "creation": {
-            "type": "string",
-            "format": "date",
-            "description": "doc for step 1",
-            "examples": [
-              "2026-08-20 13:54:57.168557"
-            ]
-          },
-          "modified": {
-            "type": "string",
-            "format": "date",
-            "description": "doc for step 1",
-            "examples": [
-              "2026-08-20 13:54:57.168557"
+              [
+                [
+                  "Sales Invoice",
+                  "customer",
+                  "=",
+                  "Cobalt Robotics"
+                ]
+              ]
             ]
           }
         },
         "required": [
           "doctype",
-          "name",
-          "name_2"
+          "fields",
+          "filters",
+          "filters_2",
+          "order_by"
         ]
       },
       "steps": [
         {
           "method": "POST",
-          "path_template": "/api/method/frappe.desk.form.save.savedocs",
+          "path_template": "/api/method/frappe.desk.reportview.get",
           "query_bindings": {},
           "body_bindings": {
-            "doc::$.docstatus": {
-              "kind": "literal",
-              "literal_value": 0,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": 0,
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.doctype": {
+            "doctype": {
               "kind": "user_param",
               "literal_value": null,
               "source_step_index": null,
               "json_path": null,
               "transform": "identity",
               "param_name": "doctype",
-              "example_value": "Customer",
+              "example_value": "Sales Invoice",
               "confidence": 1.0,
               "required": true
             },
-            "doc::$.name": {
+            "fields": {
               "kind": "user_param",
               "literal_value": null,
               "source_step_index": null,
               "json_path": null,
               "transform": "identity",
-              "param_name": "name",
-              "example_value": "new-customer-jmjtfbehid",
+              "param_name": "fields",
+              "example_value": [
+                "`tabSales Invoice`.`name`",
+                "`tabSales Invoice`.`owner`",
+                "`tabSales Invoice`.`creation`",
+                "`tabSales Invoice`.`modified`",
+                "`tabSales Invoice`.`modified_by`",
+                "`tabSales Invoice`.`_user_tags`",
+                "`tabSales Invoice`.`_comments`",
+                "`tabSales Invoice`.`_assign`",
+                "`tabSales Invoice`.`_liked_by`",
+                "`tabSales Invoice`.`docstatus`",
+                "`tabSales Invoice`.`idx`",
+                "`tabSales Invoice`.`total`",
+                "`tabSales Invoice`.`net_total`",
+                "`tabSales Invoice`.`total_taxes_and_charges`",
+                "`tabSales Invoice`.`grand_total`",
+                "`tabSales Invoice`.`rounding_adjustment`",
+                "`tabSales Invoice`.`rounded_total`",
+                "`tabSales Invoice`.`total_advance`",
+                "`tabSales Invoice`.`outstanding_amount`",
+                "`tabSales Invoice`.`discount_amount`",
+                "`tabSales Invoice`.`total_billing_amount`",
+                "`tabSales Invoice`.`paid_amount`",
+                "`tabSales Invoice`.`change_amount`",
+                "`tabSales Invoice`.`write_off_amount`",
+                "`tabSales Invoice`.`status`",
+                "`tabSales Invoice`.`title`",
+                "`tabSales Invoice`.`customer`",
+                "`tabSales Invoice`.`customer_name`",
+                "`tabSales Invoice`.`base_grand_total`",
+                "`tabSales Invoice`.`due_date`",
+                "`tabSales Invoice`.`company`",
+                "`tabSales Invoice`.`currency`",
+                "`tabSales Invoice`.`is_return`",
+                "`tabSales Invoice`.`_seen`",
+                "`tabSales Invoice`.`party_account_currency`"
+              ],
               "confidence": 1.0,
               "required": true
             },
-            "doc::$.__islocal": {
-              "kind": "literal",
-              "literal_value": 1,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": 1,
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.__unsaved": {
-              "kind": "literal",
-              "literal_value": 1,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": 1,
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.owner": {
-              "kind": "literal",
-              "literal_value": "Administrator",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "Administrator",
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.naming_series": {
-              "kind": "literal",
-              "literal_value": "CUST-.YYYY.-",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "CUST-.YYYY.-",
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.customer_type": {
-              "kind": "literal",
-              "literal_value": "Company",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "Company",
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.is_internal_customer": {
-              "kind": "literal",
-              "literal_value": 0,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": 0,
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.language": {
-              "kind": "literal",
-              "literal_value": "en-US",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "en-US",
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.so_required": {
-              "kind": "literal",
-              "literal_value": 0,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": 0,
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.dn_required": {
-              "kind": "literal",
-              "literal_value": 0,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": 0,
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.is_frozen": {
-              "kind": "literal",
-              "literal_value": 0,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": 0,
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.disabled": {
-              "kind": "literal",
-              "literal_value": 0,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": 0,
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.represents_company": {
-              "kind": "literal",
-              "literal_value": "",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "",
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.customer_name": {
+            "filters": {
               "kind": "user_param",
               "literal_value": null,
               "source_step_index": null,
               "json_path": null,
               "transform": "identity",
-              "param_name": "customer_name",
-              "example_value": "Vantage Rail 018",
-              "confidence": 1.0,
-              "required": false
-            },
-            "doc::$.customer_group": {
-              "kind": "literal",
-              "literal_value": "Commercial",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "Commercial",
+              "param_name": "filters",
+              "example_value": [
+                [
+                  "Sales Invoice",
+                  "status",
+                  "=",
+                  "Overdue"
+                ]
+              ],
               "confidence": 1.0,
               "required": true
             },
-            "doc::$.territory": {
-              "kind": "literal",
-              "literal_value": "Rest Of The World",
+            "order_by": {
+              "kind": "user_param",
+              "literal_value": null,
               "source_step_index": null,
               "json_path": null,
               "transform": "identity",
-              "param_name": null,
-              "example_value": "Rest Of The World",
+              "param_name": "order_by",
+              "example_value": "`tabSales Invoice`.`modified` desc",
               "confidence": 1.0,
               "required": true
             },
-            "action": {
+            "start": {
               "kind": "literal",
-              "literal_value": "Save",
+              "literal_value": "0",
               "source_step_index": null,
               "json_path": null,
               "transform": "identity",
               "param_name": null,
-              "example_value": "Save",
+              "example_value": "0",
               "confidence": 1.0,
               "required": true
             },
-            "doc::$.creation": {
+            "page_length": {
               "kind": "literal",
-              "literal_value": "2026-08-20 13:54:57.762368",
+              "literal_value": "20",
               "source_step_index": null,
               "json_path": null,
               "transform": "identity",
               "param_name": null,
-              "example_value": "2026-08-20 13:54:57.762368",
+              "example_value": "20",
               "confidence": 1.0,
               "required": true
             },
-            "doc::$.modified": {
+            "view": {
               "kind": "literal",
-              "literal_value": "2026-08-20 14:52:02.393203",
+              "literal_value": "List",
               "source_step_index": null,
               "json_path": null,
               "transform": "identity",
               "param_name": null,
-              "example_value": "2026-08-20 14:52:02.393203",
+              "example_value": "List",
               "confidence": 1.0,
               "required": true
             },
-            "doc::$.modified_by": {
+            "with_comment_count": {
               "kind": "literal",
-              "literal_value": "Administrator",
+              "literal_value": "1",
               "source_step_index": null,
               "json_path": null,
               "transform": "identity",
               "param_name": null,
-              "example_value": "Administrator",
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.idx": {
-              "kind": "literal",
-              "literal_value": 0,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": 0,
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.item_code": {
-              "kind": "literal",
-              "literal_value": "SH-PANEL-01",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "SH-PANEL-01",
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.uom": {
-              "kind": "literal",
-              "literal_value": "Nos",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "Nos",
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.packing_unit": {
-              "kind": "literal",
-              "literal_value": 0,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": 0,
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.item_name": {
-              "kind": "literal",
-              "literal_value": "Control Panel Enclosure",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "Control Panel Enclosure",
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.item_description": {
-              "kind": "literal",
-              "literal_value": "Control Panel Enclosure",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "Control Panel Enclosure",
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.price_list": {
-              "kind": "literal",
-              "literal_value": "Standard Selling",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "Standard Selling",
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.buying": {
-              "kind": "literal",
-              "literal_value": 0,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": 0,
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.selling": {
-              "kind": "literal",
-              "literal_value": 1,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": 1,
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.currency": {
-              "kind": "literal",
-              "literal_value": "USD",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "USD",
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.price_list_rate": {
-              "kind": "literal",
-              "literal_value": 92.4,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": 92.4,
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.valid_from": {
-              "kind": "literal",
-              "literal_value": "2026-08-20",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "2026-08-20",
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.lead_time_days": {
-              "kind": "literal",
-              "literal_value": 0,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": 0,
+              "example_value": "1",
               "confidence": 1.0,
               "required": true
             }
@@ -3033,457 +4236,209 @@
         },
         {
           "method": "POST",
-          "path_template": "/api/method/frappe.desk.form.save.savedocs",
+          "path_template": "/api/method/frappe.desk.reportview.get",
           "query_bindings": {},
           "body_bindings": {
-            "doc::$.docstatus": {
-              "kind": "literal",
-              "literal_value": 0,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": 0,
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.doctype": {
+            "doctype": {
               "kind": "user_param",
               "literal_value": null,
               "source_step_index": null,
               "json_path": null,
               "transform": "identity",
               "param_name": "doctype",
-              "example_value": "Customer",
+              "example_value": "Sales Invoice",
               "confidence": 1.0,
               "required": true
             },
-            "doc::$.name": {
+            "fields": {
               "kind": "user_param",
               "literal_value": null,
               "source_step_index": null,
               "json_path": null,
               "transform": "identity",
-              "param_name": "name_2",
-              "example_value": "new-customer-imcpmdcctw",
+              "param_name": "fields",
+              "example_value": [
+                "`tabSales Invoice`.`name`",
+                "`tabSales Invoice`.`owner`",
+                "`tabSales Invoice`.`creation`",
+                "`tabSales Invoice`.`modified`",
+                "`tabSales Invoice`.`modified_by`",
+                "`tabSales Invoice`.`_user_tags`",
+                "`tabSales Invoice`.`_comments`",
+                "`tabSales Invoice`.`_assign`",
+                "`tabSales Invoice`.`_liked_by`",
+                "`tabSales Invoice`.`docstatus`",
+                "`tabSales Invoice`.`idx`",
+                "`tabSales Invoice`.`total`",
+                "`tabSales Invoice`.`net_total`",
+                "`tabSales Invoice`.`total_taxes_and_charges`",
+                "`tabSales Invoice`.`grand_total`",
+                "`tabSales Invoice`.`rounding_adjustment`",
+                "`tabSales Invoice`.`rounded_total`",
+                "`tabSales Invoice`.`total_advance`",
+                "`tabSales Invoice`.`outstanding_amount`",
+                "`tabSales Invoice`.`discount_amount`",
+                "`tabSales Invoice`.`total_billing_amount`",
+                "`tabSales Invoice`.`paid_amount`",
+                "`tabSales Invoice`.`change_amount`",
+                "`tabSales Invoice`.`write_off_amount`",
+                "`tabSales Invoice`.`status`",
+                "`tabSales Invoice`.`title`",
+                "`tabSales Invoice`.`customer`",
+                "`tabSales Invoice`.`customer_name`",
+                "`tabSales Invoice`.`base_grand_total`",
+                "`tabSales Invoice`.`due_date`",
+                "`tabSales Invoice`.`company`",
+                "`tabSales Invoice`.`currency`",
+                "`tabSales Invoice`.`is_return`",
+                "`tabSales Invoice`.`_seen`",
+                "`tabSales Invoice`.`party_account_currency`"
+              ],
               "confidence": 1.0,
               "required": true
             },
-            "doc::$.__islocal": {
-              "kind": "literal",
-              "literal_value": 1,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": 1,
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.__unsaved": {
-              "kind": "literal",
-              "literal_value": 1,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": 1,
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.owner": {
-              "kind": "literal",
-              "literal_value": "Administrator",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "Administrator",
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.naming_series": {
-              "kind": "literal",
-              "literal_value": "CUST-.YYYY.-",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "CUST-.YYYY.-",
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.customer_type": {
-              "kind": "literal",
-              "literal_value": "Company",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "Company",
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.is_internal_customer": {
-              "kind": "literal",
-              "literal_value": 0,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": 0,
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.language": {
-              "kind": "literal",
-              "literal_value": "en-US",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "en-US",
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.so_required": {
-              "kind": "literal",
-              "literal_value": 0,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": 0,
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.dn_required": {
-              "kind": "literal",
-              "literal_value": 0,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": 0,
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.is_frozen": {
-              "kind": "literal",
-              "literal_value": 0,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": 0,
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.disabled": {
-              "kind": "literal",
-              "literal_value": 0,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": 0,
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.represents_company": {
-              "kind": "literal",
-              "literal_value": "",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "",
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.customer_name": {
+            "filters": {
               "kind": "user_param",
               "literal_value": null,
               "source_step_index": null,
               "json_path": null,
               "transform": "identity",
-              "param_name": "customer_name_2",
-              "example_value": "Emberline Foods 019",
+              "param_name": "filters_2",
+              "example_value": [
+                [
+                  "Sales Invoice",
+                  "customer",
+                  "=",
+                  "Cobalt Robotics"
+                ]
+              ],
               "confidence": 1.0,
-              "required": false
+              "required": true
             },
-            "doc::$.customer_group": {
+            "order_by": {
               "kind": "user_param",
               "literal_value": null,
               "source_step_index": null,
               "json_path": null,
               "transform": "identity",
-              "param_name": "customer_group",
-              "example_value": "Commercial",
+              "param_name": "order_by",
+              "example_value": "`tabSales Invoice`.`modified` desc",
               "confidence": 1.0,
-              "required": false
+              "required": true
             },
-            "doc::$.territory": {
+            "start": {
+              "kind": "literal",
+              "literal_value": "0",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "0",
+              "confidence": 1.0,
+              "required": true
+            },
+            "page_length": {
+              "kind": "literal",
+              "literal_value": "20",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "20",
+              "confidence": 1.0,
+              "required": true
+            },
+            "view": {
+              "kind": "literal",
+              "literal_value": "List",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "List",
+              "confidence": 1.0,
+              "required": true
+            },
+            "with_comment_count": {
+              "kind": "literal",
+              "literal_value": "1",
+              "source_step_index": null,
+              "json_path": null,
+              "transform": "identity",
+              "param_name": null,
+              "example_value": "1",
+              "confidence": 1.0,
+              "required": true
+            }
+          },
+          "header_bindings": {},
+          "path_bindings": {},
+          "body_encoding": "form"
+        },
+        {
+          "method": "POST",
+          "path_template": "/api/method/frappe.desk.reportview.get_count",
+          "query_bindings": {},
+          "body_bindings": {
+            "doctype": {
               "kind": "user_param",
               "literal_value": null,
               "source_step_index": null,
               "json_path": null,
               "transform": "identity",
-              "param_name": "territory",
-              "example_value": "Rest Of The World",
-              "confidence": 1.0,
-              "required": false
-            },
-            "action": {
-              "kind": "literal",
-              "literal_value": "Save",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "Save",
+              "param_name": "doctype",
+              "example_value": "Sales Invoice",
               "confidence": 1.0,
               "required": true
             },
-            "doc::$.creation": {
+            "filters": {
               "kind": "user_param",
               "literal_value": null,
               "source_step_index": null,
               "json_path": null,
               "transform": "identity",
-              "param_name": "creation",
-              "example_value": "2026-08-20 13:54:57.168557",
-              "confidence": 1.0,
-              "required": false
-            },
-            "doc::$.modified": {
-              "kind": "user_param",
-              "literal_value": null,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": "modified",
-              "example_value": "2026-08-20 13:54:57.168557",
-              "confidence": 1.0,
-              "required": false
-            },
-            "doc::$.modified_by": {
-              "kind": "literal",
-              "literal_value": "Administrator",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "Administrator",
+              "param_name": "filters_2",
+              "example_value": [
+                [
+                  "Sales Invoice",
+                  "customer",
+                  "=",
+                  "Cobalt Robotics"
+                ]
+              ],
               "confidence": 1.0,
               "required": true
             },
-            "doc::$.idx": {
+            "fields": {
               "kind": "literal",
-              "literal_value": 0,
+              "literal_value": [],
               "source_step_index": null,
               "json_path": null,
               "transform": "identity",
               "param_name": null,
-              "example_value": 0,
+              "example_value": [],
               "confidence": 1.0,
               "required": true
             },
-            "doc::$.mobile_no": {
+            "distinct": {
               "kind": "literal",
-              "literal_value": "",
+              "literal_value": "false",
               "source_step_index": null,
               "json_path": null,
               "transform": "identity",
               "param_name": null,
-              "example_value": "",
+              "example_value": "false",
               "confidence": 1.0,
               "required": true
             },
-            "doc::$.email_id": {
+            "limit": {
               "kind": "literal",
-              "literal_value": "",
+              "literal_value": "1001",
               "source_step_index": null,
               "json_path": null,
               "transform": "identity",
               "param_name": null,
-              "example_value": "",
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.first_name": {
-              "kind": "literal",
-              "literal_value": "",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "",
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.last_name": {
-              "kind": "literal",
-              "literal_value": "",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "",
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.default_commission_rate": {
-              "kind": "literal",
-              "literal_value": 0,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": 0,
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.exempt_from_sales_tax": {
-              "kind": "literal",
-              "literal_value": 0,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": 0,
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.item_code": {
-              "kind": "literal",
-              "literal_value": "SH-CABLE-01",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "SH-CABLE-01",
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.uom": {
-              "kind": "literal",
-              "literal_value": "Nos",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "Nos",
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.packing_unit": {
-              "kind": "literal",
-              "literal_value": 0,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": 0,
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.item_name": {
-              "kind": "literal",
-              "literal_value": "Shielded Cable 10m",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "Shielded Cable 10m",
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.item_description": {
-              "kind": "literal",
-              "literal_value": "Shielded Cable 10m",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "Shielded Cable 10m",
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.price_list": {
-              "kind": "literal",
-              "literal_value": "Standard Selling",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "Standard Selling",
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.buying": {
-              "kind": "literal",
-              "literal_value": 0,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": 0,
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.selling": {
-              "kind": "literal",
-              "literal_value": 1,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": 1,
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.currency": {
-              "kind": "literal",
-              "literal_value": "USD",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "USD",
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.price_list_rate": {
-              "kind": "literal",
-              "literal_value": 235,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": 235,
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.valid_from": {
-              "kind": "literal",
-              "literal_value": "2026-08-20",
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": "2026-08-20",
-              "confidence": 1.0,
-              "required": true
-            },
-            "doc::$.lead_time_days": {
-              "kind": "literal",
-              "literal_value": 0,
-              "source_step_index": null,
-              "json_path": null,
-              "transform": "identity",
-              "param_name": null,
-              "example_value": 0,
+              "example_value": "1001",
               "confidence": 1.0,
               "required": true
             }
@@ -3493,73 +4448,80 @@
           "body_encoding": "form"
         }
       ],
-      "mutation_class": "write",
+      "mutation_class": "read",
       "support": 3,
       "verified": true,
       "source_episode_ids": [
-        "ep0018",
-        "ep0065",
-        "ep0083"
+        "ep0014",
+        "ep0101",
+        "ep0111"
       ],
-      "signature": "POST /api/method/frappe.desk.form.save.savedocs | POST /api/method/frappe.desk.form.save.savedocs",
+      "signature": "POST /api/method/frappe.desk.reportview.get | POST /api/method/frappe.desk.reportview.get | POST /api/method/frappe.desk.reportview.get_count",
       "verify_note": "",
       "response_shape": {
-        "$.docs[].name": "str",
-        "$.docs[].owner": "str",
-        "$.docs[].creation": "str",
-        "$.docs[].modified": "str",
-        "$.docs[].modified_by": "str",
-        "$.docs[].docstatus": "int",
-        "$.docs[].idx": "int",
-        "$.docs[].naming_series": "str",
-        "$.docs[].salutation": "NoneType",
-        "$.docs[].customer_name": "str",
-        "$.docs[].customer_type": "str",
-        "$.docs[].customer_group": "str",
-        "$.docs[].territory": "str",
-        "$.docs[].gender": "NoneType",
-        "$.docs[].lead_name": "NoneType",
-        "$.docs[].opportunity_name": "NoneType",
-        "$.docs[].prospect_name": "NoneType",
-        "$.docs[].crm_deal": "NoneType",
-        "$.docs[].account_manager": "NoneType",
-        "$.docs[].image": "NoneType",
-        "$.docs[].default_currency": "NoneType",
-        "$.docs[].default_bank_account": "NoneType",
-        "$.docs[].default_price_list": "NoneType",
-        "$.docs[].is_internal_customer": "int",
-        "$.docs[].represents_company": "NoneType",
-        "$.docs[].market_segment": "NoneType",
-        "$.docs[].industry": "NoneType",
-        "$.docs[].customer_pos_id": "NoneType",
-        "$.docs[].website": "NoneType",
-        "$.docs[].language": "str",
-        "$.docs[].customer_details": "NoneType",
-        "$.docs[].customer_primary_address": "NoneType",
-        "$.docs[].primary_address": "NoneType",
-        "$.docs[].customer_primary_contact": "NoneType",
-        "$.docs[].mobile_no": "str",
-        "$.docs[].email_id": "str",
-        "$.docs[].first_name": "str",
-        "$.docs[].last_name": "str",
-        "$.docs[].tax_id": "NoneType",
-        "$.docs[].tax_category": "NoneType"
+        "$.message": "int"
       },
       "example_args": {
-        "doctype": "Customer",
-        "name": "new-customer-jmjtfbehid",
-        "customer_name": "Vantage Rail 018",
-        "name_2": "new-customer-imcpmdcctw",
-        "customer_name_2": "Emberline Foods 019",
-        "customer_group": "Commercial",
-        "territory": "Rest Of The World",
-        "creation": "2026-08-20 13:54:57.168557",
-        "modified": "2026-08-20 13:54:57.168557"
+        "doctype": "Sales Invoice",
+        "fields": [
+          "`tabSales Invoice`.`name`",
+          "`tabSales Invoice`.`owner`",
+          "`tabSales Invoice`.`creation`",
+          "`tabSales Invoice`.`modified`",
+          "`tabSales Invoice`.`modified_by`",
+          "`tabSales Invoice`.`_user_tags`",
+          "`tabSales Invoice`.`_comments`",
+          "`tabSales Invoice`.`_assign`",
+          "`tabSales Invoice`.`_liked_by`",
+          "`tabSales Invoice`.`docstatus`",
+          "`tabSales Invoice`.`idx`",
+          "`tabSales Invoice`.`total`",
+          "`tabSales Invoice`.`net_total`",
+          "`tabSales Invoice`.`total_taxes_and_charges`",
+          "`tabSales Invoice`.`grand_total`",
+          "`tabSales Invoice`.`rounding_adjustment`",
+          "`tabSales Invoice`.`rounded_total`",
+          "`tabSales Invoice`.`total_advance`",
+          "`tabSales Invoice`.`outstanding_amount`",
+          "`tabSales Invoice`.`discount_amount`",
+          "`tabSales Invoice`.`total_billing_amount`",
+          "`tabSales Invoice`.`paid_amount`",
+          "`tabSales Invoice`.`change_amount`",
+          "`tabSales Invoice`.`write_off_amount`",
+          "`tabSales Invoice`.`status`",
+          "`tabSales Invoice`.`title`",
+          "`tabSales Invoice`.`customer`",
+          "`tabSales Invoice`.`customer_name`",
+          "`tabSales Invoice`.`base_grand_total`",
+          "`tabSales Invoice`.`due_date`",
+          "`tabSales Invoice`.`company`",
+          "`tabSales Invoice`.`currency`",
+          "`tabSales Invoice`.`is_return`",
+          "`tabSales Invoice`.`_seen`",
+          "`tabSales Invoice`.`party_account_currency`"
+        ],
+        "filters": [
+          [
+            "Sales Invoice",
+            "status",
+            "=",
+            "Overdue"
+          ]
+        ],
+        "order_by": "`tabSales Invoice`.`modified` desc",
+        "filters_2": [
+          [
+            "Sales Invoice",
+            "customer",
+            "=",
+            "Cobalt Robotics"
+          ]
+        ]
       },
       "n_from_response_bindings": 0
     }
   ],
-  "generated_from_episodes": 87,
+  "generated_from_episodes": 115,
   "observe_template_ids": [
     "T01_customer_outstanding",
     "T02_overdue_invoices",
@@ -3568,6 +4530,12 @@
     "T07_items_below_price",
     "T08_create_customer",
     "T11_update_item_price",
-    "T13_update_customer_group"
+    "T13_update_customer_group",
+    "T15_create_contact",
+    "T16_create_lead",
+    "T17_create_warehouse",
+    "T18_create_item_group",
+    "T19_create_supplier_group",
+    "T20_create_territory"
   ]
 }

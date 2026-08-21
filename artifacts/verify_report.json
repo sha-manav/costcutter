@@ -1,6 +1,43 @@
 [
   {
+    "tool": "create_record",
+    "mutation_class": "write",
+    "ok": true,
+    "status": 200,
+    "shape_match": 1.0,
+    "error": null,
+    "binding_failure": false,
+    "changed_doctypes": {
+      "Supplier Group": 1
+    },
+    "note": ""
+  },
+  {
     "tool": "list_records",
+    "mutation_class": "read",
+    "ok": true,
+    "status": 200,
+    "shape_match": 1.0,
+    "error": null,
+    "binding_failure": false,
+    "changed_doctypes": {},
+    "note": ""
+  },
+  {
+    "tool": "create_record_2",
+    "mutation_class": "write",
+    "ok": true,
+    "status": 200,
+    "shape_match": 0.95,
+    "error": null,
+    "binding_failure": false,
+    "changed_doctypes": {
+      "Warehouse": 2
+    },
+    "note": ""
+  },
+  {
+    "tool": "list_records_2",
     "mutation_class": "read",
     "ok": true,
     "status": 200,
@@ -35,19 +72,21 @@
     "note": ""
   },
   {
-    "tool": "list_customers",
-    "mutation_class": "read",
+    "tool": "create_lead",
+    "mutation_class": "write",
     "ok": true,
     "status": 200,
     "shape_match": 1.0,
     "error": null,
     "binding_failure": false,
-    "changed_doctypes": {},
+    "changed_doctypes": {
+      "Lead": 1
+    },
     "note": ""
   },
   {
-    "tool": "list_records_2",
-    "mutation_class": "read",
+    "tool": "update_customer",
+    "mutation_class": "write",
     "ok": true,
     "status": 200,
     "shape_match": 1.0,
@@ -65,30 +104,6 @@
     "error": null,
     "binding_failure": false,
     "changed_doctypes": {},
-    "note": ""
-  },
-  {
-    "tool": "update_customer",
-    "mutation_class": "write",
-    "ok": true,
-    "status": 200,
-    "shape_match": 1.0,
-    "error": null,
-    "binding_failure": false,
-    "changed_doctypes": {},
-    "note": ""
-  },
-  {
-    "tool": "create_record",
-    "mutation_class": "write",
-    "ok": true,
-    "status": 200,
-    "shape_match": 1.0,
-    "error": null,
-    "binding_failure": false,
-    "changed_doctypes": {
-      "Customer": 2
-    },
     "note": ""
   }
 ]

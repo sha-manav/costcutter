@@ -160,6 +160,12 @@ class LiteLLMClient:
         if self.prompt_caching:
             messages = mark_cacheable(messages, self.model)
         t0 = time.time()
+        # A provider 5xx is not the agent failing the task, but the harness
+        # cannot tell the difference after the fact: the run ends with zero
+        # steps and is scored as a failure, which lands directly on the
+        # success rate the benchmark exists to measure. Retry transient
+        # errors here so they never reach the result row.
+        kwargs.setdefault("num_retries", 4)
         resp = litellm.completion(model=self.model, messages=messages, **kwargs)
         dt = time.time() - t0
         usage = getattr(resp, "usage", None)

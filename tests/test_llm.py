@@ -103,7 +103,11 @@ def test_offline_call_site_kwargs_never_reach_the_provider(stub_litellm):
     LiteLLMClient("claude-haiku-4-5-20251001").complete(
         [{"role": "user", "content": "U"}], policy="tool_agent",
         policy_context={"router": None})
-    assert stub_litellm[0]["kwargs"] == {}
+    kwargs = stub_litellm[0]["kwargs"]
+    # The assertion is about the offline call-site keys, not about the call
+    # carrying no kwargs at all -- transport concerns like num_retries are
+    # allowed through.
+    assert "policy" not in kwargs and "policy_context" not in kwargs
 
 
 def test_the_fixed_prefix_is_marked_cacheable(stub_litellm):
@@ -336,3 +340,28 @@ def test_a_condition_that_never_succeeds_has_unbounded_cost():
     m = score_condition(rows, "B_tools", get_config())
     assert m.usd_per_successful_task == float("inf")
     assert m.usd_per_successful_task_uncached == float("inf")
+
+
+def test_transient_provider_errors_are_retried(stub_litellm):
+    """A provider 5xx must not be scored as the agent failing the task.
+
+    One Anthropic 500 during the headline run ended a task at zero steps and
+    was recorded as a failure, landing on the success rate the benchmark
+    exists to measure. Nothing downstream can tell that apart from a genuine
+    failure, so it has to be handled at the call.
+    """
+    LiteLLMClient("claude-sonnet-5").complete([{"role": "user", "content": "U"}])
+    assert stub_litellm[0]["kwargs"]["num_retries"] >= 1
+
+
+def test_a_run_that_spent_nothing_costs_nothing():
+    """Scoring must survive a row whose model field never got filled in."""
+    from shadow.bench.metrics import MissingCost, usd
+
+    cfg = get_config()
+    dead = {"model": "", "input_tokens": 0, "cached_input_tokens": 0,
+            "cache_write_tokens": 0, "output_tokens": 0}
+    assert usd(cfg, dead) == 0.0
+    # But a record that actually consumed tokens still has to be priced.
+    with pytest.raises(MissingCost):
+        usd(cfg, {"model": "", "input_tokens": 1})

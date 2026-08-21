@@ -29,6 +29,14 @@ def usd(cfg: Config, usage: dict[str, Any], price_cache_at_full: bool = False
     and cannot — so the comparison is reported both ways rather than banking
     a structural advantage silently.
     """
+    counted = ("input_tokens", "cached_input_tokens", "cache_write_tokens",
+               "output_tokens")
+    if not any(int(usage.get(k, 0) or 0) for k in counted):
+        # A run that died before its first request spent nothing. Refusing to
+        # price it would make one provider outage unscoreable for the whole
+        # benchmark; the missing-price check below still guards every record
+        # that actually consumed tokens.
+        return 0.0
     model = usage.get("model", "")
     price = cfg.costs.get(model)
     if price is None:

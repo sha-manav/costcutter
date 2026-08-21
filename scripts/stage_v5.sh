@@ -19,7 +19,12 @@ fi
 
 step "in-distribution verify"
 if [ ! -s artifacts/indist/verify_report.json ]; then
-  $PY -m shadow.bench.indist_pipeline verify >>/tmp/indist_verify.log 2>&1 || exit 1
+  # --allow-writes replays write tools against a freshly reset instance,
+  # exactly as the held-out catalog was verified. Without it six of eight
+  # tools stay unverified and condition B runs on two read tools, which is
+  # not the same treatment and would understate coverage.
+  $PY -m shadow.bench.indist_pipeline verify --allow-writes \
+      >>/tmp/indist_verify.log 2>&1 || exit 1
 fi
 
 step "in-distribution benchmark (3 trials, both conditions)"

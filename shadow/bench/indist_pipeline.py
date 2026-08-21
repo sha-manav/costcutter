@@ -128,7 +128,13 @@ def cmd_verify(args) -> int:
     out = cfg.path("artifacts") / "verify_report.json"
     out.write_text(json.dumps([r if isinstance(r, dict) else r.__dict__
                                for r in reports], indent=2, default=str))
-    verified = sum(1 for t in read_catalog(cfg.path("tools")).tools if t.verified)
+    # Re-emit so the served catalog reflects what actually verified.
+    # verify_catalog sets the flag on the in-memory catalog; without this the
+    # flags are computed and thrown away, and the benchmark then runs with an
+    # empty tool set while reporting nothing wrong.
+    emit(catalog, cfg.path("tools"), cfg.path("mcp_server"),
+         Path(__file__).resolve().parent.parent.parent)
+    verified = sum(1 for t in catalog.tools if t.verified)
     print(f"{verified}/{len(catalog.tools)} tools verified; report -> {out}")
     return 0
 

@@ -191,3 +191,24 @@ def test_emitted_server_module_is_runnable(tmp_path):
     compile(source, str(server_path), "exec")
     server = build_server(tools_path)
     assert asyncio.run(server.get_tool("list_records")) is not None
+
+
+def test_verification_flags_are_persisted_not_just_computed():
+    """A verified flag that never reaches disk is a benchmark with no tools.
+
+    verify_catalog sets `verified` on the in-memory catalog. If the caller
+    does not re-emit, the flags are computed and discarded, the benchmark
+    then filters every tool out as unverified, and condition B silently
+    degenerates to the browser baseline while reporting nothing wrong. That
+    happened once; this pins both callers.
+    """
+    import inspect
+
+    from shadow.bench import indist_pipeline
+    from shadow.verify import replay
+
+    for fn in (indist_pipeline.cmd_verify, replay.main):
+        source = inspect.getsource(fn)
+        assert "emit(" in source, (
+            f"{fn.__qualname__} runs verification without re-emitting the "
+            "catalog; the verified flags would be thrown away")

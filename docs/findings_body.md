@@ -7,34 +7,90 @@ calling those tools instead of driving the browser.
 Everything below was produced by the pipeline in this repository against a
 live ERPNext v15 instance seeded with deterministic data.
 
+## Three findings about the harness, which hold whatever the benchmark says
+
+These came out of trying to measure the thing, they are independently
+verifiable, and they are the most transferable part of this project. Each one
+produced numbers that looked like results and were artefacts.
+
+**1. Anthropic silently declines to cache a prefix under about 1024 tokens.**
+Not an error, not a warning — the request simply comes back with
+`cache_read_input_tokens: 0`. Every one of the 108 rows in the first
+full-model run reported zero cached tokens with correctly formed
+`cache_control` blocks, and nothing anywhere indicated a problem. Condition
+A's stable prefix was 230 tokens and condition B's was 606. The lesson
+generalises past this one provider: a silent no-op on a cost optimisation is
+invisible in exactly the place you would look for it, so assert on the
+*measured* cache hit, not on the request you constructed. Two further details
+are worth carrying: Anthropic's token count runs higher than the local
+tokenizer's — a prefix measured at 1062 was billed as 1430 — and the caching
+asymmetry turned out to run the *opposite* way from the assumption. Condition
+A's prefix is identical for every task, so it is written once and read back
+across the whole run; condition B's changes with whatever retrieval surfaced.
+Over 54 runs, A wrote 1,430 tokens and read 397,540.
+
+**2. An action that cannot fail is one the agent cannot recover from.** The
+`save` action pressed Ctrl+S and returned unconditionally. A save blocked by
+ERPNext's mandatory-field validation therefore reported `save ok`, and the
+model — correctly trusting its tools — pressed save twenty more times until
+its step budget ran out. Two whole task templates scored 0/9 on this. Once
+`save` read the dialog and returned `NOT SAVED: Please fill the following
+mandatory fields ... In Items, Delivery Date`, the model fixed the document
+on the next step.
+
+**3. A dialog nobody dismissed locked the agent out of the page.** The
+validation modal from that failed save left a backdrop over the document, and
+a backdrop intercepts pointer events. Every subsequent click timed out
+against an element that was present, visible, and unreachable. That reads
+exactly like a broken selector, and it is not: clicking the same cell in a
+direct DOM probe always worked. It was the probe that found it — the model
+runs never could have, because from inside the loop the two are
+indistinguishable.
+
+### A conclusion this project got wrong, and has corrected
+
+An earlier revision of this document reported that `T09_create_sales_order`
+and `T14_create_sales_invoice` were unreachable by a language model driving
+the browser, and explained it as a limit of the model's action space: child
+tables re-render as you interact with them, refs go stale, and the runs died
+on fifteen-second click timeouts. It was a clean mechanism and it was wrong.
+
+The composite actions the scripted recipe used — `grid`, `field`, `link`,
+`select_field`, `save` — were implemented in `perform()` the whole time and
+simply absent from the action schema the model is shown. The model could not
+name what it was never told existed. With the three defects above fixed, both
+templates go from 0/9 to 9/9 in both conditions, `T09` in twelve steps
+instead of the twenty-five-step ceiling.
+
+The generalisable form: before concluding a model cannot do something,
+confirm it was ever able to express it. A capability that exists in the code
+and not in the prompt is not a capability.
+
 ## The headline, stated with its conditions
 
-On six held-out ERPNext task templates — disjoint from the eight the
-demonstrations covered — **4.7% of agent actions and 17% of tasks were served
-by tools synthesized from observed traffic**, at 100% oracle-verified success
-in both conditions.
+Two regimes are measured, and they answer different questions.
 
-On the one held-out template a synthesized tool actually covered, the tool
-path took **2 steps and 2.4s p95 against the browser's 3 steps and 12.7s — a
-5.3× latency drop** — for the same verified answer.
+**In-distribution** is the deployment case: watch someone do a workflow, then
+automate that same workflow on inputs never observed. The holdout is over
+instances.
 
-**Cost did not fall.** Per successful task, condition B cost $0.0122 against
-condition A's $0.0082: 1.5× *more*. On the 83% of held-out tasks no tool
-covered, the agent pays for a failed tool attempt and then drives the browser
-anyway, and the tool catalog rides in every prompt. Even on the covered
-template the two are near parity ($0.00289 vs $0.00252), because an ERPNext
-list page is cheap to look at and a catalog of eight tool schemas is not.
+**Held-out transfer** is the generalisation case: watch eight kinds of task,
+then automate six kinds never watched. The holdout is over templates.
 
-Both conditions ran on deterministic stand-in policies rather than a model —
-no API credentials were available in the build environment. Success is
-oracle-checked and real, token counts are measured from the real prompts, and
-latency excludes model inference. The section
-[How the numbers were produced](#how-the-numbers-were-produced)
-states exactly what that changes and in which direction; the short version is
-that every bias runs against the result above.
+The contrast between them is the actual finding — how much of this system's
+value depends on having observed the specific workflow — and both are in the
+results tables below, measured on the same model, the same cost table and the
+same accounting path.
 
-The rest of this document is mostly about *why* coverage is 17% and not
-higher, because that turns out to be the interesting part.
+On the held-out transfer set, with every harness defect above fixed, both
+conditions reach **100% oracle-verified success on all six templates**, and
+the tool condition is **1.3× more expensive per successful task** than the
+browser alone. Coverage is 7% of actions and 0% of tasks: no held-out task
+completes on synthesized tools alone. That is a negative result for transfer
+and it is reported as measured.
+
+The pre-fix and post-fix numbers are both in the tables, because the
+difference between them is the evidence for the three findings above.
 
 ## The two rules, and how they are enforced
 

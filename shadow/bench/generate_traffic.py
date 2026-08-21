@@ -14,7 +14,7 @@ import random
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from shadow.browser import browser_page, login
 from shadow.capture.proxy import capture_proxy
@@ -99,6 +99,14 @@ UNIQUE_PARAMS: dict[str, str] = {
     "T18_create_item_group": "item_group_name",
     "T19_create_supplier_group": "supplier_group_name",
     "T20_create_territory": "territory_name",
+    # In-distribution writes. Without a per-session nonce the second session
+    # would try to create a record that already exists and the demonstration
+    # would fail rather than produce traffic.
+    "D06_create_customer": "customer_name",
+    "D07_create_contact": "last_name",
+    "D08_create_lead": "lead_name",
+    "D09_create_warehouse": "warehouse_name",
+    "D10_create_territory": "territory_name",
 }
 
 
@@ -134,18 +142,28 @@ def run_recipe(page: Any, template_id: str, params: dict[str, Any],
 
 def generate(sessions: int, cfg: Config | None = None, seed: int = 0,
              out_path: Path | None = None, manifest_path: Path | None = None,
-             idle_gap_s: float | None = None) -> list[SessionEntry]:
+             idle_gap_s: float | None = None,
+             tasks: list[Task] | None = None,
+             guard: Callable[[str], None] | None = None) -> list[SessionEntry]:
+    """Drive demonstrations and capture the traffic.
+
+    `tasks` and `guard` let the in-distribution regime reuse this driver with
+    its own task set and its own holdout guard. The default remains the
+    held-out split with `assert_observe_only`, so the structural refusal to
+    demonstrate an EVAL template is unchanged.
+    """
     cfg = cfg or get_config()
-    split = load_split(cfg)
     out_path = out_path or cfg.path("capture")
     manifest_path = manifest_path or (cfg.path("artifacts") / "observe_manifest.json")
     # Sessions must be separated by more than the segmentation idle gap, or
     # two demonstrations would fuse into one episode.
     gap = (idle_gap_s if idle_gap_s is not None else cfg.segment.idle_gap_s) + 3.0
 
-    tasks = observe_tasks(cfg)
+    if tasks is None:
+        tasks = observe_tasks(cfg)
+    guard = guard or (lambda tid: assert_observe_only(tid, cfg))
     for task in tasks:
-        assert_observe_only(task.template_id, cfg)   # loud, structural guard
+        guard(task.template_id)                      # loud, structural guard
 
     rng = random.Random(seed)
     entries: list[SessionEntry] = []

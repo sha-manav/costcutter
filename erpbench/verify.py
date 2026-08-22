@@ -57,10 +57,17 @@ class Assertion:
     `check` receives the adapter, the run's diff and the agent's final
     answer, and returns (passed, detail). It reads state back out of the
     database; it never inspects the agent's trajectory.
+
+    `expects` records what the assertion was built to require -- the target
+    docstatus, the expected field value. It makes an assertion
+    self-describing, which reporting needs and which lets two instances be
+    compared without introspecting closures. Two firms requiring "submitted"
+    and "draft" are both a status assertion; only `expects` tells them apart.
     """
     assertion_id: str
     cls: AssertionClass
     check: Callable[[SystemAdapter, Diff, str], tuple[bool, str]]
+    expects: dict[str, Any] = field(default_factory=dict)
 
     def evaluate(self, adapter: SystemAdapter, diff: Diff,
                  answer: str) -> AssertionResult:
@@ -199,14 +206,16 @@ def record_exists(aid: str, doctype: str, filters: Any) -> Assertion:
     def _check(ad: SystemAdapter, _d: Diff, _a: str) -> tuple[bool, str]:
         rows = ad.query(doctype, filters=filters, fields=["name"], limit=5)
         return bool(rows), f"{doctype} matching {filters}: {len(rows)} found"
-    return Assertion(aid, AssertionClass.RECORD_EXISTS, _check)
+    return Assertion(aid, AssertionClass.RECORD_EXISTS, _check,
+                     {"doctype": doctype, "filters": filters, "present": True})
 
 
 def record_absent(aid: str, doctype: str, filters: Any) -> Assertion:
     def _check(ad: SystemAdapter, _d: Diff, _a: str) -> tuple[bool, str]:
         rows = ad.query(doctype, filters=filters, fields=["name"], limit=5)
         return not rows, f"{doctype} matching {filters}: {len(rows)} found (want 0)"
-    return Assertion(aid, AssertionClass.RECORD_EXISTS, _check)
+    return Assertion(aid, AssertionClass.RECORD_EXISTS, _check,
+                     {"doctype": doctype, "filters": filters, "present": False})
 
 
 def field_value(aid: str, doctype: str, filters: Any, fieldname: str,
@@ -224,7 +233,9 @@ def field_value(aid: str, doctype: str, filters: Any, fieldname: str,
             except (TypeError, ValueError):
                 return False, f"{fieldname}={got!r} not numeric, want {expected!r}"
         return str(got) == str(expected), f"{fieldname}={got!r} want {expected!r}"
-    return Assertion(aid, AssertionClass.FIELD_VALUE, _check)
+    return Assertion(aid, AssertionClass.FIELD_VALUE, _check,
+                     {"doctype": doctype, "field": fieldname,
+                      "expected": expected})
 
 
 def child_table_contains(aid: str, doctype: str, filters: Any, table: str,
@@ -251,7 +262,9 @@ def child_table_contains(aid: str, doctype: str, filters: Any, table: str,
             return False, (f"{table}: {value} found at "
                            f"{qty_field}={line.get(qty_field)}, want {qty}")
         return False, f"{table}: no row with {child_field}={value}"
-    return Assertion(aid, AssertionClass.CHILD_TABLE, _check)
+    return Assertion(aid, AssertionClass.CHILD_TABLE, _check,
+                     {"doctype": doctype, "table": table,
+                      "field": child_field, "value": value, "qty": qty})
 
 
 def status_is(aid: str, doctype: str, filters: Any, docstatus: int) -> Assertion:
@@ -264,7 +277,8 @@ def status_is(aid: str, doctype: str, filters: Any, docstatus: int) -> Assertion
             return False, f"no {doctype} matching {filters}"
         got = int(rows[0].get("docstatus") or 0)
         return got == docstatus, f"docstatus={got} want {docstatus}"
-    return Assertion(aid, AssertionClass.STATUS, _check)
+    return Assertion(aid, AssertionClass.STATUS, _check,
+                     {"doctype": doctype, "docstatus": docstatus})
 
 
 def links_to(aid: str, doctype: str, filters: Any, link_field: str,
@@ -276,7 +290,9 @@ def links_to(aid: str, doctype: str, filters: Any, link_field: str,
             return False, f"no {doctype} matching {filters}"
         got = rows[0].get(link_field)
         return str(got) == str(target), f"{link_field}={got!r} want {target!r}"
-    return Assertion(aid, AssertionClass.LINKAGE, _check)
+    return Assertion(aid, AssertionClass.LINKAGE, _check,
+                     {"doctype": doctype, "field": link_field,
+                      "target": target})
 
 
 def wrote_nothing(aid: str) -> Assertion:
@@ -285,7 +301,8 @@ def wrote_nothing(aid: str) -> Assertion:
         return d.empty, ("no mutations" if d.empty
                          else f"{len(d.created)}c/{len(d.updated)}u/"
                               f"{len(d.deleted)}d")
-    return Assertion(aid, AssertionClass.ABSTENTION, _check)
+    return Assertion(aid, AssertionClass.ABSTENTION, _check,
+                     {"mutations": 0})
 
 
 def answer_mentions(aid: str, needles: list[str],
@@ -300,4 +317,4 @@ def answer_mentions(aid: str, needles: list[str],
         hit = [n for n in needles if n.lower() in low]
         return bool(hit), f"matched {hit} in answer" if hit else \
             f"answer mentions none of {needles}"
-    return Assertion(aid, cls, _check)
+    return Assertion(aid, cls, _check, {"needles": list(needles)})

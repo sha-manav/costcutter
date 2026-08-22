@@ -1,0 +1,54 @@
+{
+  "firm_id": "B",
+  "name": "Alder Mutual",
+  "seed_file": "artifacts/firm_seeds/firm_B.sql",
+  "seed_bytes": 8297412,
+  "created": {
+    "Customer": 8,
+    "Supplier": 3,
+    "Item": 4
+  },
+  "customers": [
+    "Fairhaven Mutual",
+    "Oakmere Society",
+    "Stonebridge Union",
+    "Calderwood Trust",
+    "Ellerby Provident",
+    "Marchfield Guild"
+  ],
+  "suppliers": [
+    "Redgate Supplies",
+    "Thistledown Works",
+    "Vernon Fabrics"
+  ],
+  "items": [
+    [
+      "AM-UNIT-A1",
+      "Assessment Unit A1",
+      850.0
+    ],
+    [
+      "AM-UNIT-B2",
+      "Assessment Unit B2",
+      2400.0
+    ],
+    [
+      "AM-UNIT-C3",
+      "Assessment Unit C3",
+      5600.0
+    ],
+    [
+      "AM-UNIT-D4",
+      "Assessment Unit D4",
+      320.0
+    ]
+  ],
+  "ambiguous_pair": [
+    "Whitfield Society",
+    "Whitfield Societies"
+  ],
+  "absent_customer": "Langdale Benefit",
+  "absent_item": "AM-UNIT-Z9",
+  "policy_sha": "7a035f40f4f56e8a",
+  "built_at_unix": 1787378704
+}

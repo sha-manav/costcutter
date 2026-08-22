@@ -1,0 +1,54 @@
+{
+  "firm_id": "A",
+  "name": "Northwind Trading",
+  "seed_file": "artifacts/firm_seeds/firm_A.sql",
+  "seed_bytes": 8297354,
+  "created": {
+    "Customer": 8,
+    "Supplier": 3,
+    "Item": 4
+  },
+  "customers": [
+    "Harbourline Freight",
+    "Vantage Tooling",
+    "Pinegrove Foods",
+    "Castellan Metals",
+    "Brightwater Labs",
+    "Ridgeway Haulage"
+  ],
+  "suppliers": [
+    "Ashford Components",
+    "Keystone Alloys",
+    "Lumen Plastics"
+  ],
+  "items": [
+    [
+      "NW-BEARING-10",
+      "Bearing 10mm",
+      120.0
+    ],
+    [
+      "NW-SHAFT-20",
+      "Drive Shaft 20",
+      340.0
+    ],
+    [
+      "NW-SEAL-05",
+      "Seal Ring 5mm",
+      45.0
+    ],
+    [
+      "NW-PUMP-01",
+      "Transfer Pump",
+      1800.0
+    ]
+  ],
+  "ambiguous_pair": [
+    "Meridian Holdings",
+    "Meridian Holdings Ltd"
+  ],
+  "absent_customer": "Thornbury Cement",
+  "absent_item": "NW-VALVE-99",
+  "policy_sha": "bb4a8139b3daa935",
+  "built_at_unix": 1787378697
+}

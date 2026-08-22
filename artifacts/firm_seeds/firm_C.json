@@ -1,0 +1,55 @@
+{
+  "firm_id": "C",
+  "name": "Calder & Rowe",
+  "seed_file": "artifacts/firm_seeds/firm_C.sql",
+  "seed_bytes": 8297696,
+  "created": {
+    "Customer": 8,
+    "Supplier": 3,
+    "Item": 4,
+    "Cost Center": 2
+  },
+  "customers": [
+    "Aldridge Partners",
+    "Bexley Vaughan",
+    "Corran & Fitz",
+    "Delamere Group",
+    "Ennismore LLP",
+    "Faircourt Advisory"
+  ],
+  "suppliers": [
+    "Garnet Print",
+    "Halloway Couriers",
+    "Ivorson Systems"
+  ],
+  "items": [
+    [
+      "CR-ADV-01",
+      "Advisory Hour",
+      240.0
+    ],
+    [
+      "CR-AUD-02",
+      "Audit Day",
+      1450.0
+    ],
+    [
+      "CR-TAX-03",
+      "Tax Review",
+      680.0
+    ],
+    [
+      "CR-SEC-04",
+      "Secretarial Retainer",
+      95.0
+    ]
+  ],
+  "ambiguous_pair": [
+    "Rowan Estates",
+    "Rowan Estate"
+  ],
+  "absent_customer": "Sedgwick Mills",
+  "absent_item": "CR-VAL-99",
+  "policy_sha": "d426ca469419dc10",
+  "built_at_unix": 1787378713
+}

@@ -1,0 +1,110 @@
+[
+  {
+    "sites": 1,
+    "rollouts_attempted": 2,
+    "rollouts_ok": 2,
+    "wall_s": 17.57,
+    "rollouts_per_hour": 409.7,
+    "per_rollout_s": {
+      "mean": 8.78,
+      "median": 8.78,
+      "max": 9.0
+    },
+    "breakdown_mean_s": {
+      "reset": 5.15,
+      "snapshots": 2.7,
+      "actions": 0.94
+    },
+    "failures": []
+  },
+  {
+    "sites": 2,
+    "rollouts_attempted": 4,
+    "rollouts_ok": 4,
+    "wall_s": 24.43,
+    "rollouts_per_hour": 589.4,
+    "per_rollout_s": {
+      "mean": 11.9,
+      "median": 11.69,
+      "max": 14.15
+    },
+    "breakdown_mean_s": {
+      "reset": 6.43,
+      "snapshots": 3.59,
+      "actions": 1.88
+    },
+    "failures": []
+  },
+  {
+    "sites": 4,
+    "rollouts_attempted": 8,
+    "rollouts_ok": 8,
+    "wall_s": 43.41,
+    "rollouts_per_hour": 663.5,
+    "per_rollout_s": {
+      "mean": 20.41,
+      "median": 19.83,
+      "max": 25.32
+    },
+    "breakdown_mean_s": {
+      "reset": 11.17,
+      "snapshots": 6.37,
+      "actions": 2.88
+    },
+    "failures": []
+  },
+  {
+    "sites": 6,
+    "rollouts_attempted": 12,
+    "rollouts_ok": 11,
+    "wall_s": 56.58,
+    "rollouts_per_hour": 699.9,
+    "per_rollout_s": {
+      "mean": 25.97,
+      "median": 22.8,
+      "max": 34.56
+    },
+    "breakdown_mean_s": {
+      "reset": 15.65,
+      "snapshots": 7.65,
+      "actions": 2.68
+    },
+    "failures": [
+      {
+        "site": "erp02.localhost",
+        "error": "AdapterError: read Sales Order/SAL-ORD-2026-00011: 500"
+      }
+    ]
+  },
+  {
+    "sites": 8,
+    "rollouts_attempted": 16,
+    "rollouts_ok": 13,
+    "wall_s": 72.91,
+    "rollouts_per_hour": 641.9,
+    "per_rollout_s": {
+      "mean": 31.47,
+      "median": 32.32,
+      "max": 41.1
+    },
+    "breakdown_mean_s": {
+      "reset": 19.21,
+      "snapshots": 9.93,
+      "actions": 2.33
+    },
+    "failures": [
+      {
+        "site": "erp02.localhost",
+        "error": "AdapterError: login to http://127.0.0.1:8000 failed: 500"
+      },
+      {
+        "site": "erp04.localhost",
+        "error": "OperationalError: (2013, 'Lost connection to MySQL server during query')"
+      },
+      {
+        "site": "erp07.localhost",
+        "error": "ProgrammingError: (1146, \"Table 'erpbench_07.tabTimesheet Detail' doesn't exist\")"
+      }
+    ]
+  }
+]

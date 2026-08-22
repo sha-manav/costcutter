@@ -1,0 +1,20 @@
+[
+  {
+    "sites": 8,
+    "rollouts_attempted": 24,
+    "rollouts_ok": 24,
+    "wall_s": 110.29,
+    "rollouts_per_hour": 783.4,
+    "per_rollout_s": {
+      "mean": 33.17,
+      "median": 31.41,
+      "max": 46.66
+    },
+    "breakdown_mean_s": {
+      "reset": 19.64,
+      "snapshots": 11.12,
+      "actions": 2.41
+    },
+    "failures": []
+  }
+]

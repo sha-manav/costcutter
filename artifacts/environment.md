@@ -93,3 +93,80 @@ Mitigation, given the constraint:
 
 This must be revisited in week 3: on the rented box, put ERPNext on the
 persistent VM as SPEC §1.3 intends.
+
+## Rollout throughput — SPEC §6
+
+The one input the spec cannot supply. Measured on the real environment; the
+dataset target is sized against it.
+
+One rollout = reset the site · snapshot before · a representative action
+sequence (two queries, two lookups, create a Sales Order with a line item,
+read it back) · snapshot after · diff. **Model latency is excluded**, because
+SPEC §6's claim is that throughput is ERP-bound, so the number that sizes the
+corpus is the ERP's ceiling.
+
+| Sites | Rollouts | Wall | **Rollouts/hour** | Mean/rollout | Failures |
+|---|---|---|---|---|---|
+| 1 | 2 | 17.6 s | 410 | 8.8 s | 0 |
+| 2 | 4 | 24.4 s | 589 | 11.9 s | 0 |
+| 4 | 12 | 66.7 s | 648 | 21.0 s | 0 |
+| **6** | **18** | **83.5 s** | **776** | **25.5 s** | **0** |
+| 8 | 24 | 110.3 s | 783 | 33.2 s | 0 |
+
+**~780 rollouts/hour, reached at 6 sites.** Going to 8 adds 1% — the box is
+CPU-saturated (load average 5.7 on 4 cores), so the extra sites queue rather
+than add capacity. **Six is the operating point**; eight costs memory and
+per-rollout latency for nothing.
+
+### Where the time goes
+
+Mean seconds per rollout at 8 sites:
+
+| Phase | Seconds | Share |
+|---|---|---|
+| database reset | 19.6 | 59% |
+| snapshots (two, whole-database) | 11.1 | 34% |
+| **agent actions** | **2.4** | **7%** |
+
+The ERP's web tier is not the bottleneck and neither is the model. **Reset
+and snapshot are**, and both are pure infrastructure. That is the headroom
+if throughput ever needs to rise: a transactional rollback instead of a
+logical reload, or a narrower snapshot for templates whose envelope cannot
+be violated outside a known set of doctypes. Neither is worth doing until
+the number is actually binding — noted, not done.
+
+### A measurement bug worth recording
+
+The first sweep reported 656/hour at 6 sites with sporadic failures
+("table doesn't exist", "lost connection"). Both were **mine, not the
+environment's**:
+
+1. The connection-kill statement was malformed by a string substitution, so
+   any reset that needed it raised.
+2. `ThreadPoolExecutor.map` over a flat job list let two rollouts run against
+   the *same* site at once, so one rollout's reset dropped the database
+   another was mid-snapshot on.
+
+A site is a resource owned by exactly one worker; the fix was to give each
+worker a site and run its rounds serially. Corrected, the same hardware gives
+**776/hour with zero failures**. Reporting the first number would have
+undersized the corpus by 15% and blamed the environment for a scheduling bug
+— the prior project's "suspect the harness first" lesson, in miniature.
+
+### Sizing the corpus
+
+SPEC §6 targets 2,000–5,000 verified trajectories.
+
+A *real* rollout adds model latency on top of the 25 s environment cost.
+With six sites running in parallel, one site's model call overlaps another's
+reset, so the wall-clock cost per rollout is not simply additive — but the
+honest planning figure is lower than 780. Taking ~20 s of model time per
+rollout on top of ~25 s of environment time gives roughly **480 rollouts/hour
+end to end**, which is a projection and labelled as one; it will be replaced
+with a measured number as soon as the first model-in-the-loop run exists.
+
+Rejection sampling against the verifier discards a large fraction before
+Round 1. At 480/hour and a 40% acceptance rate, 2,000 verified trajectories
+is about **10 hours** of generation and 5,000 is about **26 hours**. Both fit
+a week-3/4 GPU rental; neither fits in this container, which has no GPU and
+should not be generating training data anyway.

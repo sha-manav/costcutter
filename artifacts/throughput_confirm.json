@@ -1,0 +1,38 @@
+[
+  {
+    "sites": 4,
+    "rollouts_attempted": 12,
+    "rollouts_ok": 12,
+    "wall_s": 66.69,
+    "rollouts_per_hour": 647.7,
+    "per_rollout_s": {
+      "mean": 20.97,
+      "median": 22.02,
+      "max": 25.1
+    },
+    "breakdown_mean_s": {
+      "reset": 10.62,
+      "snapshots": 7.25,
+      "actions": 3.1
+    },
+    "failures": []
+  },
+  {
+    "sites": 6,
+    "rollouts_attempted": 18,
+    "rollouts_ok": 18,
+    "wall_s": 83.5,
+    "rollouts_per_hour": 776.1,
+    "per_rollout_s": {
+      "mean": 25.5,
+      "median": 23.29,
+      "max": 36.2
+    },
+    "breakdown_mean_s": {
+      "reset": 14.96,
+      "snapshots": 8.53,
+      "actions": 2.01
+    },
+    "failures": []
+  }
+]

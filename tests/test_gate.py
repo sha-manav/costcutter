@@ -396,6 +396,34 @@ def test_a_harness_gain_bought_with_more_violations_is_no_go():
     assert verdict.go is False
 
 
+def test_an_unmeasured_stage_is_not_reported_as_a_failed_one():
+    """Running only the corrected harness left S1 at 0.0%, which rendered as
+    "scored 0%, OUT OF BAND" — a stage nobody ran, presented as a stage the
+    model failed. On a partial run that is a fabricated result, and it points
+    the wrong way: it makes the harness gain look larger than measured."""
+    v = gate.ModelVerdict(
+        "m",
+        gate.tally([], "m", "naive"),                       # never run
+        gate.tally(_rows("m", "corrected", 15, 5), "m", "corrected"))
+    assert v.s1.measured is False and v.s2.measured is True
+    assert v.fully_measured is False
+    assert v.s1_in_band is False and v.clears is False
+    assert v.go is False, "go/no-go is undefined without both stages"
+    rendered = v.render()
+    assert "not measured" in rendered
+    assert "OUT OF BAND" not in rendered.split("S2")[0]
+    assert "UNDECIDED" in rendered
+
+
+def test_a_fully_measured_run_still_reports_bands_normally():
+    v = gate.ModelVerdict(
+        "m", gate.tally(_rows("m", "naive", 100, 25), "m", "naive"),
+        gate.tally(_rows("m", "corrected", 100, 50), "m", "corrected"))
+    assert v.fully_measured is True
+    assert v.clears is True and v.go is True
+    assert "not measured" not in v.render()
+
+
 def test_errors_are_excluded_from_the_rate_denominator():
     rows = _rows("m", "naive", 100, 20, errors=20)
     stage = gate.tally(rows, "m", "naive")

@@ -347,6 +347,16 @@ class StageResult:
         return self.runs - self.errors
 
     @property
+    def measured(self) -> bool:
+        """Whether this stage has a single scoreable run behind it.
+
+        Without this, an unrun stage reports 0.0 and renders as "scored 0%,
+        out of band" -- a stage nobody measured, presented as a stage the
+        model failed. On a partial run that is a fabricated result.
+        """
+        return self.denominator > 0
+
+    @property
     def rate(self) -> float:
         return self.successes / self.denominator if self.denominator else 0.0
 
@@ -397,11 +407,17 @@ class ModelVerdict:
 
     @property
     def s1_in_band(self) -> bool:
-        return S1_BAND[0] <= self.s1.rate <= S1_BAND[1]
+        return self.s1.measured and S1_BAND[0] <= self.s1.rate <= S1_BAND[1]
 
     @property
     def s2_in_band(self) -> bool:
-        return S2_BAND[0] <= self.s2.rate <= S2_BAND[1]
+        return self.s2.measured and S2_BAND[0] <= self.s2.rate <= S2_BAND[1]
+
+    @property
+    def fully_measured(self) -> bool:
+        """Both stages have data. A gate verdict needs both by construction —
+        the comparison IS the measurement."""
+        return self.s1.measured and self.s2.measured
 
     @property
     def harness_gain(self) -> float:
@@ -413,13 +429,18 @@ class ModelVerdict:
 
     @property
     def go(self) -> bool:
-        """SPEC §2 go/no-go: >=10 points, without increasing violations."""
-        return (self.harness_gain >= GO_NO_GO_POINTS
+        """SPEC §2 go/no-go: >=10 points, without increasing violations.
+
+        Undefined without both stages: the gain is S2 minus S1, and an
+        unmeasured S1 makes it S2 minus nothing.
+        """
+        return (self.fully_measured
+                and self.harness_gain >= GO_NO_GO_POINTS
                 and self.violations_not_increased)
 
     @property
     def clears(self) -> bool:
-        return self.s1_in_band and self.s2_in_band
+        return self.fully_measured and self.s1_in_band and self.s2_in_band
 
     def to_dict(self) -> dict[str, Any]:
         return {"model": self.model,
@@ -431,26 +452,34 @@ class ModelVerdict:
                 "go_no_go": self.go, "clears_gate": self.clears}
 
     def render(self) -> str:
-        def band(ok: bool) -> str:
-            return "in band" if ok else "OUT OF BAND"
-        return (
-            f"{self.model}\n"
-            f"  S1 naive     {self.s1.rate:6.1%}  "
-            f"({self.s1.successes}/{self.s1.denominator}, "
-            f"{self.s1.errors} error)  target {S1_BAND[0]:.0%}-{S1_BAND[1]:.0%}"
-            f"  -> {band(self.s1_in_band)}\n"
-            f"  S2 corrected {self.s2.rate:6.1%}  "
-            f"({self.s2.successes}/{self.s2.denominator}, "
-            f"{self.s2.errors} error)  target {S2_BAND[0]:.0%}-{S2_BAND[1]:.0%}"
-            f"  -> {band(self.s2_in_band)}\n"
-            f"  harness gain {self.harness_gain:+.1%} "
-            f"(need >= +{GO_NO_GO_POINTS:.0%})   "
-            f"violations {self.s1.violation_rate:.1%} -> "
-            f"{self.s2.violation_rate:.1%}"
-            f"{'' if self.violations_not_increased else '  INCREASED'}\n"
-            f"  go/no-go: {'GO' if self.go else 'NO-GO'}   "
-            f"gate: {'CLEARS' if self.clears else 'does not clear'}\n"
-            f"  spend ${self.s1.usd + self.s2.usd:.4f}")
+        def stage(label: str, s: StageResult, lo: float, hi: float) -> str:
+            if not s.measured:
+                return (f"  {label} {'not measured':>13}  "
+                        f"(0 scoreable runs, {s.errors} error)  "
+                        f"target {lo:.0%}-{hi:.0%}")
+            verdict = "in band" if lo <= s.rate <= hi else "OUT OF BAND"
+            return (f"  {label} {s.rate:12.1%}  "
+                    f"({s.successes}/{s.denominator}, {s.errors} error)  "
+                    f"target {lo:.0%}-{hi:.0%}  -> {verdict}")
+
+        lines = [self.model,
+                 stage("S1 naive    ", self.s1, *S1_BAND),
+                 stage("S2 corrected", self.s2, *S2_BAND)]
+        if self.fully_measured:
+            lines.append(
+                f"  harness gain {self.harness_gain:+.1%} "
+                f"(need >= +{GO_NO_GO_POINTS:.0%})   "
+                f"violations {self.s1.violation_rate:.1%} -> "
+                f"{self.s2.violation_rate:.1%}"
+                f"{'' if self.violations_not_increased else '  INCREASED'}")
+            lines.append(f"  go/no-go: {'GO' if self.go else 'NO-GO'}   "
+                         f"gate: {'CLEARS' if self.clears else 'does not clear'}")
+        else:
+            lines.append("  harness gain: undefined — the gain is S2 minus S1 "
+                         "and one stage has no data")
+            lines.append("  go/no-go: UNDECIDED (incomplete run)")
+        lines.append(f"  spend ${self.s1.usd + self.s2.usd:.4f}")
+        return "\n".join(lines)
 
 
 def decide(rows: list[dict[str, Any]], models: list[str]) -> dict[str, Any]:
@@ -545,9 +574,16 @@ def commit_rows(path: Path, count: int, note: str) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
+    import litellm
+
     from erpbench import preflight as pf
     from shadow.config import get_config
     from shadow.llm import MissingCredentials, make_client, resolve_model_provider
+
+    # litellm prints a provider-list banner to stderr on every call. Over 270
+    # rows that is thousands of lines around the per-row results, and a run
+    # whose output cannot be read is a run whose warnings are not read either.
+    litellm.suppress_debug_info = True
 
     p = argparse.ArgumentParser(
         prog="erpbench.gate",

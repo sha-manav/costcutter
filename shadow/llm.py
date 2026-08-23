@@ -244,10 +244,20 @@ class OfflineClient:
         )
 
 
+# A key this list omits is a key that routes a real run to the offline
+# stub. OPENROUTER_API_KEY was missing here, which is how the calibration
+# gate -- the one run whose models are reached *only* through OpenRouter --
+# would have silently produced 270 simulated rows tagged as Qwen numbers.
+# That is the failure INSTRUCTIONS §4 records from the prior project, on the
+# exact path it would next have occurred. Any provider the project is
+# credentialed for belongs here.
+CREDENTIAL_ENV_VARS = ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "AZURE_API_KEY",
+                       "GEMINI_API_KEY", "LITELLM_API_KEY",
+                       "OPENROUTER_API_KEY", "FIREWORKS_API_KEY")
+
+
 def _credentials_present() -> bool:
-    return any(os.environ.get(k) for k in
-               ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "AZURE_API_KEY",
-                "GEMINI_API_KEY", "LITELLM_API_KEY"))
+    return any(os.environ.get(k) for k in CREDENTIAL_ENV_VARS)
 
 
 class MissingCredentials(RuntimeError):
@@ -266,7 +276,7 @@ def resolve_model_provider(model: str, provider: str = "auto") -> str:
     if resolved == "litellm" and not _credentials_present():
         raise MissingCredentials(
             "provider resolves to litellm but no model credentials are in the "
-            "environment; export ANTHROPIC_API_KEY (or another supported key)")
+            "environment; export one of: " + ", ".join(CREDENTIAL_ENV_VARS))
     return resolved
 
 

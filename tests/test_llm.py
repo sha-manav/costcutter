@@ -14,9 +14,11 @@ from typing import Any
 
 import pytest
 
+import shadow.llm
 from shadow.config import get_config
 from shadow.llm import (
-    LiteLLMClient, LLMUsage, make_client, mark_cacheable, supports_prompt_caching,
+    LiteLLMClient, LLMUsage, make_client, mark_cacheable, resolve_model_provider,
+    supports_prompt_caching,
 )
 
 
@@ -135,6 +137,35 @@ def test_caching_can_be_disabled(stub_litellm):
 def test_provider_selection():
     assert make_client("claude-haiku-4-5-20251001", "offline").provider == "offline"
     assert make_client("claude-haiku-4-5-20251001", "litellm").provider == "litellm"
+
+
+@pytest.mark.parametrize("env_var", shadow.llm.CREDENTIAL_ENV_VARS)
+def test_every_credentialed_provider_routes_to_a_real_model(monkeypatch, env_var):
+    """A key that is set must never leave `auto` on the offline stub.
+
+    INSTRUCTIONS §4 records `provider: auto` silently falling back to a stub
+    and producing numbers that read as model numbers. OPENROUTER_API_KEY was
+    absent from the credential list, so the calibration gate -- whose Qwen
+    models are reachable only through OpenRouter -- would have run its 270
+    rows against the stub with nothing but a stderr line to say so. This is
+    parameterised over the whole list so adding a provider without teaching
+    `auto` about it fails here rather than in a results file.
+    """
+    for var in shadow.llm.CREDENTIAL_ENV_VARS:
+        monkeypatch.delenv(var, raising=False)
+    monkeypatch.setenv(env_var, "probe-value-not-a-real-key")
+
+    assert shadow.llm._credentials_present() is True
+    assert make_client("openrouter/qwen/qwen3-8b", "auto").provider == "litellm"
+    assert resolve_model_provider("openrouter/qwen/qwen3-8b", "litellm") == "litellm"
+
+
+def test_no_credentials_still_refuses_under_require_model(monkeypatch):
+    """`--require-model` refuses rather than warns (SPEC §12.4)."""
+    for var in shadow.llm.CREDENTIAL_ENV_VARS:
+        monkeypatch.delenv(var, raising=False)
+    with pytest.raises(shadow.llm.MissingCredentials):
+        resolve_model_provider("openrouter/qwen/qwen3-8b", "litellm")
 
 
 def test_both_conditions_price_usage_through_one_function():

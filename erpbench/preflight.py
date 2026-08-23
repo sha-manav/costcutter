@@ -184,6 +184,59 @@ def run(line_item: str, projected_usd: float, models: list[str],
     return report
 
 
+# SPEC §12.2 is a gate that has to be *runnable* to be a gate. HANDOFF.md
+# names `python -m erpbench.preflight` as the next action; without this block
+# the documented command exits 1 on "module has no __main__", which reads
+# like a refusal and is not one.
+GATE_MODELS = ("openrouter/qwen/qwen3-8b", "openrouter/qwen/qwen3-14b",
+               "openrouter/qwen/qwen3-32b")
+GATE_PROVIDER_URLS = {"openrouter": "https://openrouter.ai"}
+
+
+def main(argv: list[str] | None = None) -> int:
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        prog="erpbench.preflight",
+        description="SPEC §12.2 preflight. Refuses; never warns.")
+    parser.add_argument("--line-item", default="calibration_gate",
+                        choices=sorted(BUDGET_LINES))
+    parser.add_argument("--projected-usd", type=float, default=0.0,
+                        help="estimate from a 3-task dry run x scale x 1.3")
+    parser.add_argument("--models", default=",".join(GATE_MODELS))
+    parser.add_argument("--sites", type=int, default=0,
+                        help="number of pooled ERPNext sites to health-check")
+    args = parser.parse_args(argv)
+
+    sites = None
+    pool_error = ""
+    if args.sites:
+        from erpbench.sites import provision
+
+        try:
+            sites = [provision(i) for i in range(args.sites)]
+        except Exception as exc:                      # noqa: BLE001
+            # A pool that cannot even be described is a failed check, not a
+            # crash: the report must still print and still refuse. Left as
+            # None so `run` does not also score an empty pool as 0/0 healthy,
+            # which renders as a PASS.
+            sites = None
+            pool_error = f"{type(exc).__name__}: {exc}"
+
+    report = run(line_item=args.line_item, projected_usd=args.projected_usd,
+                 models=[m for m in args.models.split(",") if m],
+                 provider_urls=GATE_PROVIDER_URLS, sites=sites)
+    if args.sites and sites is None:
+        report.add("sites", False,
+                   f"0/{args.sites} healthy — pool unavailable ({pool_error})")
+    print(report.render())
+    return 0 if report.ok else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+
+
 def halt(reason: str, line_item: str, rows_done: int, rows_total: int,
          resume_command: str, needs_human: str = "") -> Path:
     """SPEC §12.3. Write the halt record and stop; never work around."""

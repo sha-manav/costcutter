@@ -92,3 +92,60 @@ def test_unknown_actions_are_malformed_not_silent():
     res = h._execute("teleport", {"action": "teleport"})
     assert res.outcome is Outcome.MALFORMED
     assert "teleport" in res.detail
+
+
+# --------------------------------------------------------------------------
+# "Not found" is an answer, not an outage
+# --------------------------------------------------------------------------
+
+class _Response:
+    def __init__(self, status_code: int, text: str = "") -> None:
+        self.status_code, self.text = status_code, text
+
+
+@pytest.mark.parametrize("code", [400, 403, 404, 417, 422])
+def test_a_refused_request_is_recoverable_not_infrastructure(code):
+    """Templates reference records that are deliberately never seeded -- that
+    is the whole `EntityPresence.MISSING` axis -- so "no such record" is the
+    correct answer to the agent's question.
+
+    Classifying it as infrastructure halted the entire gate on the first
+    missing-entity template. Swallowing it instead would have been no better:
+    every missing-entity task would have been scored an environment failure
+    and dropped from the denominator, deleting the same finding more quietly.
+    """
+    from erpbench.adapter import AdapterError, ERPNextAdapter, RequestRejected
+
+    with pytest.raises(RequestRejected) as caught:
+        ERPNextAdapter._raise_for_status(_Response(code, "nope"), "read Item/X")
+    assert caught.value.status_code == code
+    assert not isinstance(caught.value, AdapterError), \
+        "a refused request must not be scored as an outage"
+
+
+@pytest.mark.parametrize("code", [500, 502, 503, 504])
+def test_a_broken_system_is_still_infrastructure(code):
+    """The other direction matters just as much: a 5xx recorded as an agent
+    failure is an outage counted as incapability (SPEC §12.4)."""
+    from erpbench.adapter import AdapterError, ERPNextAdapter
+
+    with pytest.raises(AdapterError):
+        ERPNextAdapter._raise_for_status(_Response(code, "boom"), "read Item/X")
+
+
+def test_the_harness_reports_a_refusal_as_a_typed_error():
+    """And it must reach the agent as something it can act on, not as an
+    exception that ends the run."""
+    from erpbench.adapter import RequestRejected
+    from erpbench.instrumentation import Outcome
+
+    class _Missing:
+        def read(self, doctype, name):
+            raise RequestRejected(f"read {doctype}/{name}: 404 not found", 404)
+
+    h = H.Harness.__new__(H.Harness)
+    h.variant, h.adapter = "corrected", _Missing()
+    res = h._execute("read", {"action": "read", "doctype": "Item",
+                              "name": "NW-VALVE-99"})
+    assert res.outcome is Outcome.TYPED_ERROR
+    assert "404" in res.detail and "NW-VALVE-99" in res.detail

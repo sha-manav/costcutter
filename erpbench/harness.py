@@ -28,7 +28,7 @@ import time
 from dataclasses import dataclass
 from typing import Any
 
-from erpbench.adapter import AdapterError, SystemAdapter
+from erpbench.adapter import AdapterError, RequestRejected, SystemAdapter
 from erpbench.instrumentation import Outcome, RunTrace
 
 # --------------------------------------------------------------------------
@@ -212,6 +212,14 @@ class Harness:
                               detail=f"unknown action {kind!r}")
         except AdapterError:
             raise                                  # infrastructure -- not the agent's
+        except RequestRejected as exc:
+            # The system understood and refused: no such record, bad field,
+            # unknown doctype. This is the agent's to recover from, and on
+            # the `missing` entity axis it is the *correct* answer -- the
+            # record genuinely is not there. Reported as a typed error so the
+            # agent can read it and change approach.
+            return StepResult(Outcome.TYPED_ERROR, self._error(str(exc)),
+                              detail=str(exc)[:300])
         except Exception as exc:                   # pragma: no cover
             return StepResult(Outcome.TYPED_ERROR,
                               self._error(f"{type(exc).__name__}: {exc}"),

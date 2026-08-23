@@ -76,6 +76,28 @@ class AdapterError(RuntimeError):
     """
 
 
+class RequestRejected(RuntimeError):
+    """The system understood the request and refused it.
+
+    Deliberately **not** an AdapterError. The distinction is the whole
+    `EntityPresence.MISSING` axis: templates reference records that are never
+    seeded, and "no such record" is the correct answer to the agent's
+    question, not the environment breaking. Classifying it as infrastructure
+    halted the entire gate on the first missing-entity template -- and had it
+    merely been swallowed instead, every missing-entity task would have been
+    scored as an environment failure and dropped from the denominator, which
+    is the same finding deleted more quietly.
+
+    The split is by status class, not by endpoint: 4xx means the request was
+    wrong and the agent can recover (read the typed error, change what it
+    names, try again); 5xx and transport failures mean the system is down.
+    """
+
+    def __init__(self, message: str, status_code: int = 0) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+
+
 @runtime_checkable
 class SystemAdapter(Protocol):
     """What a business system must offer to be benchmarked."""
@@ -255,10 +277,25 @@ class ERPNextAdapter:
         return d
 
     # ------------------------------------------------------------- reading
+    @staticmethod
+    def _raise_for_status(response: Any, what: str) -> None:
+        """Split a failed response into agent-recoverable and infrastructure.
+
+        4xx is the request being wrong; the agent gets a typed error it can
+        act on. 5xx is the system being down; that is `status: error` and
+        leaves the denominator (SPEC §12.4).
+        """
+        code = response.status_code
+        if code == 200:
+            return
+        if 400 <= code < 500:
+            detail = "not found" if code == 404 else response.text[:160]
+            raise RequestRejected(f"{what}: {code} {detail}", status_code=code)
+        raise AdapterError(f"{what}: {code} {response.text[:160]}")
+
     def read(self, doctype: str, name: str) -> dict[str, Any]:
         r = self._client().get(f"/api/resource/{doctype}/{name}")
-        if r.status_code != 200:
-            raise AdapterError(f"read {doctype}/{name}: {r.status_code}")
+        self._raise_for_status(r, f"read {doctype}/{name}")
         return r.json().get("data", {})
 
     def query(self, doctype: str, filters: Any = None,
@@ -273,8 +310,7 @@ class ERPNextAdapter:
         if order_by:
             params["order_by"] = order_by
         r = self._client().get(f"/api/resource/{doctype}", params=params)
-        if r.status_code != 200:
-            raise AdapterError(f"query {doctype}: {r.status_code} {r.text[:160]}")
+        self._raise_for_status(r, f"query {doctype}")
         return r.json().get("data", [])
 
     def count(self, doctype: str, filters: Any = None) -> int:

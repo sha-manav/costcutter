@@ -114,6 +114,11 @@ class LLMClient(Protocol):
 
 ANTHROPIC_CACHE_CONTROL = {"type": "ephemeral"}
 
+# Per-request ceiling, in seconds. Generous: a reasoning model working through
+# a multi-step ERP task legitimately takes tens of seconds, and the slowest
+# observed row spent ~20 steps. This is a hang detector, not a latency budget.
+REQUEST_TIMEOUT_S = float(os.environ.get("SHADOW_REQUEST_TIMEOUT_S", "120"))
+
 
 def supports_prompt_caching(model: str) -> bool:
     """Whether to mark the fixed prefix cacheable for this model."""
@@ -166,6 +171,14 @@ class LiteLLMClient:
         # success rate the benchmark exists to measure. Retry transient
         # errors here so they never reach the result row.
         kwargs.setdefault("num_retries", 4)
+        # Without this a dropped-but-not-closed connection blocks forever.
+        # A 270-row run hung at row 231 on an ESTABLISHED socket to the
+        # provider: 8 hours elapsed, 1m45s of CPU, no progress, no halt, no
+        # diagnostic -- the one failure mode the halt machinery cannot report,
+        # because nothing ever returns to report it. A request that has not
+        # answered in this long is not going to; retries above make a timeout
+        # recoverable rather than fatal.
+        kwargs.setdefault("timeout", REQUEST_TIMEOUT_S)
         resp = litellm.completion(model=self.model, messages=messages, **kwargs)
         dt = time.time() - t0
         usage = getattr(resp, "usage", None)

@@ -134,6 +134,22 @@ def test_caching_can_be_disabled(stub_litellm):
     assert stub_litellm[0]["messages"][0]["content"] == "S"
 
 
+def test_every_request_carries_a_timeout(stub_litellm):
+    """A dropped-but-not-closed connection blocks forever otherwise. A 270-row
+    run hung at row 231 on an ESTABLISHED socket: 8 hours elapsed, 1m45s of
+    CPU, no progress and no halt — the one failure the halt machinery cannot
+    report, because nothing returns to report it."""
+    LiteLLMClient("openrouter/qwen/qwen3-8b").complete(
+        [{"role": "user", "content": "go"}])
+    assert stub_litellm[0]["kwargs"]["timeout"] > 0
+
+
+def test_an_explicit_timeout_is_not_overridden(stub_litellm):
+    LiteLLMClient("openrouter/qwen/qwen3-8b").complete(
+        [{"role": "user", "content": "go"}], timeout=7)
+    assert stub_litellm[0]["kwargs"]["timeout"] == 7
+
+
 def test_provider_selection():
     assert make_client("claude-haiku-4-5-20251001", "offline").provider == "offline"
     assert make_client("claude-haiku-4-5-20251001", "litellm").provider == "litellm"

@@ -177,6 +177,71 @@ def test_a_run_of_pure_errors_yields_no_decision():
     assert decision["go_no_go"] is False
 
 
+def test_a_reasoning_model_response_is_not_read_as_an_empty_completion():
+    """Qwen3 is a reasoning model and can put its output in a separate field
+    with `content` empty. The gate halts on empty completions (SPEC §12.3), so
+    failing to look there would stop a run over a response that did arrive."""
+    import sys
+    import types
+
+    from shadow.llm import LiteLLMClient
+
+    class _Msg:
+        content = ""
+        reasoning_content = '{"action": "done", "answer": "42"}'
+        tool_calls = None
+
+    class _Choice:
+        message = _Msg()
+
+    class _Resp:
+        choices = [_Choice()]
+        usage = types.SimpleNamespace(prompt_tokens=10, completion_tokens=5)
+
+    stub = types.ModuleType("litellm")
+    stub.completion = lambda **kw: _Resp()
+    stub.token_counter = lambda **kw: 1
+    saved = sys.modules.get("litellm")
+    sys.modules["litellm"] = stub
+    try:
+        resp = LiteLLMClient("openrouter/qwen/qwen3-8b").complete(
+            [{"role": "user", "content": "go"}])
+    finally:
+        if saved is not None:
+            sys.modules["litellm"] = saved
+        else:
+            del sys.modules["litellm"]
+    assert resp.text.strip(), "a reasoning-only response is not an empty one"
+    assert gate._parse_action(resp.text) == {"action": "done", "answer": "42"}
+
+
+def test_a_streak_of_errors_stops_the_run(tmp_path, monkeypatch, capsys):
+    """One error is expected and excluded from the denominator. A streak means
+    something systemic — and grinding on produces a full results file with no
+    measurement in it, which is exactly what the missing-tenacity bug did."""
+    from shadow import llm
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "probe")
+    monkeypatch.setattr(gate, "make_adapter", lambda *a, **kw: FakeAdapter())
+    monkeypatch.setattr(
+        gate, "run_one",
+        lambda job, *a, **kw: {"run_id": job.rid, "model": job.model,
+                               "harness_variant": job.harness_variant,
+                               "status": RunStatus.ERROR.value,
+                               "error": "boom", "usage": {"usd": 0.0,
+                               "input_tokens": 0, "cached_input_tokens": 0,
+                               "output_tokens": 0},
+                               "verdict": {}, "behaviour": {"steps": 0},
+                               "counts_toward_success_rate": False})
+    rc = gate.main(["--models", "m", "--firms", "A", "--harnesses", "naive",
+                    "--skip-preflight", "--out", str(tmp_path / "g.jsonl")])
+    assert rc == 1
+    written = len([l for l in (tmp_path / "g.jsonl").read_text().splitlines() if l])
+    assert written == gate.MAX_CONSECUTIVE_ERRORS, \
+        f"stopped after {written} rows, want {gate.MAX_CONSECUTIVE_ERRORS}"
+    assert "consecutive" in capsys.readouterr().err
+
+
 def test_a_masked_provider_error_is_not_mistaken_for_an_agent_failure():
     """litellm's `num_retries` needs tenacity, which litellm does not declare.
     Without it every retryable call raised a bare "tenacity import failed"

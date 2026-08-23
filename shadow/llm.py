@@ -178,7 +178,20 @@ class LiteLLMClient:
         cached = cached or int(getattr(usage, "cache_read_input_tokens", 0) or 0)
         cache_write = int(getattr(usage, "cache_creation_input_tokens", 0) or 0)
         prompt_tokens = max(prompt_tokens, cached + cache_write)
-        text = resp.choices[0].message.content or ""
+        message = resp.choices[0].message
+        text = message.content or ""
+        if not text.strip():
+            # Reasoning models can return their output under a separate field
+            # with `content` empty. Qwen3 is one, and the calibration gate
+            # treats an empty completion as a provider fault worth halting on
+            # (SPEC §12.3) -- so failing to look here would stop a run over a
+            # response that did arrive. Not a fallback to anything invented:
+            # this is the same completion, read from where the provider put it.
+            for attr in ("reasoning_content", "reasoning"):
+                alt = getattr(message, attr, None)
+                if isinstance(alt, str) and alt.strip():
+                    text = alt
+                    break
         tool_calls = []
         for tc in getattr(resp.choices[0].message, "tool_calls", None) or []:
             tool_calls.append({

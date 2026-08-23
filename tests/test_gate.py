@@ -150,6 +150,42 @@ def test_a_transient_provider_error_is_status_error_and_leaves_the_denominator()
     assert stage.denominator == 0, "an errored row must not sit in the denominator"
 
 
+def test_an_errored_run_never_carries_a_success_verdict():
+    """An abstention task asserts `wrote_nothing`, and a run that died before
+    its first step wrote nothing — so it satisfied its assertions by accident
+    and printed PASS beside `error` on a provider outage. The denominator
+    already excluded it, but a stored `success: true` is one careless reader
+    away from a headline."""
+    row = gate.run_one(a_job("C15_no_action_required", "A"), FakeAdapter(),
+                       ScriptedClient([], raises=RuntimeError("connection reset")),
+                       get_config(), max_steps=3)
+    assert row["status"] == RunStatus.ERROR.value
+    assert row["verdict"]["success"] is False
+    assert row["verdict"]["goal_achieved_ignoring_policy"] is False
+    assert "not_scored" in row["verdict"]
+
+
+def test_a_run_of_pure_errors_yields_no_decision():
+    """Every rate over an empty denominator is 0.0, which renders as "scored
+    0%, out of band" — a provider outage reading as a capability finding."""
+    rows = _rows("m8", "naive", 40, 0, errors=40) + \
+        _rows("m8", "corrected", 40, 0, errors=40)
+    decision = gate.decide(rows, ["m8"])
+    assert decision["insufficient_data"] is True
+    assert decision["selected_model"] is None
+    assert decision["fallback_selection"] is None
+    assert decision["go_no_go"] is False
+
+
+def test_a_masked_provider_error_is_not_mistaken_for_an_agent_failure():
+    """litellm's `num_retries` needs tenacity, which litellm does not declare.
+    Without it every retryable call raised a bare "tenacity import failed"
+    that hid the real error underneath — an invalid API key surfaced as a
+    generic exception, so the gate recorded rows instead of halting on auth.
+    The import is the guard; this test is the reason it stays pinned."""
+    import tenacity                                        # noqa: F401
+
+
 @pytest.mark.parametrize("exc,why", [
     (RuntimeError("AuthenticationError: invalid api key"), "authentication"),
     (RuntimeError("402 insufficient credit"), "quota"),

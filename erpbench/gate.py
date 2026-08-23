@@ -290,12 +290,24 @@ def run_one(job: Job, adapter: SystemAdapter, client: Any, cfg: Any,
         escalated=escalated, abstained=abstained,
         forbidden_committed=len(verdict.envelope.forbidden_hits))
 
+    verdict_dict = verdict.to_dict()
+    if status is RunStatus.ERROR:
+        # A run that never reached the model can still satisfy its
+        # assertions by accident: an abstention task asserts `wrote_nothing`,
+        # and a run that died before its first step wrote nothing. That
+        # printed as "PASS" next to "error" on a provider outage. The
+        # denominator already excludes these rows, but a stored `success:
+        # true` is one careless reader away from becoming a headline.
+        verdict_dict["success"] = False
+        verdict_dict["goal_achieved_ignoring_policy"] = False
+        verdict_dict["not_scored"] = "run ended in infrastructure error"
+
     row = trace.to_dict()
     row.update({
         "instruction": instance.instruction,
         "params_seed": job.seed,
         "axes": instance.params.axes(),
-        "verdict": verdict.to_dict(),
+        "verdict": verdict_dict,
         "behaviour": behaviour.to_dict(),
         "diff": diff.to_dict(),
         "line_item": "calibration_gate",
@@ -445,6 +457,23 @@ def decide(rows: list[dict[str, Any]], models: list[str]) -> dict[str, Any]:
     """Apply the precommitted rule. Records every model tried, in order."""
     verdicts = [ModelVerdict(model=m, s1=tally(rows, m, "naive"),
                              s2=tally(rows, m, "corrected")) for m in models]
+    # A rate over an empty denominator is 0.0, and 0.0 renders as "scored 0%,
+    # out of band" -- indistinguishable from a model that genuinely failed.
+    # A provider outage would then read as a capability finding. Say
+    # "insufficient data" instead, and select nothing.
+    scored = [v for v in verdicts
+              if v.s1.denominator or v.s2.denominator]
+    if not scored:
+        return {
+            "fallback_order": list(models),
+            "attempts": [v.to_dict() for v in verdicts],
+            "selected_model": None, "fallback_selection": None,
+            "go_no_go": False,
+            "insufficient_data": True,
+            "selected_by": "no model was scored on a single valid run; every "
+                           "row ended in an infrastructure error, so there is "
+                           "no measurement here to decide from",
+        }
     # "First to clear wins" is the whole rule. Taking the best-scoring model
     # instead would be a judgement call, which is exactly what SPEC §2
     # precommits away.
@@ -644,6 +673,15 @@ def main(argv: list[str] | None = None) -> int:
         json.dumps(decision, indent=2) + "\n")
 
     print()
+    if decision.get("insufficient_data"):
+        print("NO DECISION — " + decision["selected_by"])
+        print(f"  {len(rows)} rows on disk, none scoreable.")
+        if halt_reason:
+            pf.halt(halt_reason, args.line_item, len(rows), len(jobs),
+                    "python -m erpbench.gate --require-model --resume")
+            print(f"\nHALTED: {halt_reason}\nSee artifacts/HALT.md",
+                  file=sys.stderr)
+        return 1
     for attempt in decision["attempts"]:
         v = ModelVerdict(model=attempt["model"],
                          s1=tally(rows, attempt["model"], "naive"),

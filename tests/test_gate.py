@@ -457,6 +457,33 @@ def test_jobs_are_ordered_model_major_so_a_partial_run_is_still_usable():
     assert all(j.model == "m8" for j in jobs[:len(jobs) // 2])
 
 
+def test_a_row_scored_under_changed_assertions_is_not_trusted_on_resume():
+    """run_id is defined over the task coordinates only (SPEC §12.5), so it
+    does not move when an assertion generator changes. Without a second
+    signal, --resume skips rows scored under rules that no longer exist and
+    writes the rest under the new ones — one file, two scoring regimes."""
+    from erpbench.firms import get_firm
+    from erpbench.templates import REGISTRY
+
+    inst = REGISTRY.get("C02_customer_order_count").instantiate(7, get_firm("A"))
+    before = gate.scoring_fingerprint(inst)
+    assert before == gate.scoring_fingerprint(inst), "must be deterministic"
+
+    # Same task coordinates, different judging rules.
+    weakened = REGISTRY.get("C02_customer_order_count").instantiate(7, get_firm("A"))
+    weakened.assertions = weakened.assertions[:1]
+    assert gate.scoring_fingerprint(weakened) != before
+
+
+def test_superseded_rows_are_not_counted_twice():
+    """A re-run appends rather than rewriting, so both rows sit in the file."""
+    old = _rows("m", "naive", 1, 0)[0] | {"run_id": "abc", "scoring_fingerprint": "v1"}
+    new = _rows("m", "naive", 1, 1)[0] | {"run_id": "abc", "scoring_fingerprint": "v2"}
+    kept = gate.latest_rows([old, new])
+    assert len(kept) == 1 and kept[0]["scoring_fingerprint"] == "v2"
+    assert gate.tally(kept, "m", "naive").denominator == 1
+
+
 def test_resume_skips_rows_already_on_disk(tmp_path):
     out = tmp_path / "gate.jsonl"
     jobs = gate.build_jobs(["m"], ["A"], ["naive"], 1)

@@ -110,3 +110,44 @@ def test_abstention_templates_require_a_stated_reason():
         assert len(inst.assertions) >= 2, (
             f"{tid} checks that nothing was written but not that a reason "
             "was given")
+
+
+# --------------------------------------------------------------------------
+# C02 must measure the thing its instruction asks for
+# --------------------------------------------------------------------------
+
+def test_c02_does_not_pass_a_model_that_refuses_to_answer():
+    """Its only check was `wrote_nothing`, so abstaining passed a question
+    that asked for a count — declining to answer writes nothing. Every other
+    read template checks the answer; this one could not measure its own
+    instruction."""
+    from erpbench.firms import get_firm
+    from erpbench.templates import REGISTRY
+    from erpbench.verify import verify
+    from erpbench.adapter import Diff
+
+    class _Empty:
+        def query(self, *a, **kw): return []
+        def read(self, *a, **kw): return {}
+
+    template = REGISTRY.get("C02_customer_order_count")
+    inst = template.instantiate(7, get_firm("A"))
+    refused = verify(_Empty(), inst.assertions, inst.envelope, Diff(),
+                     "I cannot answer that.", abstained=True)
+    assert refused.success is False, "refusing to answer must not pass C02"
+
+    answered = verify(_Empty(), inst.assertions, inst.envelope, Diff(), "0")
+    assert answered.success is True, "the correct count must pass"
+
+
+def test_a_count_assertion_is_not_fooled_by_a_substring():
+    """"0" is inside "10", so substring matching would accept exactly the
+    wrong answer to a count question."""
+    from erpbench.adapter import Diff
+    from erpbench.verify import answer_number_is
+
+    a = answer_number_is("t", 0, synonyms=("none", "zero"))
+    assert a.evaluate(None, Diff(), "0").passed is True
+    assert a.evaluate(None, Diff(), "none").passed is True
+    assert a.evaluate(None, Diff(), "There are 10 orders.").passed is False
+    assert a.evaluate(None, Diff(), "20").passed is False

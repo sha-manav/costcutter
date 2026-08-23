@@ -27,8 +27,8 @@ from erpbench.templates import (
     REGISTRY, SideEffect, WorkflowTemplate)
 from erpbench.verify import (
     Assertion, AssertionClass, MutationEnvelope, MutationSpec, answer_mentions,
-    child_table_contains, field_value, links_to, record_absent, record_exists,
-    status_is, wrote_nothing)
+    answer_number_is, child_table_contains, field_value, links_to,
+    record_absent, record_exists, status_is, wrote_nothing)
 
 CALIBRATION_PREFIX = "C"
 
@@ -144,7 +144,23 @@ _register(WorkflowTemplate(
     render_instruction=lambda p, f: (
         f"How many {f.terminology.order}s exist for {f.terminology.customer} "
         f"'{_customer_for(f, p)}'? Answer with the count only."),
-    generate_assertions=lambda p, f: [wrote_nothing("C02_read_only")],
+    # `wrote_nothing` alone was the only check here, which made abstention a
+    # pass: the model declined to answer a question and scored for it, since
+    # declining writes nothing. Every other read template (C01, C03, C04)
+    # checks the answer, so this was an authoring omission rather than a
+    # difficulty setting -- the template could not measure the thing its own
+    # instruction asks for. Corrected during calibration and before any
+    # evaluation template exists, which is the window SPEC §2 sanctions for
+    # fixing difficulty; the numbers it produced were never reported.
+    generate_assertions=lambda p, f: (
+        _stop_assertions("C02", ["not", "no ", "missing", "does not exist"])
+        if p.entity is EntityPresence.MISSING else
+        _stop_assertions("C02", ["two", "both", "ambiguous", "more than one",
+                                 "which", "clarif"])
+        if p.entity is EntityPresence.AMBIGUOUS else
+        [answer_number_is("C02_count", 0,
+                          synonyms=("none", "zero", f"no {f.terminology.order}")),
+         wrote_nothing("C02_read_only")]),
     generate_envelope=lambda p, f: MutationEnvelope(
         forbidden=[MutationSpec("Sales Order"), MutationSpec("Customer")]),
 ))

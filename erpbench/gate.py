@@ -32,6 +32,7 @@ documented as below band (SPEC §2). The templates are not touched.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import sys
@@ -120,6 +121,40 @@ class Job:
     def rid(self) -> str:
         return run_id(self.template.template_id, self.firm.firm_id, self.seed,
                       self.model, self.harness_variant, "none", self.trial_idx)
+
+
+def scoring_fingerprint(instance: Instance) -> str:
+    """Identity of *how this instance is judged*, not of what was asked.
+
+    `run_id` is defined by SPEC §12.5 over the task coordinates alone --
+    template, firm, seed, model, harness, adaptation, trial. Nothing in it
+    changes when an assertion generator changes, so `--resume` will happily
+    skip a row scored under rules that no longer exist and write the rest
+    under the new ones, leaving one results file containing two scoring
+    regimes and no way to tell which row used which.
+
+    That is "numbers reported from a harness that had since changed"
+    (INSTRUCTIONS §7). Recording this alongside each row makes the mix
+    detectable, and resume re-runs anything scored under different rules.
+
+    Derived from the assertions' declared `expects` and the envelope specs,
+    which is why `expects` exists: it makes an assertion self-describing
+    without introspecting closures.
+    """
+    payload = {
+        "assertions": sorted(
+            (a.assertion_id, a.cls.value, json.dumps(a.expects, sort_keys=True,
+                                                     default=str))
+            for a in instance.assertions),
+        "envelope": sorted(
+            (kind, spec.describe())
+            for kind, specs in (("required", instance.envelope.required),
+                                ("allowed", instance.envelope.allowed),
+                                ("forbidden", instance.envelope.forbidden))
+            for spec in specs),
+    }
+    raw = json.dumps(payload, sort_keys=True, default=str).encode()
+    return hashlib.sha1(raw).hexdigest()[:16]
 
 
 def _parse_action(text: str) -> dict[str, Any] | None:
@@ -311,6 +346,7 @@ def run_one(job: Job, adapter: SystemAdapter, client: Any, cfg: Any,
         "behaviour": behaviour.to_dict(),
         "diff": diff.to_dict(),
         "line_item": "calibration_gate",
+        "scoring_fingerprint": scoring_fingerprint(instance),
     })
     # An errored row is not a failed row. Keep the flag explicit rather than
     # making every reader re-derive it from `status`.
@@ -540,6 +576,19 @@ def load_rows(path: Path) -> list[dict[str, Any]]:
     return out
 
 
+def latest_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """One row per run_id, the most recently written winning.
+
+    A re-run appends rather than rewriting, so a superseded row and its
+    replacement both sit in the file. Counting both would weight that task
+    twice and mix two scoring regimes in one rate.
+    """
+    by_id: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        by_id[row.get("run_id", id(row))] = row
+    return list(by_id.values())
+
+
 def build_jobs(models: list[str], firm_ids: list[str], variants: list[str],
                trials: int) -> list[Job]:
     """Ordered so a partial run is still a usable measurement.
@@ -609,15 +658,32 @@ def main(argv: list[str] | None = None) -> int:
     jobs = build_jobs(models, firm_ids, variants, args.trials)
 
     done = load_rows(args.out) if args.resume else []
-    seen = {r.get("run_id") for r in done}
-    todo = [j for j in jobs if j.rid not in seen] if args.resume else jobs
+    # Skip a row only if it was scored under the rules in force now. A row
+    # whose assertions have since changed is re-run rather than trusted.
+    fresh = {r.get("run_id"): r.get("scoring_fingerprint") for r in done}
+    stale = 0
+    todo = []
+    if args.resume:
+        for job in jobs:
+            want = scoring_fingerprint(job.template.instantiate(job.seed, job.firm))
+            if job.rid not in fresh:
+                todo.append(job)
+            elif fresh[job.rid] != want:
+                stale += 1
+                todo.append(job)
+    else:
+        todo = jobs
 
     print(f"calibration gate — {len(jobs)} rows "
           f"({len(CALIBRATION_TEMPLATES)} templates x {len(firm_ids)} firms "
           f"x {len(variants)} harnesses x {len(models)} models "
           f"x {args.trials} trial(s))")
     if args.resume:
-        print(f"  resuming: {len(seen)} already on disk, {len(todo)} to run")
+        print(f"  resuming: {len(fresh)} already on disk, {len(todo)} to run")
+        if stale:
+            print(f"  {stale} row(s) were scored under assertions that have "
+                  f"since changed and will be re-run; the superseded rows stay "
+                  f"in {args.out.name} and are ignored by the tally")
 
     # --- preflight, before anything is reset or spent ----------------------
     if not args.skip_preflight:
@@ -704,6 +770,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # --- always flush, decide, and report ----------------------------------
     commit_rows(args.out, len(rows), "halted" if halt_reason else "complete")
+    rows = latest_rows(rows)
     decision = decide(rows, models)
     (ARTIFACTS / "calibration_gate_decision.json").write_text(
         json.dumps(decision, indent=2) + "\n")

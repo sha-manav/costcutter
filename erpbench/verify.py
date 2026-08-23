@@ -19,6 +19,7 @@ a failure. Not "unrecognised, therefore ignore".
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable
@@ -303,6 +304,32 @@ def wrote_nothing(aid: str) -> Assertion:
                               f"{len(d.deleted)}d")
     return Assertion(aid, AssertionClass.ABSTENTION, _check,
                      {"mutations": 0})
+
+
+def answer_number_is(aid: str, expected: float, synonyms: tuple[str, ...] = (),
+                     tol: float = 0.01,
+                     cls: AssertionClass = AssertionClass.FIELD_VALUE) -> Assertion:
+    """The answer states a particular number.
+
+    Substring matching cannot express this: "0" is contained in "10", so a
+    count question checked with `answer_mentions(["0"])` accepts exactly the
+    wrong answer. The numbers are parsed out of the answer instead.
+
+    `synonyms` lets a correct worded answer count as the number it denotes --
+    "none" is a right answer to "how many", and a model should not be marked
+    wrong for being fluent.
+    """
+    def _check(_ad: SystemAdapter, _d: Diff, answer: str) -> tuple[bool, str]:
+        text = (answer or "").lower()
+        for word in synonyms:
+            if word.lower() in text:
+                return True, f"answer states {word!r}, denoting {expected}"
+        found = [float(m) for m in
+                 re.findall(r"-?\d+(?:\.\d+)?", text.replace(",", ""))]
+        hit = any(abs(n - expected) <= tol for n in found)
+        return hit, f"numbers in answer {found}, want {expected}"
+    return Assertion(aid, cls, _check,
+                     {"expected_number": expected, "synonyms": list(synonyms)})
 
 
 def answer_mentions(aid: str, needles: list[str],

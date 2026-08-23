@@ -8,6 +8,7 @@ task-specific tuning. Care is not a control; these are.
 from __future__ import annotations
 
 import inspect
+import json
 import re
 
 import pytest
@@ -99,8 +100,23 @@ def test_unknown_actions_are_malformed_not_silent():
 # --------------------------------------------------------------------------
 
 class _Response:
-    def __init__(self, status_code: int, text: str = "") -> None:
-        self.status_code, self.text = status_code, text
+    def __init__(self, status_code: int, payload: dict | None = None,
+                 text: str = "") -> None:
+        self.status_code, self._payload = status_code, payload
+        self.text = text or (json.dumps(payload) if payload else "")
+
+    def json(self):
+        if self._payload is None:
+            raise ValueError("not json")
+        return self._payload
+
+
+def _adapter(healthy: bool):
+    from erpbench.adapter import ERPNextAdapter
+
+    ad = ERPNextAdapter.__new__(ERPNextAdapter)
+    ad.health = lambda: healthy                      # type: ignore[method-assign]
+    return ad
 
 
 @pytest.mark.parametrize("code", [400, 403, 404, 417, 422])
@@ -114,23 +130,46 @@ def test_a_refused_request_is_recoverable_not_infrastructure(code):
     every missing-entity task would have been scored an environment failure
     and dropped from the denominator, deleting the same finding more quietly.
     """
-    from erpbench.adapter import AdapterError, ERPNextAdapter, RequestRejected
+    from erpbench.adapter import AdapterError, RequestRejected
 
     with pytest.raises(RequestRejected) as caught:
-        ERPNextAdapter._raise_for_status(_Response(code, "nope"), "read Item/X")
+        _adapter(True)._raise_for_status(_Response(code, text="nope"),
+                                         "read Item/X")
     assert caught.value.status_code == code
     assert not isinstance(caught.value, AdapterError), \
         "a refused request must not be scored as an outage"
 
 
+def test_an_unknown_doctype_is_the_agent_being_wrong_not_an_outage():
+    """Frappe answers a doctype that does not exist with 500 ImportError, and
+    the firms' own vocabularies are exactly the words a model will try as
+    doctypes -- Firm B says unit for item and member for customer, Firm C
+    says client and engagement. Mapping those onto real doctypes is the task
+    (SPEC §5), so a wrong guess is the agent being wrong. Scoring it as
+    infrastructure halted the run on row 2 and would have halted most Firm B
+    and Firm C rows."""
+    from erpbench.adapter import RequestRejected
+
+    resp = _Response(500, {"exc_type": "ImportError",
+                           "exception": "Error: No module named "
+                                        "'frappe.core.doctype.unit'"})
+    with pytest.raises(RequestRejected) as caught:
+        _adapter(True)._raise_for_status(resp, "read Unit/AM-UNIT-A1")
+    assert "unknown doctype" in str(caught.value), \
+        "the agent needs what happened, not a Python traceback"
+    assert "frappe.core.doctype" not in str(caught.value)
+
+
 @pytest.mark.parametrize("code", [500, 502, 503, 504])
-def test_a_broken_system_is_still_infrastructure(code):
-    """The other direction matters just as much: a 5xx recorded as an agent
-    failure is an outage counted as incapability (SPEC §12.4)."""
-    from erpbench.adapter import AdapterError, ERPNextAdapter
+def test_a_genuine_outage_is_still_infrastructure(code):
+    """The mirror error matters just as much: a real outage recorded as an
+    agent failure is downtime counted as incapability (SPEC §12.4). The
+    discriminator is whether the site is still serving."""
+    from erpbench.adapter import AdapterError
 
     with pytest.raises(AdapterError):
-        ERPNextAdapter._raise_for_status(_Response(code, "boom"), "read Item/X")
+        _adapter(False)._raise_for_status(_Response(code, text="boom"),
+                                          "read Item/X")
 
 
 def test_the_harness_reports_a_refusal_as_a_typed_error():

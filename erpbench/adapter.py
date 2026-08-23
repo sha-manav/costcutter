@@ -278,20 +278,58 @@ class ERPNextAdapter:
 
     # ------------------------------------------------------------- reading
     @staticmethod
-    def _raise_for_status(response: Any, what: str) -> None:
+    def _reason(response: Any) -> str:
+        """The actionable sentence from a Frappe error response.
+
+        Frappe answers a request for a doctype that does not exist by trying
+        to import a controller module for it, so "no such doctype" arrives as
+        a Python ImportError naming a module path. Passing that through would
+        hand the agent a traceback about `frappe.core.doctype.unit` when what
+        happened is that there is no doctype called Unit.
+        """
+        try:
+            payload = response.json()
+        except Exception:
+            return response.text[:160]
+        exc_type = str(payload.get("exc_type", "") or "")
+        message = str(payload.get("exception", "")
+                      or payload.get("message", "") or "")
+        if exc_type == "ImportError" and ".doctype." in message:
+            return "unknown doctype"
+        if exc_type == "DoesNotExistError":
+            return "not found"
+        return (f"{exc_type}: {message}" if exc_type else message)[:200] \
+            or response.text[:160]
+
+    def _raise_for_status(self, response: Any, what: str) -> None:
         """Split a failed response into agent-recoverable and infrastructure.
 
-        4xx is the request being wrong; the agent gets a typed error it can
-        act on. 5xx is the system being down; that is `status: error` and
-        leaves the denominator (SPEC §12.4).
+        Status code alone cannot make this call. Frappe returns **500** for a
+        doctype that does not exist -- and the firms' own vocabularies are
+        exactly the words a model will try as doctypes: Firm B says unit for
+        item and member for customer, Firm C says client and engagement.
+        Mapping those onto real doctypes is the task (SPEC §5), so a wrong
+        guess is the agent being wrong, not the environment breaking. Treating
+        it as infrastructure halted the run on the second row and would have
+        halted it on most Firm B and Firm C rows.
+
+        The question the code cannot answer is "which status is fatal"; the
+        question it can answer is **"is the system still up?"** So a 5xx is
+        checked against health: still serving means the request was the
+        problem and the agent can recover; not serving is a genuine outage,
+        `status: error`, excluded from the denominator (SPEC §12.4). That also
+        keeps the mirror error closed -- a real outage cannot be quietly
+        rewritten as the model being incapable.
         """
         code = response.status_code
         if code == 200:
             return
+        reason = self._reason(response)
         if 400 <= code < 500:
-            detail = "not found" if code == 404 else response.text[:160]
-            raise RequestRejected(f"{what}: {code} {detail}", status_code=code)
-        raise AdapterError(f"{what}: {code} {response.text[:160]}")
+            raise RequestRejected(f"{what}: {code} {reason}", status_code=code)
+        if self.health():
+            raise RequestRejected(f"{what}: {code} {reason}", status_code=code)
+        raise AdapterError(f"{what}: {code} {reason}")
 
     def read(self, doctype: str, name: str) -> dict[str, Any]:
         r = self._client().get(f"/api/resource/{doctype}/{name}")

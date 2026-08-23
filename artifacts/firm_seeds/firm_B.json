@@ -2,7 +2,7 @@
   "firm_id": "B",
   "name": "Alder Mutual",
   "seed_file": "artifacts/firm_seeds/firm_B.sql",
-  "seed_bytes": 8297412,
+  "seed_bytes": 7856083,
   "created": {
     "Customer": 8,
     "Supplier": 3,
@@ -50,5 +50,6 @@
   "absent_customer": "Langdale Benefit",
   "absent_item": "AM-UNIT-Z9",
   "policy_sha": "7a035f40f4f56e8a",
-  "built_at_unix": 1787378704
+  "built_at_unix": 1787466625,
+  "deployment": "frappe_docker"
 }

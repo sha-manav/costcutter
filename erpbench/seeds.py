@@ -98,6 +98,22 @@ def seed_firm(site: Site, firm: Firm, data: FirmData) -> dict[str, Any]:
 
     restore(site)
     adapter = ERPNextAdapter(base_url=site.base_url, site=site.name)
+    try:
+        return write_entities(adapter, firm, data)
+    finally:
+        adapter.close()
+
+
+def write_entities(adapter: Any, firm: Firm, data: FirmData) -> dict[str, Any]:
+    """Write a firm's entity set into whatever site the adapter points at.
+
+    Split out from `seed_firm` because *which site, reset how* is deployment
+    detail and *what a firm's world contains* is not. The native bench pool
+    resets by restoring a per-site dump; a containerised ERPNext has no host
+    bench to address that way. Both need these exact records, and the entity
+    sets must stay identical across deployments or the cross-firm comparison
+    measures the environment instead of the policy (SPEC §5).
+    """
     client = adapter._client()
     created: dict[str, int] = {}
 
@@ -138,7 +154,6 @@ def seed_firm(site: Site, firm: Firm, data: FirmData) -> dict[str, Any]:
                 pass          # already present from a previous seeding
         created["Cost Center"] = 2
 
-    adapter.close()
     return created
 
 

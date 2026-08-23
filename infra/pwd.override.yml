@@ -1,0 +1,36 @@
+# Compose override — publish the ports the benchmark harness needs.
+#
+# frappe_docker's pwd.yml publishes only the web frontend on 8080. Everything
+# else talks over the internal `frappe_network`, which is correct for a demo
+# and wrong for this project: `oracle/reset.py` restores a SQL dump and
+# flushes the Frappe caches between every rollout, and it does that from the
+# host. Without these ports a reset silently half-works -- the database is
+# restored while redis still serves the pre-reset doctype metadata and cached
+# documents, so the agent reads state that no longer exists and the run is
+# scored against a world that was never there.
+#
+# The redis host ports are 11000 and 13000 because that is what
+# `oracle.reset.REDIS_PORTS` already used on the native bench. Matching them
+# here keeps one reset path for both deployments rather than branching on
+# which one is in play.
+#
+# Usage:
+#   docker compose -f /tmp/frappe_docker/pwd.yml \
+#                  -f infra/pwd.override.yml up -d
+#
+# Local-only. The database is reachable on the loopback interface with the
+# demo credentials frappe_docker ships; do not run this compose file on a
+# host with a routable address.
+
+services:
+  db:
+    ports:
+      - "127.0.0.1:3306:3306"
+
+  redis-cache:
+    ports:
+      - "127.0.0.1:11000:6379"
+
+  redis-queue:
+    ports:
+      - "127.0.0.1:13000:6379"

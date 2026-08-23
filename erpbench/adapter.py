@@ -83,7 +83,10 @@ class SystemAdapter(Protocol):
     name: str
 
     def health(self) -> bool: ...
-    def reset(self) -> float: ...
+    # `source` selects which seed image to restore. Firms have disjoint
+    # entity sets (SPEC §5), so "reset" is only well defined once you say
+    # reset to *what*.
+    def reset(self, source: Any = None) -> float: ...
     def snapshot(self) -> Snapshot: ...
     def diff(self, before: Snapshot, after: Snapshot) -> Diff: ...
     def read(self, doctype: str, name: str) -> dict[str, Any]: ...
@@ -163,11 +166,11 @@ class ERPNextAdapter:
         except Exception:
             return False
 
-    def reset(self) -> float:
+    def reset(self, source: Any = None) -> float:
         from oracle.reset import reset as _reset
 
         try:
-            seconds = _reset(self.site)
+            seconds = _reset(self.site, source)
         except Exception as exc:                       # pragma: no cover
             raise AdapterError(f"reset failed: {type(exc).__name__}: {exc}") from exc
         self.invalidate()

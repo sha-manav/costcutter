@@ -150,8 +150,17 @@ class Harness:
 
         if kind in ("escalate", "abstain"):
             reason = str(action.get("reason", ""))[:300]
+            # The reason IS the answer. `wrote_nothing` and `answer_mentions`
+            # are checked as a pair -- SPEC §4 counts silence as a crash, not
+            # an abstention -- and they read the answer field. Leaving it
+            # empty here scored every correct abstention as "stopped without
+            # saying why", which lands hardest on Firm C, whose policy makes
+            # abstention the right outcome most often. That is a harness
+            # defect producing a capability conclusion, the exact failure
+            # INSTRUCTIONS §7 says to suspect first.
             res = StepResult(Outcome.SUCCESS, f"{kind}: {reason}",
-                             finished=True, escalated=(kind == "escalate"),
+                             finished=True, answer=reason,
+                             escalated=(kind == "escalate"),
                              abstained=(kind == "abstain"))
         elif kind == "done":
             res = StepResult(Outcome.SUCCESS, "done", finished=True,

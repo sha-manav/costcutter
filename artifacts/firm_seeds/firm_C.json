@@ -2,7 +2,7 @@
   "firm_id": "C",
   "name": "Calder & Rowe",
   "seed_file": "artifacts/firm_seeds/firm_C.sql",
-  "seed_bytes": 8297696,
+  "seed_bytes": 7856385,
   "created": {
     "Customer": 8,
     "Supplier": 3,
@@ -51,5 +51,6 @@
   "absent_customer": "Sedgwick Mills",
   "absent_item": "CR-VAL-99",
   "policy_sha": "d426ca469419dc10",
-  "built_at_unix": 1787378713
+  "built_at_unix": 1787466698,
+  "deployment": "frappe_docker"
 }

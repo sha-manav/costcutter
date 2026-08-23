@@ -2,7 +2,7 @@
   "firm_id": "A",
   "name": "Northwind Trading",
   "seed_file": "artifacts/firm_seeds/firm_A.sql",
-  "seed_bytes": 8297354,
+  "seed_bytes": 7856025,
   "created": {
     "Customer": 8,
     "Supplier": 3,
@@ -50,5 +50,6 @@
   "absent_customer": "Thornbury Cement",
   "absent_item": "NW-VALVE-99",
   "policy_sha": "bb4a8139b3daa935",
-  "built_at_unix": 1787378697
+  "built_at_unix": 1787466617,
+  "deployment": "frappe_docker"
 }

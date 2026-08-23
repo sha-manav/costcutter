@@ -81,6 +81,28 @@ class GateHalt(RuntimeError):
     """Stop the run and write artifacts/HALT.md. Never worked around."""
 
 
+class MissingSeed(GateHalt):
+    """A firm's seed image is not on disk."""
+
+
+def firm_seed(firm_id: str) -> Path:
+    """The seed image for one firm, or a halt.
+
+    Falling back to a shared image would run, produce numbers, and silently
+    measure the wrong thing -- every firm operating one world, with
+    instructions naming customers that firm was never seeded with. A missing
+    seed has to be louder than that.
+    """
+    path = ARTIFACTS / "firm_seeds" / f"firm_{firm_id}.sql"
+    if not path.exists():
+        raise MissingSeed(
+            f"no seed image for firm {firm_id} at {path}; build the firm "
+            "seeds before running the gate "
+            "(scripts/build_firm_seeds_docker.py, or `python -m erpbench.seeds` "
+            "on a native bench)")
+    return path
+
+
 # --------------------------------------------------------------------------
 # One rollout
 # --------------------------------------------------------------------------
@@ -168,8 +190,12 @@ def run_one(job: Job, adapter: SystemAdapter, client: Any, cfg: Any,
                       policy_text=job.firm.policy_text)
 
     # --- prepare the world -------------------------------------------------
+    # Reset to *this firm's* seed. The three firms have deliberately disjoint
+    # entity sets (SPEC §5) so a model cannot carry a memorised customer name
+    # across them; resetting every firm to one image would quietly undo that
+    # and turn the cross-firm comparison into a recall test.
     try:
-        adapter.reset()
+        adapter.reset(firm_seed(job.firm.firm_id))
         if instance.setup is not None:
             instance.setup(adapter)
         before = adapter.snapshot()

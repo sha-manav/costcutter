@@ -205,7 +205,11 @@ def main(argv: list[str] | None = None) -> int:
                         help="estimate from a 3-task dry run x scale x 1.3")
     parser.add_argument("--models", default=",".join(GATE_MODELS))
     parser.add_argument("--sites", type=int, default=0,
-                        help="number of pooled ERPNext sites to health-check")
+                        help="number of pooled ERPNext sites to health-check "
+                             "(native Frappe bench deployments)")
+    parser.add_argument("--check-adapter", action="store_true",
+                        help="health-check the configured site and verify the "
+                             "firm seed images exist (any deployment)")
     args = parser.parse_args(argv)
 
     sites = None
@@ -229,8 +233,38 @@ def main(argv: list[str] | None = None) -> int:
     if args.sites and sites is None:
         report.add("sites", False,
                    f"0/{args.sites} healthy — pool unavailable ({pool_error})")
+
+    if args.check_adapter:
+        _check_adapter(report)
     print(report.render())
     return 0 if report.ok else 1
+
+
+def _check_adapter(report: PreflightReport) -> None:
+    """SPEC §12.2 check 6: sites healthy **and resettable**.
+
+    Health alone is not the check. A site that answers /api/method/ping but
+    cannot be restored to a known seed makes every run start from whatever
+    the previous run left behind, which produces results that look ordinary
+    and are not comparable to each other.
+    """
+    from erpbench.adapter import make_adapter
+    from erpbench.firms import FIRMS
+
+    try:
+        adapter = make_adapter("erpnext")
+        report.add("site_health", adapter.health(),
+                   f"{adapter.base_url} (Host: {adapter.site})")
+    except Exception as exc:                          # noqa: BLE001
+        report.add("site_health", False, f"{type(exc).__name__}: {exc}")
+        return
+
+    seeds = ARTIFACTS / "firm_seeds"
+    missing = [f for f in FIRMS if not (seeds / f"firm_{f}.sql").exists()]
+    report.add("firm_seeds", not missing,
+               "all three firm seed images present" if not missing else
+               f"missing seed images for firm(s) {','.join(missing)} — every "
+               "firm would reset to the same world")
 
 
 if __name__ == "__main__":

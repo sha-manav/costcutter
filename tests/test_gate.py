@@ -37,12 +37,14 @@ class FakeAdapter:
         self.rows = rows or {}
         self._mutate = mutate or Diff()
         self.resets = 0
+        self.reset_sources: list[Any] = []
 
     def health(self) -> bool:
         return True
 
-    def reset(self) -> float:
+    def reset(self, source: Any = None) -> float:
         self.resets += 1
+        self.reset_sources.append(source)
         return 0.0
 
     def snapshot(self) -> Snapshot:
@@ -180,7 +182,7 @@ def test_an_empty_completion_halts():
 
 def test_an_unhealthy_site_halts_rather_than_failing_the_row():
     class Dead(FakeAdapter):
-        def reset(self) -> float:
+        def reset(self, source: Any = None) -> float:
             raise AdapterError("site unreachable")
 
     with pytest.raises(gate.GateHalt, match="unhealthy"):
@@ -251,6 +253,30 @@ def test_abstaining_is_recorded_and_can_succeed():
                        get_config(), max_steps=3)
     assert row["verdict"]["abstained"] is True
     assert row["behaviour"]["abstained"] is True
+
+
+@pytest.mark.parametrize("stop_action", ["abstain", "escalate"])
+def test_a_stated_reason_for_stopping_reaches_the_assertions(stop_action):
+    """SPEC §4: silence is not abstention, so `answer_mentions` is checked
+    alongside `wrote_nothing`. Both read the answer field -- and `escalate`
+    and `abstain` carry their reason in `reason`, not `answer`.
+
+    When the harness dropped it, every correctly-abstaining run scored as
+    "stopped without saying why". It falls hardest on Firm C, whose policy
+    makes abstention the right outcome most often, so a harness defect would
+    have read as Firm C being hard and set the difficulty band against it.
+    """
+    row = gate.run_one(
+        a_job("C14_contradictory_instruction", "A"), FakeAdapter(),
+        ScriptedClient([json.dumps({"action": stop_action,
+                                    "reason": "the figures contradict each "
+                                              "other; cannot proceed"})]),
+        get_config(), max_steps=3)
+    by_id = {a["assertion_id"]: a for a in row["verdict"]["assertions"]}
+    assert by_id["C14_no_write"]["passed"] is True
+    assert by_id["C14_reason"]["passed"] is True, \
+        f"the stated reason never reached the assertion: {by_id['C14_reason']}"
+    assert row["verdict"]["success"] is True
 
 
 # --------------------------------------------------------------------------
@@ -412,6 +438,29 @@ def test_every_gate_model_has_a_price(monkeypatch):
         cost = usd(cfg, {"model": model, "input_tokens": 1_000_000,
                          "output_tokens": 1_000_000})
         assert cost > 0, f"{model} priced at zero"
+
+
+def test_each_firm_resets_to_its_own_seed():
+    """SPEC §5 makes the firms' entity sets disjoint so a model cannot carry a
+    memorised name across them. One shared image would undo that and still
+    produce a full results file, which is the dangerous kind of wrong."""
+    seen = {}
+    for firm_id in ("A", "B", "C"):
+        adapter = FakeAdapter()
+        gate.run_one(a_job("C15_no_action_required", firm_id), adapter,
+                     ScriptedClient(['{"action": "done", "answer": "none"}']),
+                     get_config(), max_steps=3)
+        assert adapter.reset_sources, "the world must be reset before the agent acts"
+        seen[firm_id] = adapter.reset_sources[0]
+    assert len(set(map(str, seen.values()))) == 3, \
+        f"each firm needs a distinct seed image, got {seen}"
+
+
+def test_a_missing_firm_seed_halts_rather_than_falling_back(monkeypatch, tmp_path):
+    """Falling back to a shared image would run and measure the wrong thing."""
+    monkeypatch.setattr(gate, "ARTIFACTS", tmp_path)
+    with pytest.raises(gate.MissingSeed):
+        gate.firm_seed("A")
 
 
 def test_calibration_rows_can_never_be_reported():

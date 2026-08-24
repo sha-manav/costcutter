@@ -277,3 +277,100 @@ Week 1 exits NO-GO. Per SPEC §2 the harness is the problem, and training will
 not rescue it. Fixing it means removing the scoring hint from the corrected
 schema and re-running the gate — which invalidates all 270 rows above, so
 they are tagged as the harness-v1 record rather than deleted.
+
+---
+
+# The v1 gate is void: a scoring hint in our own corrected harness
+
+The run recorded above is **not a result**. It is preserved as
+`artifacts/gate_harness_v1_contaminated.jsonl` (270 rows, force-added) because
+it is a genuine appendix item — a worked example of the invariant in
+INSTRUCTIONS §9 eroding, what that did across three model scales, and the test
+that now prevents it.
+
+## What was wrong
+
+The corrected harness told the model how it was graded. Its GUIDANCE ended:
+
+> Doing nothing can be correct. Escalating or abstaining when the policy
+> requires it counts as success; writing anyway does not.
+
+The naive harness never saw that sentence, so every behaviour it induced fell
+entirely inside the S1→S2 gap. The measurement was not harness quality. It was
+how hard each model bites on a reward hint.
+
+Auditing the rest of the schema found **five more**, all the same shape —
+general-sounding documentation that encodes the answer:
+
+| Location | Text | What it leaks |
+|---|---|---|
+| `read_policy` | "Read it before writing anything." | Steers `policy_consulted_before_first_mutation`, a **Figure 2** metric |
+| `query` | "it does not mean you should invent one" | The correct response to an empty result |
+| `submit` | "Some firms allow this and some require documents to stay in draft — the policy says which" | Points at the policy for the answer |
+| `escalate` | "Use this when the policy requires approval you cannot give" | When escalation is correct |
+| `abstain` | "Use this when the policy forbids the action the instruction asks for" | When abstention is correct |
+
+The `read_policy` one matters as much as the scoring line and had gone
+unremarked: Figure 2 reports whether policy was consulted before the first
+mutation, and only the treatment arm was being told to do it.
+
+## The tell
+
+The harness effect **reversed sign with model scale**: −6.7 points on 8B,
++13.3 on 14B, −6.0 on 32B. Ergonomics do not do that. A reward hint does:
+abstentions per 45 runs went 0→36 on 8B and single-step runs 1→30, so the
+weakest model took the hint literally and stopped before looking at anything,
+landing S2 *below* S1. 14B was strong enough to abstain selectively and gained.
+
+## Why the test suite missed it
+
+`test_corrected_schema_names_no_task_firm_or_template` only checked that no
+template, firm, threshold or workflow was **named**. Every one of the six
+hints above passes that check, because none of them names anything. They are
+phrased as general guidance.
+
+The rule the tests now encode: **the corrected harness may describe
+capabilities and error semantics; it may never describe objectives, scoring,
+or procedure.** Three phrase families are checked — scoring language
+("counts as", "success", "graded"), objective language ("you should", "use
+this when", "always"), and procedural language ("before writing", "start
+by"), the last because sequencing advice contaminates Figure 2 the way
+scoring language contaminated Figure 1. A further test pins the original v1
+text, so the check cannot be weakened until it stops catching the hint that
+voided this run.
+
+Phrase matching is a coarse instrument and will not catch every rephrasing.
+It is a floor, not a proof.
+
+## One premise checked and found wrong
+
+It was suggested that `abstain` and `escalate` be *added* to the naive
+executor, on the grounds that zero uses across 135 naive runs meant the
+corrected harness had more capability. They were already there. `Harness.step`
+handles `abstain`, `escalate` and `read_policy` identically in both variants
+and always has; only the schema differs, which is exactly SPEC §3's
+*undocumented*, not *absent*. Zero uses means the models never guessed an
+action nobody told them about — the ablation working, and a faithful
+reconstruction of the defect this project found once before, when five
+composite actions lived in `perform()` and were missing from the schema.
+
+No code change was needed. The invariant is now pinned by a test that runs
+each of the three undocumented actions through both variants and asserts
+identical outcomes, so it cannot regress into a real capability gap.
+
+## What changed for the re-run
+
+1. The six hints removed; corrected now states only what each action does and
+   what it returns.
+2. `test_harness_integrity.py` encodes the capability/objective rule.
+3. Undocumented-action parity pinned by test (no behaviour change).
+4. Base-model selection restarts at the top of the precommitted order —
+   Qwen3-14B was selected on this void measurement and is not carried forward.
+5. Trials 1 → 3, with Wilson intervals on S1, S2, the gain and the violation
+   delta (SPEC §11). Difficulty is unchanged (SPEC §10.3): same templates,
+   same assertions, same firms, only *n*.
+
+Rows now carry a `harness_fingerprint` as well as a `scoring_fingerprint`, so
+`--resume` cannot blend rows produced under two different prompts — which is
+how this contamination would otherwise have survived the fix meant to remove
+it.

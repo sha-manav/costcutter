@@ -634,3 +634,79 @@ def test_calibration_rows_can_never_be_reported():
     for job in gate.build_jobs(["m"], ["A"], ["naive"], 1):
         with pytest.raises(CalibrationLeak):
             assert_reportable(job.template.template_id)
+
+
+# --------------------------------------------------------------------------
+# SPEC §11 — uncertainty intervals
+# --------------------------------------------------------------------------
+
+def test_wilson_stays_inside_zero_one_at_the_extremes():
+    """The normal approximation runs outside [0,1] exactly where this gate
+    lives: small n, proportions near the ends."""
+    for n in (5, 45, 135):
+        for k in (0, 1, n - 1, n):
+            lo, hi = gate.wilson(k, n)
+            assert 0.0 <= lo <= hi <= 1.0, f"{k}/{n} -> [{lo},{hi}]"
+    assert gate.wilson(0, 45)[1] > 0, "a zero cell still has an upper bound"
+    assert gate.wilson(45, 45)[0] < 1, "a perfect cell still has a lower bound"
+
+
+def test_wilson_narrows_as_trials_increase():
+    """The reason for trials=3: one trial per cell gave no interval at all."""
+    def width(n):
+        lo, hi = gate.wilson(round(0.3 * n), n)
+        return hi - lo
+    assert width(135) < width(45) < width(15)
+
+
+def test_the_v1_violation_delta_is_not_distinguishable_from_zero():
+    """The v1 go/no-go turned on 5/45 against 6/45 and reported it as an
+    increase. With an interval it plainly is not one, which is the whole
+    reason SPEC §11 asks for them."""
+    lo, hi = gate.diff_interval(5, 45, 6, 45)
+    assert lo < 0 < hi, f"expected an interval spanning zero, got [{lo},{hi}]"
+
+    v = gate.ModelVerdict(
+        "m", gate.tally(_rows("m", "naive", 45, 14, violations=5), "m", "naive"),
+        gate.tally(_rows("m", "corrected", 45, 20, violations=6), "m", "corrected"))
+    assert v.violations_not_increased is False, "the point estimate did rise"
+    assert v.violations_significantly_increased is False, \
+        "one run is not a detectable increase"
+
+
+def test_a_real_safety_regression_still_fails_the_gate():
+    """The interval reading must not become a way to wave violations through."""
+    v = gate.ModelVerdict(
+        "m", gate.tally(_rows("m", "naive", 135, 40, violations=3), "m", "naive"),
+        gate.tally(_rows("m", "corrected", 135, 70, violations=40), "m", "corrected"))
+    assert v.violations_significantly_increased is True
+    assert v.go is False and v.go_on_intervals is False
+
+
+def test_the_precommitted_rule_is_reported_unchanged():
+    """`go` stays as precommitted; the interval reading is reported beside it,
+    never in place of it. Loosening a precommitted rule after seeing the data
+    is what precommitment exists to prevent."""
+    import inspect
+
+    src = inspect.getsource(gate.ModelVerdict.go.fget)
+    assert "violations_not_increased" in src
+    assert "significantly" not in src
+
+
+def test_a_harness_change_invalidates_resumed_rows():
+    """Rewriting the corrected schema changes what the model is told, but
+    moves neither run_id nor the assertions. Without this, --resume after the
+    hint removal would blend contaminated and clean rows into one rate."""
+    assert gate.harness_fingerprint("naive") != gate.harness_fingerprint("corrected")
+    assert gate.harness_fingerprint("corrected") == gate.harness_fingerprint("corrected")
+
+    import erpbench.harness as H
+
+    before = gate.harness_fingerprint("corrected")
+    original = H.CORRECTED_SCHEMA
+    try:
+        H.CORRECTED_SCHEMA = original + "\nan added line\n"
+        assert gate.harness_fingerprint("corrected") != before
+    finally:
+        H.CORRECTED_SCHEMA = original

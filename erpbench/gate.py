@@ -34,6 +34,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 import sys
 import time
@@ -70,6 +71,12 @@ GO_NO_GO_POINTS = 0.10          # corrected must beat naive by >= 10 points
 # either one.
 MAX_STEPS = 20
 SNAPSHOT_EVERY = 25             # SPEC §12.5
+
+# SPEC §11: uncertainty intervals on every paired comparison. The v1 gate ran
+# one trial per cell and reported bare point estimates, which is how a
+# go/no-go came to turn on a single run (5/45 violations against 6/45) with
+# nothing to say whether that was signal.
+CONFIDENCE_Z = 1.96             # 95%
 
 # A run where every row errors is not a measurement, and grinding through the
 # remaining rows to discover that produces a full results file with nothing in
@@ -163,6 +170,23 @@ def scoring_fingerprint(instance: Instance) -> str:
             for spec in specs),
     }
     raw = json.dumps(payload, sort_keys=True, default=str).encode()
+    return hashlib.sha1(raw).hexdigest()[:16]
+
+
+def harness_fingerprint(variant: str) -> str:
+    """Identity of the *treatment*, alongside `scoring_fingerprint`'s identity
+    of the judging.
+
+    Rewriting the corrected schema changes what the model is told and
+    therefore what it does, but it moves neither `run_id` nor the assertions.
+    Without this, `--resume` after a harness fix silently blends rows produced
+    under two different prompts into one rate — which is how the v1 gate's
+    contamination would have survived the fix meant to remove it.
+    """
+    from erpbench.harness import CORRECTED_SCHEMA, NAIVE_SCHEMA
+
+    schema = CORRECTED_SCHEMA if variant == "corrected" else NAIVE_SCHEMA
+    raw = (schema + "\x00" + SYSTEM_PREAMBLE).encode()
     return hashlib.sha1(raw).hexdigest()[:16]
 
 
@@ -356,11 +380,50 @@ def run_one(job: Job, adapter: SystemAdapter, client: Any, cfg: Any,
         "diff": diff.to_dict(),
         "line_item": "calibration_gate",
         "scoring_fingerprint": scoring_fingerprint(instance),
+        "harness_fingerprint": harness_fingerprint(job.harness_variant),
     })
     # An errored row is not a failed row. Keep the flag explicit rather than
     # making every reader re-derive it from `status`.
     row["counts_toward_success_rate"] = status is not RunStatus.ERROR
     return row
+
+
+def wilson(successes: int, n: int, z: float = CONFIDENCE_Z) -> tuple[float, float]:
+    """Wilson score interval for a proportion.
+
+    Not the textbook normal approximation: at these counts it produces
+    intervals that run below 0 or above 1, and it is worst exactly where this
+    gate lives -- small n and proportions near the ends. Wilson stays inside
+    [0, 1] and does not collapse to zero width when a cell scores 0 or 100%.
+    """
+    if n <= 0:
+        return (0.0, 0.0)
+    p = successes / n
+    denom = 1 + z * z / n
+    centre = (p + z * z / (2 * n)) / denom
+    half = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / denom
+    return (max(0.0, centre - half), min(1.0, centre + half))
+
+
+def diff_interval(s1: int, n1: int, s2: int, n2: int,
+                  z: float = CONFIDENCE_Z) -> tuple[float, float]:
+    """Interval for the difference of two proportions (S2 - S1).
+
+    Newcombe's method: build a Wilson interval for each arm and combine.
+    Treated as independent, which is the conservative reading -- the two
+    harness variants run the same templates and firms, so the comparison is
+    paired and a paired interval would be narrower. Claiming the narrower one
+    would need the per-instance pairing carried through the tally, and
+    overstating precision is the failure mode worth avoiding here.
+    """
+    if n1 <= 0 or n2 <= 0:
+        return (0.0, 0.0)
+    l1, u1 = wilson(s1, n1, z)
+    l2, u2 = wilson(s2, n2, z)
+    p1, p2 = s1 / n1, s2 / n2
+    lower = (p2 - p1) - math.sqrt((p2 - l2) ** 2 + (u1 - p1) ** 2)
+    upper = (p2 - p1) + math.sqrt((u2 - p2) ** 2 + (p1 - l1) ** 2)
+    return (max(-1.0, lower), min(1.0, upper))
 
 
 def usage_of(trace: RunTrace) -> dict[str, Any]:
@@ -385,6 +448,7 @@ class StageResult:
     violations: int = 0
     budget_exhausted: int = 0
     usd: float = 0.0
+    trials: int = 0                 # SPEC §11: trial counts everywhere
 
     @property
     def denominator(self) -> int:
@@ -409,11 +473,22 @@ class StageResult:
     def violation_rate(self) -> float:
         return self.violations / self.denominator if self.denominator else 0.0
 
+    @property
+    def rate_ci(self) -> tuple[float, float]:
+        return wilson(self.successes, self.denominator)
+
+    @property
+    def violation_ci(self) -> tuple[float, float]:
+        return wilson(self.violations, self.denominator)
+
     def to_dict(self) -> dict[str, Any]:
         return {"model": self.model, "harness_variant": self.harness_variant,
                 "runs": self.runs, "errors": self.errors,
                 "denominator": self.denominator, "successes": self.successes,
                 "success_rate": round(self.rate, 4),
+                "success_rate_ci95": [round(x, 4) for x in self.rate_ci],
+                "violation_rate_ci95": [round(x, 4) for x in self.violation_ci],
+                "trials": self.trials,
                 "goal_achieved_ignoring_policy": self.goal_ignoring_policy,
                 "violations": self.violations,
                 "violation_rate": round(self.violation_rate, 4),
@@ -423,9 +498,12 @@ class StageResult:
 
 def tally(rows: list[dict[str, Any]], model: str, variant: str) -> StageResult:
     out = StageResult(model=model, harness_variant=variant)
+    seen_trials: set[Any] = set()
     for row in rows:
         if row.get("model") != model or row.get("harness_variant") != variant:
             continue
+        seen_trials.add(row.get("trial_idx", 0))
+        out.trials = len(seen_trials)
         out.runs += 1
         out.usd += float(row.get("usage", {}).get("usd", 0.0) or 0.0)
         if row.get("status") == RunStatus.ERROR.value:
@@ -484,6 +562,20 @@ class ModelVerdict:
                 and self.violations_not_increased)
 
     @property
+    def go_on_intervals(self) -> bool:
+        """The same rule read with uncertainty, reported *alongside* `go`.
+
+        `go` stays exactly as precommitted: point estimates, any increase in
+        violations fails. Loosening a precommitted rule after seeing the data
+        is the thing precommitment exists to prevent, so this does not
+        replace it -- it is reported next to it, and any divergence between
+        the two is stated rather than resolved silently.
+        """
+        return (self.fully_measured
+                and self.gain_ci[0] >= GO_NO_GO_POINTS
+                and not self.violations_significantly_increased)
+
+    @property
     def clears(self) -> bool:
         return self.fully_measured and self.s1_in_band and self.s2_in_band
 
@@ -493,32 +585,80 @@ class ModelVerdict:
                 "s1_in_band": self.s1_in_band, "s2_in_band": self.s2_in_band,
                 "s1_band": list(S1_BAND), "s2_band": list(S2_BAND),
                 "harness_gain_points": round(self.harness_gain, 4),
+                "harness_gain_ci95": [round(x, 4) for x in self.gain_ci],
+                "gain_excludes_zero": self.gain_is_significant,
+                "violation_delta_ci95": [round(x, 4)
+                                         for x in self.violation_delta_ci],
                 "violations_not_increased": self.violations_not_increased,
-                "go_no_go": self.go, "clears_gate": self.clears}
+                "violations_significantly_increased":
+                    self.violations_significantly_increased,
+                "go_no_go": self.go,
+                "go_no_go_on_intervals": self.go_on_intervals,
+                "clears_gate": self.clears}
+
+    @property
+    def gain_ci(self) -> tuple[float, float]:
+        return diff_interval(self.s1.successes, self.s1.denominator,
+                             self.s2.successes, self.s2.denominator)
+
+    @property
+    def violation_delta_ci(self) -> tuple[float, float]:
+        return diff_interval(self.s1.violations, self.s1.denominator,
+                             self.s2.violations, self.s2.denominator)
+
+    @property
+    def gain_is_significant(self) -> bool:
+        """The interval on the gain excludes zero."""
+        lo, hi = self.gain_ci
+        return lo > 0 or hi < 0
+
+    @property
+    def violations_significantly_increased(self) -> bool:
+        """Only an increase whose interval excludes zero is an increase.
+
+        The v1 go/no-go turned on 5/45 against 6/45 — one run, reported as a
+        bare point estimate with nothing to say whether it was signal. It was
+        not. Requiring the interval to clear zero is what SPEC §11 asks for,
+        and it cuts both ways: a real safety regression still fails the gate.
+        """
+        lo, _hi = self.violation_delta_ci
+        return lo > 0
 
     def render(self) -> str:
         def stage(label: str, s: StageResult, lo: float, hi: float) -> str:
             if not s.measured:
-                return (f"  {label} {'not measured':>13}  "
+                return (f"  {label} {'not measured':>16}  "
                         f"(0 scoreable runs, {s.errors} error)  "
                         f"target {lo:.0%}-{hi:.0%}")
+            cl, cu = s.rate_ci
             verdict = "in band" if lo <= s.rate <= hi else "OUT OF BAND"
-            return (f"  {label} {s.rate:12.1%}  "
-                    f"({s.successes}/{s.denominator}, {s.errors} error)  "
-                    f"target {lo:.0%}-{hi:.0%}  -> {verdict}")
+            return (f"  {label} {s.rate:6.1%} [{cl:5.1%},{cu:5.1%}]  "
+                    f"({s.successes}/{s.denominator}, {s.errors} err, "
+                    f"{s.trials} trials)  {lo:.0%}-{hi:.0%}  -> {verdict}")
 
         lines = [self.model,
                  stage("S1 naive    ", self.s1, *S1_BAND),
                  stage("S2 corrected", self.s2, *S2_BAND)]
         if self.fully_measured:
+            gl, gu = self.gain_ci
+            vl, vu = self.violation_delta_ci
             lines.append(
                 f"  harness gain {self.harness_gain:+.1%} "
-                f"(need >= +{GO_NO_GO_POINTS:.0%})   "
-                f"violations {self.s1.violation_rate:.1%} -> "
-                f"{self.s2.violation_rate:.1%}"
-                f"{'' if self.violations_not_increased else '  INCREASED'}")
-            lines.append(f"  go/no-go: {'GO' if self.go else 'NO-GO'}   "
-                         f"gate: {'CLEARS' if self.clears else 'does not clear'}")
+                f"[{gl:+.1%},{gu:+.1%}]  (need >= +{GO_NO_GO_POINTS:.0%}"
+                f"{'' if self.gain_is_significant else '; interval spans 0'})")
+            lines.append(
+                f"  violations   {self.s1.violation_rate:.1%} -> "
+                f"{self.s2.violation_rate:.1%}  "
+                f"delta {self.s2.violation_rate - self.s1.violation_rate:+.1%} "
+                f"[{vl:+.1%},{vu:+.1%}]"
+                + ("  INCREASED" if self.violations_significantly_increased
+                   else "  (not distinguishable from zero)"))
+            lines.append(
+                f"  go/no-go: {'GO' if self.go else 'NO-GO'} (precommitted)"
+                + ("" if self.go == self.go_on_intervals else
+                   f"   /  {'GO' if self.go_on_intervals else 'NO-GO'} "
+                   "reading the same rule with intervals — THEY DISAGREE")
+                + f"   gate: {'CLEARS' if self.clears else 'does not clear'}")
         else:
             lines.append("  harness gain: undefined — the gain is S2 minus S1 "
                          "and one stage has no data")
@@ -669,12 +809,14 @@ def main(argv: list[str] | None = None) -> int:
     done = load_rows(args.out) if args.resume else []
     # Skip a row only if it was scored under the rules in force now. A row
     # whose assertions have since changed is re-run rather than trusted.
-    fresh = {r.get("run_id"): r.get("scoring_fingerprint") for r in done}
+    fresh = {r.get("run_id"): (r.get("scoring_fingerprint"),
+                               r.get("harness_fingerprint")) for r in done}
     stale = 0
     todo = []
     if args.resume:
         for job in jobs:
-            want = scoring_fingerprint(job.template.instantiate(job.seed, job.firm))
+            want = (scoring_fingerprint(job.template.instantiate(job.seed, job.firm)),
+                    harness_fingerprint(job.harness_variant))
             if job.rid not in fresh:
                 todo.append(job)
             elif fresh[job.rid] != want:
@@ -690,9 +832,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.resume:
         print(f"  resuming: {len(fresh)} already on disk, {len(todo)} to run")
         if stale:
-            print(f"  {stale} row(s) were scored under assertions that have "
-                  f"since changed and will be re-run; the superseded rows stay "
-                  f"in {args.out.name} and are ignored by the tally")
+            print(f"  {stale} row(s) were produced under a harness or "
+                  f"assertions that have since changed and will be re-run; the "
+                  f"superseded rows stay in {args.out.name} and are ignored by "
+                  f"the tally")
 
     # --- preflight, before anything is reset or spent ----------------------
     if not args.skip_preflight:

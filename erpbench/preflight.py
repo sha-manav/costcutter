@@ -75,11 +75,24 @@ class PreflightReport:
         return "\n".join(lines)
 
 
+def _ledger() -> Path:
+    """Resolved per call, not at import.
+
+    The ledger is the budget record of truth, and a module-level constant
+    baked in at import time cannot be redirected by a test — so the suite
+    appended five fabricated rows to the real one. They cost $0.00 and did
+    not move the balance, which is precisely why it would have gone
+    unnoticed: invented entries in an audit trail that still adds up.
+    """
+    return ARTIFACTS / "spend_ledger.jsonl"
+
+
 def spent_on(line_item: str) -> float:
-    if not LEDGER.exists():
+    ledger = _ledger()
+    if not ledger.exists():
         return 0.0
     total = 0.0
-    for line in LEDGER.read_text().splitlines():
+    for line in ledger.read_text().splitlines():
         if not line.strip():
             continue
         try:
@@ -103,8 +116,9 @@ def record_spend(provider: str, model: str, run_id: str, line_item: str,
                  input_tokens: int, output_tokens: int, cost_usd: float,
                  cached_input_tokens: int = 0) -> None:
     """SPEC §12.1: every call, force-added and committed."""
-    LEDGER.parent.mkdir(parents=True, exist_ok=True)
-    with LEDGER.open("a") as fh:
+    ledger = _ledger()
+    ledger.parent.mkdir(parents=True, exist_ok=True)
+    with ledger.open("a") as fh:
         fh.write(json.dumps({
             "ts": time.time(), "provider": provider, "model": model,
             "run_id": run_id, "line_item": line_item,

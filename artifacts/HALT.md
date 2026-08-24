@@ -1,62 +1,60 @@
-# HALT
+# STOPPED — week 1 gate complete, NO-GO
 
-**Reason.** Everything the calibration gate needs is in place except the OpenRouter key, which is deliberately not in my environment -- you chose to run the gate yourself so the key never enters my shells or this transcript. ERPNext v15.99.1 is up under frappe_docker and verified: the adapter snapshots 19,326 rows across 118 doctypes in 0.5s, the idle diff is empty, real writes are caught exactly, and a firm reset restores in a median 4.4s over six runs. All three firm seed images are built. Preflight passes every check except `key:openrouter`. The gate itself is verified end-to-end against the live instance with a scripted agent -- correct writes score clean, forbidden writes are caught, abstention and escalation pass -- and verified to halt on row 1 with zero rows written when handed an invalid key. 175 tests pass.
+**Reason.** Not a failure. The calibration gate ran to completion -- 270 rows, one lost to a provider error and excluded from its denominator -- and week 1 ends where SPEC §2 says it must when the harness does not earn its gain: **NO-GO, no data generation**. Qwen3-14B is the base model by the precommitted order (S1 31.1%, S2 44.4%, both in band). The harness gain is +13.3 points, which clears the bar; violations went 5/45 to 6/45, and SPEC §2 requires the gain without increasing them, so the rule returns NO-GO. That margin is one run and at n=45 is not distinguishable from zero. The substantive finding is separate and larger: the corrected harness made Qwen3-8B worse by 6.7 points and Qwen3-32B worse by 6.0, and a harness effect that reverses sign across model scale is not a harness effect. Full numbers and the diagnosis are in artifacts/environment.md under 'Week 1 exit'.
 
 | | |
 |---|---|
 | Line item | `calibration_gate` |
 | Reserved | $8.00 |
-| Spent | $0.00 |
-| Remaining | $8.00 |
-| Rows completed | 0 |
-| Rows remaining | 270 |
+| Spent | $0.23 |
+| Remaining | $7.77 |
+| Rows completed | 270 |
+| Rows remaining | 0 |
 
 ## Resume
 
 ```bash
+# Nothing is broken; this is a decision point, not a fault.
+# To re-run the gate after a harness change (rows scored under changed
+# assertions are re-run automatically; a harness change is not detected,
+# so archive the old results file first):
 source infra/env.docker.sh
 export OPENROUTER_API_KEY=...
-.venv/bin/python -m erpbench.preflight --check-adapter   # expect PREFLIGHT OK
+mv artifacts/calibration_gate.jsonl artifacts/calibration_gate_harness_v1.jsonl
 .venv/bin/python -m erpbench.gate --require-model --resume
 
-# If ERPNext is not running (after a reboot, say):
-bash infra/setup_docker.sh
+# To add trials instead:
+.venv/bin/python -m erpbench.gate --require-model --resume --trials 3
 ```
 
 ## Needs a human decision
 
-Only one thing: run the gate. It is your key, so it is your shell.
+Three decisions, none of which I should make alone. All are cheap:
+the entire 270-row gate cost $0.22, and $7.78 of the line item remains.
 
-    source infra/env.docker.sh
-    export OPENROUTER_API_KEY=...
-    .venv/bin/python -m erpbench.gate --require-model --resume
+1. **Strip the scoring hint from the corrected schema, then re-run.** Its GUIDANCE
+   ends "Escalating or abstaining when the policy requires it counts as success;
+   writing anyway does not." That is a statement about the scoring function, not
+   about the system under test, and the naive harness never sees it. SPEC §2 says
+   any hint voids Figure 1. The behaviour matches what a reward hint would produce:
+   abstentions per 45 runs go 0->36 on 8B and single-step runs go 1->30, which is
+   why S2 lands below S1 for the two models that are not 14B. This is the one I
+   would do first; Figure 1 does not survive as it stands. Cost ~$0.22, ~2h.
 
-Four things worth knowing before you start it.
+2. **Raise trials from 1 to 3.** The gate currently has no uncertainty intervals at
+   all, and SPEC §11 requires them on every paired comparison. The go/no-go turning
+   on a single run is the immediate symptom. This is not a difficulty change, only
+   n. Cost ~$0.66 total, ~6h.
 
-**It takes roughly two hours.** 270 rows, serial against one site, ~4.4s reset plus
-~1s of snapshots plus model latency per row. It commits every 25 rows and `--resume`
-skips anything already in artifacts/calibration_gate.jsonl, so interrupting it is
-safe and restarting is cheap.
+3. **Decide, on the record, whether `abstain` and `escalate` belong in the naive
+   schema.** They are absent, and were used zero times across all 135 naive runs.
+   Leaving them out is defensible -- SPEC §2 defines naive as "undocumented
+   actions" -- but it means the variants are not compared on the same action space,
+   and 29 of 45 calibration instances have "write nothing" as the correct outcome.
+   Whichever way it goes, it should be a decision rather than an accident.
 
-**Cost should be about $0.70 of the $8.00 line item.** Roughly 5.4M input and 160k
-output tokens across the three models at OpenRouter's current Qwen rates. The soft
-ceiling warns at 85% and the hard ceiling stops at the next task boundary, so it
-cannot overrun the line item even if that estimate is wrong by an order of magnitude.
-
-**It runs all three models rather than stopping at the first that clears.** SPEC §2
-selects the first to clear, and `decide()` does exactly that -- but INSTRUCTIONS §8
-also asks for what each model scored, and at this price the full set costs cents and
-is impossible to reconstruct later. If you would rather stop early, pass `--models`
-with a single id.
-
-**Expect `cached_input_tokens` to be zero throughout.** OpenRouter serves no prompt
-cache for these Qwen models. That is a provider property, not the silent
-below-the-floor failure INSTRUCTIONS §4 describes; config.yaml prices their cached
-rate identically to input so no discount is banked that does not exist.
-
-When it finishes it writes artifacts/calibration_gate_decision.json and prints the
-S1/S2 bands, the harness gain, the violation rates and the go/no-go for each model.
-Hand me that file and I will write up the three week-1 decisions.
+Nothing is blocked on infrastructure. ERPNext is up, the seeds are built, preflight
+passes every check when a key is exported, and 196 tests pass.
 
 
 Per SPEC §12.4 no workaround was attempted: no model was substituted, no

@@ -219,9 +219,17 @@ def test_a_streak_of_errors_stops_the_run(tmp_path, monkeypatch, capsys):
     """One error is expected and excluded from the denominator. A streak means
     something systemic — and grinding on produces a full results file with no
     measurement in it, which is exactly what the missing-tenacity bug did."""
+    from erpbench import preflight as pf
     from shadow import llm
 
     monkeypatch.setenv("OPENROUTER_API_KEY", "probe")
+    # `main` halts, and `halt()` writes artifacts/HALT.md at the module-level
+    # path. Without this the suite overwrites the real halt record with a
+    # fabricated reason — a test asserting that failures are reported, by
+    # reporting a failure that never happened.
+    monkeypatch.setattr(pf, "ARTIFACTS", tmp_path)
+    monkeypatch.setattr(gate, "ARTIFACTS", tmp_path)
+    monkeypatch.setattr(gate, "commit_rows", lambda *a, **kw: None)
     monkeypatch.setattr(gate, "make_adapter", lambda *a, **kw: FakeAdapter())
     monkeypatch.setattr(
         gate, "run_one",

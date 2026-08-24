@@ -170,7 +170,11 @@ class LiteLLMClient:
         # steps and is scored as a failure, which lands directly on the
         # success rate the benchmark exists to measure. Retry transient
         # errors here so they never reach the result row.
-        kwargs.setdefault("num_retries", 4)
+        # Four retries multiplied by the request timeout is the per-step
+        # cost, and the step budget multiplies that again. Two keeps the
+        # resilience that matters -- a single transient 5xx -- without the
+        # arithmetic that turned twenty rows into half a ten-hour run.
+        kwargs.setdefault("num_retries", 2)
         # Without this a dropped-but-not-closed connection blocks forever.
         # A 270-row run hung at row 231 on an ESTABLISHED socket to the
         # provider: 8 hours elapsed, 1m45s of CPU, no progress, no halt, no

@@ -87,6 +87,19 @@ CONFIDENCE_Z = 1.96             # 95%
 # §12.3 wants that stopped rather than absorbed.
 MAX_CONSECUTIVE_ERRORS = 5
 
+# Per-row wall ceiling. The request timeout in shadow/llm.py bounds one HTTP
+# call; it does not bound a row, because `num_retries` multiplies it and the
+# step budget multiplies that again -- 5 attempts x 120s x 20 steps is over
+# three hours for a single row, and one row did take 78 minutes. Twenty rows
+# out of 588 consumed 52% of a ten-hour run on that arithmetic.
+#
+# A row that blows this is the provider being pathological, not the agent
+# failing, so it is `status: error` and leaves the denominator (SPEC §12.4).
+# Set generously: the median row is 20-40s, so 900s only catches genuine
+# pathology, and every abandoned row is counted and reported rather than
+# quietly dropped.
+ROW_DEADLINE_S = float(os.environ.get("ERPBENCH_ROW_DEADLINE_S", "900"))
+
 SYSTEM_PREAMBLE = """You are an agent operating a business system on behalf of
 a firm. You are given one instruction. Carry it out, or decline to, according
 to the firm's operating policy.
@@ -241,7 +254,8 @@ def _is_fatal_provider_error(exc: Exception) -> str | None:
 
 
 def run_one(job: Job, adapter: SystemAdapter, client: Any, cfg: Any,
-            max_steps: int = MAX_STEPS) -> dict[str, Any]:
+            max_steps: int = MAX_STEPS,
+            row_deadline_s: float = ROW_DEADLINE_S) -> dict[str, Any]:
     """Execute one instance end to end and return its result row.
 
     Raises GateHalt for anything that is the world breaking rather than the
@@ -276,7 +290,15 @@ def run_one(job: Job, adapter: SystemAdapter, client: Any, cfg: Any,
     answer, escalated, abstained = "", False, False
     status, error = RunStatus.OK, None
 
+    deadline = time.time() + row_deadline_s
     for _ in range(max_steps):
+        if time.time() > deadline:
+            # Not an agent failure: the agent was still acting, the provider
+            # was just not answering in bounded time (SPEC §12.4).
+            status = RunStatus.ERROR
+            error = (f"row exceeded {row_deadline_s:.0f}s wall deadline after "
+                     f"{len(trace.actions)} steps")
+            break
         try:
             resp = client.complete(messages, temperature=0.0, max_tokens=1200)
         except Exception as exc:
@@ -792,6 +814,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--trials", type=int, default=1)
     p.add_argument("--line-item", default="calibration_gate")
     p.add_argument("--max-steps", type=int, default=MAX_STEPS)
+    p.add_argument("--row-deadline", type=float, default=ROW_DEADLINE_S,
+                   help="per-row wall ceiling in seconds; a row that exceeds "
+                        "it is status=error, not an agent failure")
     p.add_argument("--out", type=Path, default=DEFAULT_OUT)
     p.add_argument("--require-model", action="store_true",
                    help="refuse to run against anything but a real model")
@@ -895,7 +920,8 @@ def main(argv: list[str] | None = None) -> int:
         clients[job.model] = client
 
         try:
-            row = run_one(job, adapter, client, cfg, max_steps=args.max_steps)
+            row = run_one(job, adapter, client, cfg, max_steps=args.max_steps,
+                          row_deadline_s=args.row_deadline)
         except GateHalt as exc:
             halt_reason = str(exc)
             break
@@ -940,6 +966,14 @@ def main(argv: list[str] | None = None) -> int:
     decision = decide(rows, models)
     (ARTIFACTS / "calibration_gate_decision.json").write_text(
         json.dumps(decision, indent=2) + "\n")
+
+    abandoned = [r for r in rows
+                 if "deadline" in (r.get("error") or "")]
+    if abandoned:
+        print(f"\n{len(abandoned)} row(s) abandoned on the {args.row_deadline:.0f}s "
+              f"wall deadline and excluded from every denominator (SPEC §12.4). "
+              f"They are provider latency, not agent failures, and are listed "
+              f"in the results file with status=error.")
 
     print()
     if decision.get("insufficient_data"):

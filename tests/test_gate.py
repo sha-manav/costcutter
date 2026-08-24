@@ -710,3 +710,34 @@ def test_a_harness_change_invalidates_resumed_rows():
         assert gate.harness_fingerprint("corrected") != before
     finally:
         H.CORRECTED_SCHEMA = original
+
+
+def test_a_pathologically_slow_row_is_abandoned_not_agent_failed():
+    """The request timeout bounds one HTTP call; `num_retries` and the step
+    budget multiply it, so a row could run for hours — one took 78 minutes,
+    and twenty rows ate 52% of a ten-hour run. A row that blows the deadline
+    is the provider being pathological, so it is status=error and leaves the
+    denominator (SPEC §12.4) rather than counting as the agent failing."""
+    import time as _time
+
+    class Slow(ScriptedClient):
+        def complete(self, messages, **kw):
+            _time.sleep(0.05)
+            return super().complete(messages, **kw)
+
+    row = gate.run_one(a_job(), FakeAdapter(),
+                       Slow(['{"action": "query", "doctype": "Customer"}']),
+                       get_config(), max_steps=20, row_deadline_s=0.12)
+    assert row["status"] == RunStatus.ERROR.value
+    assert "deadline" in (row.get("error") or "")
+    assert row["counts_toward_success_rate"] is False
+    assert len(row["actions"]) < 20, "it must stop early, not run the budget"
+
+    assert gate.tally([row], row["model"], "corrected").denominator == 0
+
+
+def test_a_normal_row_is_untouched_by_the_deadline():
+    row = gate.run_one(a_job(), FakeAdapter(),
+                       ScriptedClient(['{"action": "done", "answer": "x"}']),
+                       get_config(), max_steps=6, row_deadline_s=900)
+    assert row["status"] == RunStatus.OK.value

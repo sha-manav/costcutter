@@ -913,3 +913,15 @@ def test_the_probe_is_skipped_when_the_key_is_simply_absent(monkeypatch):
     names = [c.name for c in report.checks]
     assert any(n.startswith("key:") for n in names)
     assert not any(n.startswith("live:") for n in names)
+
+
+def test_the_pool_driver_runs_shards_unbuffered():
+    """Python buffers stdout when it is not a TTY, so a shard redirected to a
+    log file writes nothing until the buffer fills. A working run and a dead
+    one then look identical, which has been mistaken for a hang repeatedly."""
+    from pathlib import Path
+
+    driver = (Path(__file__).resolve().parent.parent
+              / "scripts" / "run_gate_pool.sh").read_text()
+    assert "python -u -m erpbench.gate" in driver, \
+        "shards must run unbuffered or their logs stay empty while they work"

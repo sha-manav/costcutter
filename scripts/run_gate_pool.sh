@@ -30,7 +30,12 @@ pids=()
 for i in $(seq 1 "$N"); do
   site=$(printf "erp%02d.localhost" "$i")
   out="$OUTDIR/shard_${i}_of_${N}.jsonl"
-  .venv/bin/python -m erpbench.gate \
+  # -u: unbuffered. Python buffers stdout when it is not a TTY, so a shard
+  # redirected to a log file writes nothing until the buffer fills or the
+  # process exits -- a working run and a dead one look identical for the
+  # first several thousand characters. That ambiguity has been mistaken for
+  # a hang three times; it costs nothing to remove.
+  .venv/bin/python -u -m erpbench.gate \
       --site "$site" --shard "$i/$N" --out "$out" "$@" \
       > "$OUTDIR/shard_${i}.log" 2>&1 &
   pids+=($!)
@@ -38,7 +43,9 @@ for i in $(seq 1 "$N"); do
 done
 
 echo
-echo "waiting; tail a log to watch, e.g.:  tail -f $OUTDIR/shard_1.log"
+echo "waiting. progress:"
+echo "  tail -f $OUTDIR/shard_1.log                      # one shard, live"
+echo "  wc -l $OUTDIR/shard_*_of_${N}.jsonl              # rows landed per shard"
 failed=0
 for p in "${pids[@]}"; do wait "$p" || failed=$((failed+1)); done
 

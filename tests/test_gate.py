@@ -803,3 +803,57 @@ def test_a_pinned_call_carries_the_routing_and_forbids_fallback(monkeypatch):
     routing = seen["extra_body"]["provider"]
     assert routing["order"] == ["Groq"]
     assert routing["allow_fallbacks"] is False
+
+
+# --------------------------------------------------------------------------
+# Site pool sharding — SPEC §6 throughput
+# --------------------------------------------------------------------------
+
+def _shard(jobs, index, total):
+    return [j for n, j in enumerate(jobs) if n % total == index - 1]
+
+
+@pytest.mark.parametrize("total", [2, 3, 6, 8])
+def test_sharding_covers_every_job_exactly_once(total):
+    """A dropped job is a silently smaller measurement; a duplicated one is a
+    task counted twice and two workers racing the same site."""
+    jobs = gate.build_jobs(list(gate.FALLBACK_ORDER), ["A", "B", "C"],
+                           ["naive", "corrected"], 3)
+    seen = [j.rid for i in range(1, total + 1) for j in _shard(jobs, i, total)]
+    assert len(seen) == len(jobs), "shards do not cover every job"
+    assert len(set(seen)) == len(seen), "a job appears in more than one shard"
+
+
+def test_shards_are_strided_so_no_shard_owns_only_the_slow_model():
+    """Jobs are model-major, so contiguous blocks would hand one shard every
+    32B row. The slowest model would then set the wall clock for the whole
+    pool and the parallelism would buy nothing."""
+    jobs = gate.build_jobs(list(gate.FALLBACK_ORDER), ["A", "B", "C"],
+                           ["naive", "corrected"], 3)
+    for i in range(1, 7):
+        models = {j.model for j in _shard(jobs, i, 6)}
+        assert models == set(gate.FALLBACK_ORDER), \
+            f"shard {i} carries only {models}"
+
+
+def test_each_shard_is_the_same_size_within_one_job():
+    jobs = gate.build_jobs(list(gate.FALLBACK_ORDER), ["A", "B", "C"],
+                           ["naive", "corrected"], 3)
+    sizes = [len(_shard(jobs, i, 6)) for i in range(1, 7)]
+    assert max(sizes) - min(sizes) <= 1, f"uneven shards: {sizes}"
+
+
+def test_the_pool_driver_gives_each_shard_its_own_site_and_output():
+    """One site per worker is structural, not a convention: a shared site
+    means one rollout's reset drops a database another is mid-snapshot on.
+    And the wall-clock alarm is a SIGALRM, which reaches only the main
+    thread — threads would silently lose the one bound that stops a hung
+    provider call, so shards must be processes."""
+    from pathlib import Path
+
+    driver = (Path(__file__).resolve().parent.parent
+              / "scripts" / "run_gate_pool.sh").read_text()
+    assert "--site" in driver and "--shard" in driver
+    assert "--out" in driver, "shards sharing one output file would interleave"
+    assert 'printf "erp%02d.localhost"' in driver, \
+        "each shard must be pinned to its own site"

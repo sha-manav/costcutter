@@ -23,6 +23,14 @@
 # host with a routable address.
 
 services:
+  frontend:
+    environment:
+      # Route by Host header instead of pinning every request to one site.
+      # pwd.yml hardcodes FRAPPE_SITE_NAME_HEADER=frontend, which makes a
+      # multi-site pool impossible: every request lands on `frontend` no
+      # matter which site the caller asked for.
+      FRAPPE_SITE_NAME_HEADER: $$host
+
   db:
     ports:
       - "127.0.0.1:3306:3306"

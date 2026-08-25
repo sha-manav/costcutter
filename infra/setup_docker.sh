@@ -90,4 +90,8 @@ echo
 echo "ERPNext is up. Next:"
 echo "  source infra/env.docker.sh"
 echo "  .venv/bin/python scripts/build_firm_seeds_docker.py"
+echo "  .venv/bin/python scripts/provision_docker_sites.py --count 6"
 echo "  .venv/bin/python -m erpbench.preflight --check-adapter"
+echo
+echo "then run the gate across the pool:"
+echo "  bash scripts/run_gate_pool.sh 6 --require-model --resume --trials 3"

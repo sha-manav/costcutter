@@ -844,6 +844,14 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--trials", type=int, default=1)
     p.add_argument("--line-item", default="calibration_gate")
     p.add_argument("--max-steps", type=int, default=MAX_STEPS)
+    p.add_argument("--site", default=None,
+                   help="ERPNext site this process owns; with --shard this is "
+                        "how the pool is driven (one site per process)")
+    p.add_argument("--shard", default=None, metavar="I/N",
+                   help="take every Nth job starting at I (1-based). Each "
+                        "shard is a separate single-threaded process with its "
+                        "own site and its own --out, which is what keeps a "
+                        "site owned by exactly one worker.")
     p.add_argument("--row-deadline", type=float, default=ROW_DEADLINE_S,
                    help="per-row wall ceiling in seconds; a row that exceeds "
                         "it is status=error, not an agent failure")
@@ -856,10 +864,29 @@ def main(argv: list[str] | None = None) -> int:
                    help=argparse.SUPPRESS)   # tests only; never for a real run
     args = p.parse_args(argv)
 
+    if args.site:
+        # Before make_adapter reads it.
+        os.environ["ERPBENCH_SITE"] = args.site
+        os.environ["SHADOW_SITE"] = args.site
+
     models = [m for m in args.models.split(",") if m]
     firm_ids = [f for f in args.firms.split(",") if f]
     variants = [h for h in args.harnesses.split(",") if h]
     jobs = build_jobs(models, firm_ids, variants, args.trials)
+    if args.shard:
+        try:
+            index, total = (int(x) for x in args.shard.split("/"))
+        except ValueError:
+            print(f"--shard must look like 3/6, got {args.shard!r}",
+                  file=sys.stderr)
+            return 1
+        if not 1 <= index <= total:
+            print(f"--shard index out of range: {args.shard}", file=sys.stderr)
+            return 1
+        # Strided, not blocked: jobs are model-major, so contiguous blocks
+        # would give one shard all the 8B rows and another all the 32B rows,
+        # and the slowest model would set the wall clock for everyone.
+        jobs = [j for n, j in enumerate(jobs) if n % total == index - 1]
 
     done = load_rows(args.out) if args.resume else []
     # Skip a row only if it was scored under the rules in force now. A row

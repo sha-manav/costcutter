@@ -152,9 +152,41 @@ def check_provider_reachable(base_url: str, timeout: float = 10.0
         return False, f"{type(exc).__name__}: {str(exc)[:120]}"
 
 
+def check_key_liveness(model: str, timeout: float = 30.0) -> tuple[bool, str]:
+    """SPEC §12.2 check 2: one minimal call, to prove the key actually works.
+
+    Checking that the variable is *set* is not this check. A key that is
+    present and wrong passes every other gate here and then fails on the
+    first real call -- which is exactly what happened: six shards launched,
+    each reset a site, each halted on `Missing Authentication header`,
+    because a placeholder had been exported verbatim. One request of a few
+    tokens costs a fraction of a cent and turns that into a refusal before
+    anything is reset or spent.
+    """
+    import litellm
+
+    litellm.suppress_debug_info = True
+    try:
+        resp = litellm.completion(
+            model=model, messages=[{"role": "user", "content": "ping"}],
+            max_tokens=1, timeout=timeout, num_retries=0)
+    except Exception as exc:                                  # noqa: BLE001
+        text = f"{type(exc).__name__}: {exc}"
+        for needle, why in (("authenticationerror", "key rejected"),
+                            ("401", "key rejected"),
+                            ("insufficient", "no credit"),
+                            ("402", "no credit"),
+                            ("notfound", "model not available")):
+            if needle in text.lower():
+                return False, f"{why} — {text[:120]}"
+        return False, text[:160]
+    got = getattr(resp, "choices", None)
+    return bool(got), "live" if got else "empty completion"
+
+
 def run(line_item: str, projected_usd: float, models: list[str],
         provider_urls: dict[str, str], sites: list[Any] | None = None,
-        min_disk_gb: float = 10.0) -> PreflightReport:
+        min_disk_gb: float = 10.0, live_probe: bool = True) -> PreflightReport:
     report = PreflightReport(line_item=line_item, projected_usd=projected_usd,
                              remaining_usd=remaining(line_item))
 
@@ -177,7 +209,16 @@ def run(line_item: str, projected_usd: float, models: list[str],
         ok, detail = check_provider_reachable(url)
         report.add(f"reachable:{provider}", ok, f"{url} -> {detail}")
 
-    # 4. caching floor, per model
+    # 4. key liveness — only worth attempting once the key is present and
+    # the host is reachable, so it does not add a confusing second failure
+    # on top of a missing key.
+    if live_probe and all(c.passed for c in report.checks
+                          if c.name.startswith(("key:", "reachable:"))):
+        for model in models:
+            ok, detail = check_key_liveness(model)
+            report.add(f"live:{model}", ok, detail)
+
+    # 5. caching floor, per model
     for model in models:
         floor = cache_floor_for(model)
         report.add(f"cache_floor:{model}", True,

@@ -893,6 +893,10 @@ def main(argv: list[str] | None = None) -> int:
                    help="refuse to run against anything but a real model")
     p.add_argument("--resume", action="store_true",
                    help="skip run_ids already present in --out")
+    p.add_argument("--no-live-probe", action="store_true",
+                   help="skip the one-token key liveness call (SPEC §12.2.2). "
+                        "Only for shards after the first has already proved "
+                        "the key; a full run should always probe.")
     p.add_argument("--skip-preflight", action="store_true",
                    help=argparse.SUPPRESS)   # tests only; never for a real run
     args = p.parse_args(argv)
@@ -958,7 +962,7 @@ def main(argv: list[str] | None = None) -> int:
     if not args.skip_preflight:
         report = pf.run(line_item=args.line_item, projected_usd=0.0,
                         models=models, provider_urls=GATE_PROVIDER_URLS,
-                        sites=None)
+                        sites=None, live_probe=not args.no_live_probe)
         print()
         print(report.render())
         if not report.ok:

@@ -857,3 +857,59 @@ def test_the_pool_driver_gives_each_shard_its_own_site_and_output():
     assert "--out" in driver, "shards sharing one output file would interleave"
     assert 'printf "erp%02d.localhost"' in driver, \
         "each shard must be pinned to its own site"
+
+
+def test_preflight_probes_that_the_key_actually_works(monkeypatch):
+    """SPEC §12.2.2 asks for key *liveness*, one minimal call per provider.
+    Checking the variable is set is a different, weaker check: a key that is
+    present and wrong passes everything else and fails on the first real
+    call. It did — six shards launched, each reset a site, each halted on
+    `Missing Authentication header` from a placeholder exported verbatim."""
+    import sys
+    import types
+
+    from erpbench import preflight as pf
+
+    stub = types.ModuleType("litellm")
+
+    def completion(**kw):
+        raise RuntimeError("AuthenticationError: 401 Missing Authentication header")
+
+    stub.completion = completion
+    stub.suppress_debug_info = False
+    monkeypatch.setitem(sys.modules, "litellm", stub)
+
+    ok, detail = pf.check_key_liveness("openrouter/qwen/qwen3-8b")
+    assert ok is False
+    assert "key rejected" in detail
+
+
+def test_a_live_key_passes_the_probe(monkeypatch):
+    import sys
+    import types
+
+    from erpbench import preflight as pf
+
+    stub = types.ModuleType("litellm")
+    stub.completion = lambda **kw: types.SimpleNamespace(choices=[object()])
+    stub.suppress_debug_info = False
+    monkeypatch.setitem(sys.modules, "litellm", stub)
+
+    ok, detail = pf.check_key_liveness("openrouter/qwen/qwen3-8b")
+    assert ok is True and detail == "live"
+
+
+def test_the_probe_is_skipped_when_the_key_is_simply_absent(monkeypatch):
+    """A missing key already fails its own check; probing as well would add a
+    confusing second failure describing the same cause."""
+    from erpbench import preflight as pf
+    from shadow import llm
+
+    for var in llm.CREDENTIAL_ENV_VARS:
+        monkeypatch.delenv(var, raising=False)
+    report = pf.run(line_item="api_anchors", projected_usd=0.0,
+                    models=["openrouter/qwen/qwen3-8b"],
+                    provider_urls={"openrouter": "https://openrouter.ai"})
+    names = [c.name for c in report.checks]
+    assert any(n.startswith("key:") for n in names)
+    assert not any(n.startswith("live:") for n in names)

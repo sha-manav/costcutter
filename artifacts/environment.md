@@ -374,3 +374,123 @@ Rows now carry a `harness_fingerprint` as well as a `scoring_fingerprint`, so
 `--resume` cannot blend rows produced under two different prompts — which is
 how this contamination would otherwise have survived the fix meant to remove
 it.
+
+---
+
+# Week 1 exit, second attempt — harness v2, clean
+
+810 rows (15 calibration templates × 3 firms × 2 harness variants × 3 models
+× **3 trials**), $1.007 of the $8.00 `calibration_gate` line item. 15 rows
+(1.9%) ended in infrastructure error and are excluded from their
+denominators per SPEC §12.4; 6 of those were abandoned on the per-row wall
+deadline. Raw rows `calibration_gate.jsonl`, rescored
+`calibration_gate_rescored.jsonl`, both force-added.
+
+Run under the corrected harness with the six scoring/objective/procedural
+hints removed, and with 95% intervals on every rate and paired difference.
+
+## Result, churn-corrected
+
+| Model | S1 naive | S2 corrected | Harness gain | Violations |
+|---|---|---|---|---|
+| Qwen3-8B | 34.1% [26.6, 42.4] **in band** | 22.2% [16.0, 29.9] below | **−11.9% [−22.2, −1.1]** | 10.4% → 5.2% |
+| Qwen3-14B | 17.4% [11.9, 24.8] **in band** | 31.1% [23.9, 39.4] below | **+13.7% [+3.4, +23.6]** | 16.7% → 8.9% |
+| Qwen3-32B | 20.2% [14.1, 27.9] **in band** | 26.4% [19.5, 34.6] below | +6.2% [−4.1, +16.4] | 14.7% → 19.4% |
+
+Bands: S1 15–35%, S2 35–65%.
+
+## 1. Calibration band — S1 clears everywhere, S2 clears nowhere
+
+All three models land S1 inside 15–35%. **No model reaches the S2 band**;
+the best is 14B at 31.1% against a 35% floor, and its interval reaches 39.4%,
+so it is close rather than far.
+
+This is not the failure mode SPEC §2 anticipated. The spec's fallback
+language covers *S1 below band*; here S1 is correct for every model and the
+shortfall is entirely in S2. Difficulty was not touched, per SPEC §10.3.
+
+## 2. Base model — none cleared; largest carried forward
+
+By the precommitted order, 8B → 14B → 32B, no model cleared, so the rule
+falls through to the largest and the numbers for every attempt stand above.
+**Qwen3-32B is carried forward, with S2 documented below band.**
+
+Recorded plainly, since it is impossible to reconstruct later: *8B scored
+34.1% naive and 22.2% corrected — in band on S1, below band on S2, and its
+harness gain is significantly negative. 14B scored 17.4% and 31.1%, the only
+model whose gain clears +10 points. 32B scored 20.2% and 26.4% with a gain
+indistinguishable from zero.*
+
+Note that the rule and the evidence pull apart here: the precommitted
+fallback selects 32B, but 14B is the only model with a significant positive
+harness effect and the highest S2. The rule is followed as written; the
+tension is recorded rather than resolved by preference.
+
+## 3. Go/no-go — **NO-GO**
+
+No model clears the gate, so data generation does not start.
+
+14B is the one model that passes the precommitted go/no-go read literally
+(+13.7 points ≥ 10, violations down 16.7% → 8.9%). Read with intervals it
+does not: the gain's lower bound is +3.4%, short of the +10 the rule
+requires. Both readings are reported; the precommitted rule is unchanged.
+
+## The finding: the harness effect reverses sign with model scale
+
+**This survived removing the scoring hint, which is what makes it a result
+rather than an artifact.**
+
+| Model | Gain | 95% interval | |
+|---|---|---|---|
+| 8B | −11.9% | [−22.2, −1.1] | excludes zero — significantly **harmful** |
+| 14B | +13.7% | [+3.4, +23.6] | excludes zero — significantly **helpful** |
+| 32B | +6.2% | [−4.1, +16.4] | spans zero — no detectable effect |
+
+The 8B and 14B intervals do not overlap, so the difference between them is
+itself significant. A harness effect that is negative for one model, positive
+for another, and absent for a third is not a property of the harness alone —
+it is an interaction between harness richness and model capacity.
+
+**This changes Figure 1's design.** A single S1→S2 bar averaged over models
+would report something close to zero and hide all three results. Figure 1 has
+to be per-model with intervals, and the interaction is the finding rather
+than a caveat to it.
+
+The behavioural mechanism is unchanged from v1 and is visible in the
+instrumentation: the corrected schema documents `abstain` and `escalate`,
+the naive schema does not, and weaker models take stopping as the cheap
+option. That is now a *capability-mediated* effect rather than a response to
+being told how points are scored.
+
+## Measurement correction: scheduler churn inflated violations
+
+Three Frappe scheduler doctypes — `Logs To Clear`, `Process Subscription`,
+`Company` — were absent from `CHURN_DOCTYPES`, so their rows were scored as
+agent mutations. 328 of 810 rows were affected.
+
+Measured, not assumed: a reset-then-idle probe with no agent acting shows
+**nothing at 30s and 13 rows at 90s**. The scheduler fires on roughly a
+60-second cadence, so churn attaches to rows that stayed open long enough —
+which means it correlated with model latency and penalised the slowest model
+hardest. As scored, 32B's naive violation rate reads 61.2%; corrected, 14.7%.
+
+Assertions were not touched (SPEC §10.9). Only the classification of an
+observed write changed, and both scorings are reported side by side.
+
+## Limitations
+
+- **Serving path was uncontrolled.** OpenRouter load-balances each model
+  across several upstream providers with differing quantizations (three fp8,
+  one unspecified for 32B), and nothing in a response identifies which served
+  it. Across interleaved rows this is noise that widens intervals rather than
+  a directional bias, but it is uncontrolled and applies to all three models.
+  Provider pinning now exists (`SHADOW_OPENROUTER_PROVIDER_ORDER`) and is
+  recorded in `serving_fingerprint`; week 2 should pin from row one.
+- **No prompt caching.** OpenRouter serves no cache for these models, so
+  `cached_input_tokens` is zero throughout. Real, not the silent
+  below-the-floor failure of INSTRUCTIONS §4.
+- **Errors are not uniformly distributed**: 0% on 8B, 2.2%/0% on 14B,
+  4.4%/4.4% on 32B. Balanced between arms within each model, so the S1/S2
+  comparisons are unaffected, but 32B rests on slightly fewer rows.
+- **Three trials per cell.** Intervals are wide; several conclusions are
+  "not distinguishable from zero" rather than null.

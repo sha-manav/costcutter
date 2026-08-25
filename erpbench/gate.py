@@ -204,6 +204,28 @@ def harness_fingerprint(variant: str) -> str:
     return hashlib.sha1(raw).hexdigest()[:16]
 
 
+def serving_fingerprint(model: str) -> str | None:
+    """Identity of *how this model is served*, or None when unpinned.
+
+    OpenRouter fans a model out across upstream providers with different
+    hardware and quantizations, so two rows of the same model can be produced
+    by different machines. Across interleaved rows that is noise; if the
+    mixture changes partway through one arm of a comparison it is a confound,
+    and neither run_id, scoring_fingerprint nor harness_fingerprint would
+    notice, because none of them describes the provider.
+
+    None for an unpinned model, deliberately: rows recorded before pinning
+    existed carry no value, and they must stay valid rather than all going
+    stale the moment any other model is pinned.
+    """
+    from shadow.llm import provider_order_for
+
+    order = provider_order_for(model)
+    if not order:
+        return None
+    return hashlib.sha1("|".join(order).encode()).hexdigest()[:16]
+
+
 def _parse_action(text: str) -> dict[str, Any] | None:
     """Pull one JSON object out of a completion.
 
@@ -410,6 +432,7 @@ def run_one(job: Job, adapter: SystemAdapter, client: Any, cfg: Any,
         "line_item": "calibration_gate",
         "scoring_fingerprint": scoring_fingerprint(instance),
         "harness_fingerprint": harness_fingerprint(job.harness_variant),
+        "serving_fingerprint": serving_fingerprint(job.model),
     })
     # An errored row is not a failed row. Keep the flag explicit rather than
     # making every reader re-derive it from `status`.
@@ -842,13 +865,15 @@ def main(argv: list[str] | None = None) -> int:
     # Skip a row only if it was scored under the rules in force now. A row
     # whose assertions have since changed is re-run rather than trusted.
     fresh = {r.get("run_id"): (r.get("scoring_fingerprint"),
-                               r.get("harness_fingerprint")) for r in done}
+                               r.get("harness_fingerprint"),
+                               r.get("serving_fingerprint")) for r in done}
     stale = 0
     todo = []
     if args.resume:
         for job in jobs:
             want = (scoring_fingerprint(job.template.instantiate(job.seed, job.firm)),
-                    harness_fingerprint(job.harness_variant))
+                    harness_fingerprint(job.harness_variant),
+                    serving_fingerprint(job.model))
             if job.rid not in fresh:
                 todo.append(job)
             elif fresh[job.rid] != want:

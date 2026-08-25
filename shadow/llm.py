@@ -135,6 +135,33 @@ HARD_REQUEST_DEADLINE_S = float(
     os.environ.get("SHADOW_HARD_REQUEST_DEADLINE_S", "300"))
 
 
+# OpenRouter load-balances each model across several upstream providers with
+# different hardware and different quantizations. That is invisible in the
+# response and it means a benchmark can be served by a changing mixture from
+# row to row -- noise across interleaved rows, but an outright confound if
+# the mixture shifts partway through one arm of a comparison.
+#
+# Pinned per model, as JSON: {"openrouter/qwen/qwen3-32b": ["Groq"]}.
+# `allow_fallbacks` is false so an unavailable provider errors loudly rather
+# than silently reintroducing the heterogeneity this exists to remove.
+def _provider_routing() -> dict[str, list[str]]:
+    raw = os.environ.get("SHADOW_OPENROUTER_PROVIDER_ORDER", "").strip()
+    if not raw:
+        return {}
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            "SHADOW_OPENROUTER_PROVIDER_ORDER must be JSON mapping model id "
+            f"to a list of provider names; got {raw!r}") from exc
+    return {k: list(v) for k, v in parsed.items()}
+
+
+def provider_order_for(model: str) -> list[str]:
+    """Upstream providers this model is pinned to, or [] if unpinned."""
+    return _provider_routing().get(model, [])
+
+
 class RequestDeadlineExceeded(BaseException):
     """One provider call blew its wall-clock bound, retries included.
 
@@ -237,6 +264,11 @@ class LiteLLMClient:
         # because nothing ever returns to report it. A request that has not
         # answered in this long is not going to; retries above make a timeout
         # recoverable rather than fatal.
+        order = provider_order_for(self.model)
+        if order:
+            body = dict(kwargs.get("extra_body") or {})
+            body["provider"] = {"order": order, "allow_fallbacks": False}
+            kwargs["extra_body"] = body
         kwargs.setdefault("timeout", REQUEST_TIMEOUT_S)
         hard = float(kwargs.pop("hard_deadline_s", HARD_REQUEST_DEADLINE_S))
         # The alarm bounds the whole call including litellm's own retries, so

@@ -741,3 +741,65 @@ def test_a_normal_row_is_untouched_by_the_deadline():
                        ScriptedClient(['{"action": "done", "answer": "x"}']),
                        get_config(), max_steps=6, row_deadline_s=900)
     assert row["status"] == RunStatus.OK.value
+
+
+def test_pinning_a_provider_invalidates_only_that_model(monkeypatch):
+    """OpenRouter serves one model from several upstream providers with
+    different quantizations. Changing the pin must re-run that model's rows
+    and leave every other model's alone — otherwise pinning one model
+    silently voids the whole run."""
+    monkeypatch.delenv("SHADOW_OPENROUTER_PROVIDER_ORDER", raising=False)
+    assert gate.serving_fingerprint("openrouter/qwen/qwen3-32b") is None, \
+        "unpinned must be None so pre-existing rows stay valid"
+
+    monkeypatch.setenv("SHADOW_OPENROUTER_PROVIDER_ORDER",
+                       '{"openrouter/qwen/qwen3-32b": ["Groq"]}')
+    pinned = gate.serving_fingerprint("openrouter/qwen/qwen3-32b")
+    assert pinned is not None
+    assert gate.serving_fingerprint("openrouter/qwen/qwen3-8b") is None, \
+        "pinning one model must not disturb the others"
+
+    monkeypatch.setenv("SHADOW_OPENROUTER_PROVIDER_ORDER",
+                       '{"openrouter/qwen/qwen3-32b": ["DeepInfra"]}')
+    assert gate.serving_fingerprint("openrouter/qwen/qwen3-32b") != pinned, \
+        "a different provider is a different serving path"
+
+
+def test_a_pinned_call_carries_the_routing_and_forbids_fallback(monkeypatch):
+    """allow_fallbacks must be false: a silent fallback reintroduces exactly
+    the heterogeneity the pin exists to remove."""
+    import sys
+    import types
+
+    from shadow.llm import LiteLLMClient
+
+    monkeypatch.setenv("SHADOW_OPENROUTER_PROVIDER_ORDER",
+                       '{"openrouter/qwen/qwen3-32b": ["Groq"]}')
+    seen = {}
+
+    class _M:
+        content = '{"action": "done", "answer": "x"}'
+        tool_calls = None
+
+    class _C:
+        message = _M()
+
+    class _R:
+        choices = [_C()]
+        usage = types.SimpleNamespace(prompt_tokens=5, completion_tokens=2)
+
+    stub = types.ModuleType("litellm")
+
+    def completion(**kw):
+        seen.update(kw)
+        return _R()
+
+    stub.completion = completion
+    stub.token_counter = lambda **kw: 1
+    monkeypatch.setitem(sys.modules, "litellm", stub)
+
+    LiteLLMClient("openrouter/qwen/qwen3-32b").complete(
+        [{"role": "user", "content": "go"}])
+    routing = seen["extra_body"]["provider"]
+    assert routing["order"] == ["Groq"]
+    assert routing["allow_fallbacks"] is False

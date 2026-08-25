@@ -7,11 +7,16 @@ order of magnitude faster than re-running the seed script.
 """
 from __future__ import annotations
 
+import contextlib
 import json
 import os
+import signal
 import subprocess
+import sys
+import threading
 import time
 from pathlib import Path
+from typing import Any
 
 BENCH_ROOT = Path(os.environ.get("BENCH_ROOT", "/home/frappe/frappe-bench"))
 DEFAULT_SITE = os.environ.get("SHADOW_SITE", "shadow.localhost")
@@ -75,6 +80,42 @@ def _kill_connections(db_name: str) -> int:
     return len(ids)
 
 
+@contextlib.contextmanager
+def _defer_interrupt(what: str):
+    """Hold Ctrl-C until the enclosed block finishes.
+
+    `reset` drops the database and then restores it. An interrupt landing
+    between the two leaves the site with no database at all -- ERPNext then
+    500s, the next run halts on an unhealthy site, and the environment has to
+    be rebuilt by hand. That happened, and it is the kind of damage a user is
+    entitled to assume Ctrl-C does not do.
+
+    The interrupt is not swallowed: it is recorded, the restore is allowed to
+    complete, and KeyboardInterrupt is raised immediately afterwards. A
+    second Ctrl-C still hits the default handler, so an operator who really
+    means it is never trapped.
+    """
+    if threading.current_thread() is not threading.main_thread():
+        yield
+        return
+    pending: list[Any] = []
+
+    def _catch(signum, frame):
+        pending.append(signum)
+        print(f"[reset] interrupt received mid-{what}; finishing it so the "
+              "site is not left without a database, then stopping.",
+              file=sys.stderr)
+        signal.signal(signal.SIGINT, previous)      # a second Ctrl-C aborts
+
+    previous = signal.signal(signal.SIGINT, _catch)
+    try:
+        yield
+    finally:
+        signal.signal(signal.SIGINT, previous)
+        if pending:
+            raise KeyboardInterrupt
+
+
 def reset(site: str = DEFAULT_SITE, source: Path | None = None) -> float:
     """Restore the seed image. Returns wall-clock seconds."""
     source = source or SEED_DUMP
@@ -84,16 +125,17 @@ def reset(site: str = DEFAULT_SITE, source: Path | None = None) -> float:
     t0 = time.time()
     db_name, db_user, db_password = site_db(site)
     _kill_connections(db_name)
-    subprocess.run(
-        ["mariadb", "-h", "127.0.0.1", "-u", "root", "-padmin", "-e",
-         f"DROP DATABASE IF EXISTS `{db_name}`; "
-         f"CREATE DATABASE `{db_name}` CHARACTER SET utf8mb4 "
-         f"COLLATE utf8mb4_unicode_ci; "
-         f"GRANT ALL ON `{db_name}`.* TO '{db_user}'@'%';"],
-        check=True, capture_output=True, timeout=DROP_TIMEOUT_S)
-    with source.open("rb") as fh:
-        subprocess.run(["mariadb", *_mysql_args(db_user, db_password), db_name],
-                       check=True, stdin=fh, capture_output=True)
+    with _defer_interrupt("restore"):
+        subprocess.run(
+            ["mariadb", "-h", "127.0.0.1", "-u", "root", "-padmin", "-e",
+             f"DROP DATABASE IF EXISTS `{db_name}`; "
+             f"CREATE DATABASE `{db_name}` CHARACTER SET utf8mb4 "
+             f"COLLATE utf8mb4_unicode_ci; "
+             f"GRANT ALL ON `{db_name}`.* TO '{db_user}'@'%';"],
+            check=True, capture_output=True, timeout=DROP_TIMEOUT_S)
+        with source.open("rb") as fh:
+            subprocess.run(["mariadb", *_mysql_args(db_user, db_password),
+                            db_name], check=True, stdin=fh, capture_output=True)
     for port in REDIS_PORTS:
         subprocess.run(["redis-cli", "-p", str(port), "flushall"],
                        check=False, capture_output=True)

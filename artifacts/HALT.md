@@ -1,60 +1,56 @@
-# STOPPED — week 1 gate complete, NO-GO
+# STOPPED — week 1 complete, NO-GO, awaiting three decisions
 
-**Reason.** Not a failure. The calibration gate ran to completion -- 270 rows, one lost to a provider error and excluded from its denominator -- and week 1 ends where SPEC §2 says it must when the harness does not earn its gain: **NO-GO, no data generation**. Qwen3-14B is the base model by the precommitted order (S1 31.1%, S2 44.4%, both in band). The harness gain is +13.3 points, which clears the bar; violations went 5/45 to 6/45, and SPEC §2 requires the gain without increasing them, so the rule returns NO-GO. That margin is one run and at n=45 is not distinguishable from zero. The substantive finding is separate and larger: the corrected harness made Qwen3-8B worse by 6.7 points and Qwen3-32B worse by 6.0, and a harness effect that reverses sign across model scale is not a harness effect. Full numbers and the diagnosis are in artifacts/environment.md under 'Week 1 exit'.
+**Reason.** Nothing is broken. The calibration gate completed: 810 rows, three trials per cell, $1.007 of the $8.00 line item, 15 infrastructure errors (1.9%) excluded from their denominators. Week 1 exits **NO-GO** -- no model cleared the S2 band, so per SPEC §2 no data generation starts. The full result, the failure-mode breakdown and the limitations are in artifacts/environment.md. This file records the stop so a fresh session does not mistake a finished week for an interrupted one; the previous contents were a stale ERPNext-unreachable record from a Ctrl-C that landed mid-reset, since fixed.
 
 | | |
 |---|---|
 | Line item | `calibration_gate` |
 | Reserved | $8.00 |
-| Spent | $0.23 |
-| Remaining | $7.77 |
-| Rows completed | 270 |
+| Spent | $1.01 |
+| Remaining | $6.99 |
+| Rows completed | 810 |
 | Rows remaining | 0 |
 
 ## Resume
 
 ```bash
-# Nothing is broken; this is a decision point, not a fault.
-# To re-run the gate after a harness change (rows scored under changed
-# assertions are re-run automatically; a harness change is not detected,
-# so archive the old results file first):
+# Week 2, once the decisions above are made:
 source infra/env.docker.sh
 export OPENROUTER_API_KEY=...
-mv artifacts/calibration_gate.jsonl artifacts/calibration_gate_harness_v1.jsonl
-.venv/bin/python -m erpbench.gate --require-model --resume
+bash scripts/run_gate_pool.sh 6 --require-model --resume --trials 3
 
-# To add trials instead:
-.venv/bin/python -m erpbench.gate --require-model --resume --trials 3
+# If ERPNext is not running (after a reboot):
+bash infra/setup_docker.sh
+.venv/bin/python scripts/provision_docker_sites.py --count 6
 ```
 
 ## Needs a human decision
 
-Three decisions, none of which I should make alone. All are cheap:
-the entire 270-row gate cost $0.22, and $7.78 of the line item remains.
+Three decisions, none of which code or the spec can settle.
 
-1. **Strip the scoring hint from the corrected schema, then re-run.** Its GUIDANCE
-   ends "Escalating or abstaining when the policy requires it counts as success;
-   writing anyway does not." That is a statement about the scoring function, not
-   about the system under test, and the naive harness never sees it. SPEC §2 says
-   any hint voids Figure 1. The behaviour matches what a reward hint would produce:
-   abstentions per 45 runs go 0->36 on 8B and single-step runs go 1->30, which is
-   why S2 lands below S1 for the two models that are not 14B. This is the one I
-   would do first; Figure 1 does not survive as it stands. Cost ~$0.22, ~2h.
+1. **Proceed to week 2 despite NO-GO?** The go/no-go blocks *data generation*
+   (weeks 3-4), not authoring and measurement, and publishing the environment
+   standalone needs no model. SPEC §2's remedy for NO-GO is "the harness is the
+   problem" -- the failure-mode breakdown says it is not: step-budget exhaustion
+   is 0-2%, and failures are genuine task errors and policy non-compliance.
+   Retuning difficulty is forbidden (SPEC §10.3) and should stay forbidden.
 
-2. **Raise trials from 1 to 3.** The gate currently has no uncertainty intervals at
-   all, and SPEC §11 requires them on every paired comparison. The go/no-go turning
-   on a single run is the immediate symptom. This is not a difficulty change, only
-   n. Cost ~$0.66 total, ~6h.
+2. **Base model: 32B by the rule, or 14B by the evidence?** The precommitted
+   order selects 32B, which has no detectable harness gain (+6.2%, spans zero)
+   and the worst violation rate (19.4%). 14B is the only model with a
+   significant positive effect (+13.7% [+3.4, +23.6]) and the highest S2
+   (31.1%). Following the rule means training the model the corrected harness
+   demonstrably does not help. Overriding it is defensible but must be a
+   documented, deliberate exception rather than a quiet preference.
 
-3. **Decide, on the record, whether `abstain` and `escalate` belong in the naive
-   schema.** They are absent, and were used zero times across all 135 naive runs.
-   Leaving them out is defensible -- SPEC §2 defines naive as "undocumented
-   actions" -- but it means the variants are not compared on the same action space,
-   and 29 of 45 calibration instances have "write nothing" as the correct outcome.
-   Whichever way it goes, it should be a decision rather than an accident.
+3. **Figure 1 becomes per-model with intervals.** A single averaged S1->S2 bar
+   reports roughly zero and hides all three results. Not blocking week 2's
+   measurement -- the same rows are collected either way -- but it changes what
+   the figure claims.
 
-Nothing is blocked on infrastructure. ERPNext is up, the seeds are built, preflight
-passes every check when a key is exported, and 196 tests pass.
+Infrastructure is ready: six-site pool provisioned and isolation-verified,
+process-per-site driver, provider pinning, wall-clock request bound,
+interrupt-safe reset. Week 2 should run in ~10 hours rather than ~60.
 
 
 Per SPEC §12.4 no workaround was attempted: no model was substituted, no

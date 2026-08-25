@@ -73,7 +73,17 @@ The old repo also holds the commit-level evidence for the findings below. Cite i
 
 **Actions absent from the action schema are actions the model cannot use.** Five composite actions existed in `perform()` but were undocumented, producing a false conclusion that the model could not handle child-table workflows. It was a harness defect. Documenting them moved the same model from 65% to 100% and cut cost ~5×.
 
-**Small models fail by exhausting the step budget, not by answering wrongly.** Haiku scored 0/4 on ERP tasks while scoring in the 90s on tau-bench — every failure a step-ceiling timeout. This is behavioural, which is why T1 (tool use and error recovery) leads the curriculum.
+**Small models fail by exhausting the step budget, not by answering wrongly.**
+*Corrected 2026-08-24 by the week-1 calibration gate: this does not reproduce.*
+*Across 810 rows and three model scales, step-budget exhaustion was 0-2% of*
+*failures. Failures were genuine task errors (34-57%) and writing when policy*
+*forbade it (23-33%). The likely reason is that the corrected harness documents*
+*`abstain` and `escalate`, so a model that cannot proceed stops cleanly instead*
+*of looping -- which makes the original finding harness-dependent rather than a*
+*property of small models. Note also that unsafe writes rose monotonically with*
+*scale (7% / 13% / 26%), so the safety risk grows with capability rather than*
+*shrinking. T1's place at the head of the curriculum rests on the original*
+*claim and should be revisited.* The original finding follows: Haiku scored 0/4 on ERP tasks while scoring in the 90s on tau-bench — every failure a step-ceiling timeout. This is behavioural, which is why T1 (tool use and error recovery) leads the curriculum.
 
 **`provider: auto` silently fell back to offline stubs** and produced numbers that looked like model numbers. Always pass `--require-model`, and it must **refuse**, not warn.
 

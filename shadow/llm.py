@@ -162,6 +162,34 @@ def provider_order_for(model: str) -> list[str]:
     return _provider_routing().get(model, [])
 
 
+def supports_prompt_caching(model: str) -> bool:
+    """Whether to mark the fixed prefix cacheable for this model."""
+    name = model.lower()
+    return "claude" in name or "anthropic" in name
+
+
+def mark_cacheable(messages: list[dict[str, Any]], model: str) -> list[dict[str, Any]]:
+    """Mark the system message as a cacheable prefix.
+
+    Both conditions build a system message that is identical across every
+    step of every task, and a user message carrying only what changed.
+    Marking the first as cacheable makes the catalog tax a one-off rather
+    than a per-step charge, and it is applied identically to both conditions
+    so the comparison stays honest.
+    """
+    if not supports_prompt_caching(model):
+        return messages
+    out: list[dict[str, Any]] = []
+    for message in messages:
+        if message.get("role") != "system" or not isinstance(message.get("content"), str):
+            out.append(message)
+            continue
+        out.append({"role": "system",
+                    "content": [{"type": "text", "text": message["content"],
+                                 "cache_control": ANTHROPIC_CACHE_CONTROL}]})
+    return out
+
+
 class RequestDeadlineExceeded(BaseException):
     """One provider call blew its wall-clock bound, retries included.
 
@@ -179,56 +207,43 @@ class RequestDeadlineExceeded(BaseException):
     """
 
 
-@contextlib.contextmanager
-def hard_deadline(seconds: float):
-    """Wall-clock ceiling on the enclosed block."""
-    usable = (seconds > 0
-              and hasattr(signal, "SIGALRM")
-              and threading.current_thread() is threading.main_thread())
-    if not usable:
-        yield
-        return
+def _call_with_deadline(fn, seconds: float, what: str):
+    """Run `fn()` with a wall-clock ceiling that does not rely on signals.
 
-    def _fire(_signum, _frame):
-        raise RequestDeadlineExceeded(
-            f"provider call exceeded {seconds:.0f}s of wall clock")
+    Three earlier attempts at this failed, each for a different reason, and
+    the sequence is worth keeping:
 
-    previous = signal.signal(signal.SIGALRM, _fire)
-    signal.setitimer(signal.ITIMER_REAL, seconds)
-    try:
-        yield
-    finally:
-        signal.setitimer(signal.ITIMER_REAL, 0)
-        signal.signal(signal.SIGALRM, previous)
+    * litellm's own `timeout` is a *read* timeout. A provider trickling bytes
+      never trips it -- one call ran 960s against a 120s setting.
+    * A row-level deadline is checked between steps and cannot interrupt a
+      call already in flight.
+    * SIGALRM does not work here. POSIX delivers the signal to an arbitrary
+      thread, and only the main thread runs Python handlers, so a main thread
+      blocked in a C-level SSL read never sees it. Measured directly: with a
+      1s timer on a blocked socket, the handler ran at 30.01s -- when the
+      socket closed on its own. In the live run a one-step row took 4947s and
+      still reported "exceeded 300s", the alarm having fired on schedule and
+      been undeliverable for 77 minutes.
 
-
-def supports_prompt_caching(model: str) -> bool:
-    """Whether to mark the fixed prefix cacheable for this model."""
-    name = model.lower()
-    return "claude" in name or "anthropic" in name
-
-
-def mark_cacheable(messages: list[dict[str, Any]], model: str) -> list[dict[str, Any]]:
-    """Mark the system message as a cacheable prefix.
-
-    Both conditions build a system message that is identical across every
-    step of every task — the instructions, and for the tool agent the tool
-    catalog — and a user message that carries only what changed. Marking the
-    first as cacheable is what makes the catalog tax a one-off rather than a
-    per-step charge, and it is applied identically to both conditions so the
-    comparison stays honest.
+    A worker thread with `future.result(timeout=...)` involves no signals at
+    all. The abandoned thread cannot be killed -- Python has no such
+    primitive -- so it is a daemon and dies with the process. It keeps its
+    socket until the provider gives up, which is the price of not being able
+    to cancel a blocking call; the row, meanwhile, moves on.
     """
-    if not supports_prompt_caching(model):
-        return messages
-    out: list[dict[str, Any]] = []
-    for message in messages:
-        if message.get("role") != "system" or not isinstance(message.get("content"), str):
-            out.append(message)
-            continue
-        out.append({"role": "system",
-                    "content": [{"type": "text", "text": message["content"],
-                                 "cache_control": ANTHROPIC_CACHE_CONTROL}]})
-    return out
+    import concurrent.futures as _f
+
+    pool = _f.ThreadPoolExecutor(max_workers=1,
+                                 thread_name_prefix="llm-call")
+    future = pool.submit(fn)
+    try:
+        return future.result(timeout=seconds)
+    except _f.TimeoutError:
+        raise RequestDeadlineExceeded(
+            f"{what} exceeded {seconds:.0f}s of wall clock") from None
+    finally:
+        # wait=False: never block on the abandoned call.
+        pool.shutdown(wait=False)
 
 
 class LiteLLMClient:
@@ -271,11 +286,12 @@ class LiteLLMClient:
             kwargs["extra_body"] = body
         kwargs.setdefault("timeout", REQUEST_TIMEOUT_S)
         hard = float(kwargs.pop("hard_deadline_s", HARD_REQUEST_DEADLINE_S))
-        # The alarm bounds the whole call including litellm's own retries, so
-        # they must fit inside it rather than extend past it.
-        with hard_deadline(hard):
-            resp = litellm.completion(model=self.model, messages=messages,
-                                      **kwargs)
+        # Bounds the whole call including litellm's own retries, so they must
+        # fit inside it rather than extend past it.
+        resp = _call_with_deadline(
+            lambda: litellm.completion(model=self.model, messages=messages,
+                                       **kwargs),
+            hard, f"provider call to {self.model}")
         dt = time.time() - t0
         usage = getattr(resp, "usage", None)
         prompt_tokens = int(getattr(usage, "prompt_tokens", 0) or 0)

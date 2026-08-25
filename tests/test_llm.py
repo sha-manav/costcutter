@@ -470,6 +470,35 @@ def test_the_cache_breakpoint_covers_one_contiguous_prefix():
     assert isinstance(marked[1]["content"], str)
 
 
+def test_the_deadline_bounds_a_fully_blocked_socket_read():
+    """The case SIGALRM could not handle. POSIX delivers a signal to an
+    arbitrary thread and only the main thread runs Python handlers, so a main
+    thread blocked in a C-level SSL read never sees it: measured at 30.01s
+    against a 1s timer. In the live run a one-step row took 4947s and still
+    reported "exceeded 300s". A worker thread with a future timeout involves
+    no signals at all."""
+    import socket
+    import threading
+    import time as _time
+
+    srv = socket.socket()
+    srv.bind(("127.0.0.1", 0))
+    srv.listen(1)
+    port = srv.getsockname()[1]
+    threading.Thread(target=lambda: (srv.accept(), _time.sleep(10)),
+                     daemon=True).start()
+    conn = socket.create_connection(("127.0.0.1", port))
+
+    t0 = _time.time()
+    with pytest.raises(shadow.llm.RequestDeadlineExceeded):
+        shadow.llm._call_with_deadline(lambda: conn.recv(4096), 0.5, "blocked")
+    assert _time.time() - t0 < 3, "the bound did not hold on a blocked read"
+
+
+def test_a_normal_call_is_untouched_by_the_deadline():
+    assert shadow.llm._call_with_deadline(lambda: 6 * 7, 5.0, "x") == 42
+
+
 def test_a_hard_deadline_bounds_a_call_that_ignores_the_read_timeout():
     """litellm's `timeout` is a read timeout: a provider trickling bytes never
     trips it, and one call was seen running 960s against a 120s setting. The
@@ -479,9 +508,8 @@ def test_a_hard_deadline_bounds_a_call_that_ignores_the_read_timeout():
 
     t0 = _time.time()
     with pytest.raises(shadow.llm.RequestDeadlineExceeded):
-        with shadow.llm.hard_deadline(0.3):
-            _time.sleep(5)
-    assert _time.time() - t0 < 2, "the alarm must fire, not wait out the sleep"
+        shadow.llm._call_with_deadline(lambda: _time.sleep(5), 0.3, "sleep")
+    assert _time.time() - t0 < 2, "the bound must fire, not wait out the sleep"
 
 
 def test_the_deadline_disarms_so_it_cannot_fire_into_later_work():
@@ -489,9 +517,8 @@ def test_the_deadline_disarms_so_it_cannot_fire_into_later_work():
     worse than the hang it replaces."""
     import time as _time
 
-    with shadow.llm.hard_deadline(0.3):
-        pass
-    _time.sleep(0.5)          # would fire here if the timer leaked
+    shadow.llm._call_with_deadline(lambda: None, 0.3, "x")
+    _time.sleep(0.5)          # nothing may fire into later work
 
 
 def test_a_deadline_breach_is_infrastructure_not_an_agent_failure():
@@ -524,8 +551,7 @@ def test_the_deadline_survives_a_retry_wrapper_that_swallows_exceptions():
 
     t0 = _time.time()
     with pytest.raises(shadow.llm.RequestDeadlineExceeded):
-        with shadow.llm.hard_deadline(0.4):
-            swallowing_retry_loop()
+        shadow.llm._call_with_deadline(swallowing_retry_loop, 0.4, "retry")
     assert _time.time() - t0 < 2, "the deadline did not escape the retry loop"
 
 

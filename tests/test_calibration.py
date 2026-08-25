@@ -151,3 +151,34 @@ def test_a_count_assertion_is_not_fooled_by_a_substring():
     assert a.evaluate(None, Diff(), "none").passed is True
     assert a.evaluate(None, Diff(), "There are 10 orders.").passed is False
     assert a.evaluate(None, Diff(), "20").passed is False
+
+
+def test_calibration_scoring_is_frozen():
+    """The 810 gate rows are scored under these exact assertions.
+
+    `scoring_fingerprint` is what makes `--resume` re-run a row whose judging
+    changed. That is the right behaviour during a run and a hazard afterwards:
+    a refactor that alters any calibration assertion silently invalidates a
+    finished, reported measurement. Pinned so it cannot happen quietly.
+    """
+    import json
+    from pathlib import Path
+
+    from erpbench import gate
+    from erpbench.calibration import CALIBRATION_TEMPLATES
+    from erpbench.firms import FIRMS
+    from erpbench.templates import seeds_for
+
+    expected = json.loads(
+        (Path(__file__).parent / "calibration_fingerprints.json").read_text())
+    actual = {}
+    for t in CALIBRATION_TEMPLATES:
+        for fid, firm in FIRMS.items():
+            for i, seed in enumerate(seeds_for(t.template_id, fid, 3)):
+                actual[f"{t.template_id}|{fid}|{i}"] = \
+                    gate.scoring_fingerprint(t.instantiate(seed, firm))
+    drifted = sorted(k for k in expected if expected[k] != actual.get(k))
+    assert not drifted, (
+        f"{len(drifted)} calibration instances are scored differently than "
+        f"when the gate ran, e.g. {drifted[:3]}. The reported week-1 numbers "
+        "no longer describe these templates.")

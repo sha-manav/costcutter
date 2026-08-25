@@ -49,7 +49,10 @@ from erpbench.harness import Harness
 from erpbench.instrumentation import Outcome, RunStatus, RunTrace, run_id
 from erpbench.preflight import (
     BUDGET_LINES, GATE_PROVIDER_URLS, record_spend, remaining, spent_on)
-from erpbench.templates import Instance, WorkflowTemplate, seeds_for
+from erpbench.templates import (
+    Instance, REGISTRY, WorkflowTemplate, seeds_for)
+from erpbench.splits import fingerprint as split_fingerprint
+from erpbench.splits import split_of
 from erpbench.verify import VerifierError, verify
 from shadow.llm import RequestDeadlineExceeded
 
@@ -146,6 +149,7 @@ class Job:
     model: str
     trial_idx: int
     seed: int
+    line_item: str = "calibration_gate"
 
     @property
     def rid(self) -> str:
@@ -429,10 +433,17 @@ def run_one(job: Job, adapter: SystemAdapter, client: Any, cfg: Any,
         "verdict": verdict_dict,
         "behaviour": behaviour.to_dict(),
         "diff": diff.to_dict(),
-        "line_item": "calibration_gate",
+        "line_item": job.line_item,
         "scoring_fingerprint": scoring_fingerprint(instance),
         "harness_fingerprint": harness_fingerprint(job.harness_variant),
         "serving_fingerprint": serving_fingerprint(job.model),
+        # SPEC §10.10: the three holdouts are reported separately and never
+        # merged, so the bucket is stamped on the row at the moment it is
+        # produced rather than inferred later from a split file that may have
+        # moved on.
+        "split_bucket": split_of(job.template.template_id, job.firm.firm_id,
+                                 job.trial_idx),
+        "split_fingerprint": split_fingerprint(),
     })
     # An errored row is not a failed row. Keep the flag explicit rather than
     # making every reader re-derive it from `status`.
@@ -790,8 +801,25 @@ def latest_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return list(by_id.values())
 
 
+def templates_for(split: str) -> list[WorkflowTemplate]:
+    """The template set for a split.
+
+    Imported lazily and by name so the calibration and evaluation modules
+    both register before either is asked for, and so a typo names a split
+    rather than silently measuring the wrong corpus.
+    """
+    import erpbench.calibration            # noqa: F401  registers C-templates
+    import erpbench.evaluation             # noqa: F401  registers E-templates
+
+    if split == "calibration":
+        return REGISTRY.calibration
+    if split == "evaluation":
+        return REGISTRY.evaluation
+    raise ValueError(f"unknown split {split!r}; expected calibration|evaluation")
+
+
 def build_jobs(models: list[str], firm_ids: list[str], variants: list[str],
-               trials: int) -> list[Job]:
+               trials: int, split: str = "calibration") -> list[Job]:
     """Ordered so a partial run is still a usable measurement.
 
     Model-major, then harness variant: if the gate halts partway, what exists
@@ -801,7 +829,7 @@ def build_jobs(models: list[str], firm_ids: list[str], variants: list[str],
     jobs: list[Job] = []
     for model in models:
         for variant in variants:
-            for template in CALIBRATION_TEMPLATES:
+            for template in templates_for(split):
                 for firm_id in firm_ids:
                     firm = get_firm(firm_id)
                     seeds = seeds_for(template.template_id, firm_id, trials)
@@ -842,6 +870,11 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--firms", default="A,B,C")
     p.add_argument("--harnesses", default="naive,corrected")
     p.add_argument("--trials", type=int, default=1)
+    p.add_argument("--split", default="calibration",
+                   choices=("calibration", "evaluation"),
+                   help="which template corpus to run. Calibration is "
+                        "quarantined and may never reach a reported figure "
+                        "(SPEC §10.1); evaluation is the reported measurement.")
     p.add_argument("--line-item", default="calibration_gate")
     p.add_argument("--max-steps", type=int, default=MAX_STEPS)
     p.add_argument("--site", default=None,
@@ -872,7 +905,7 @@ def main(argv: list[str] | None = None) -> int:
     models = [m for m in args.models.split(",") if m]
     firm_ids = [f for f in args.firms.split(",") if f]
     variants = [h for h in args.harnesses.split(",") if h]
-    jobs = build_jobs(models, firm_ids, variants, args.trials)
+    jobs = build_jobs(models, firm_ids, variants, args.trials, args.split)
     if args.shard:
         try:
             index, total = (int(x) for x in args.shard.split("/"))
@@ -909,8 +942,8 @@ def main(argv: list[str] | None = None) -> int:
     else:
         todo = jobs
 
-    print(f"calibration gate — {len(jobs)} rows "
-          f"({len(CALIBRATION_TEMPLATES)} templates x {len(firm_ids)} firms "
+    print(f"{args.split} run — {len(jobs)} rows "
+          f"({len(templates_for(args.split))} templates x {len(firm_ids)} firms "
           f"x {len(variants)} harnesses x {len(models)} models "
           f"x {args.trials} trial(s))")
     if args.resume:

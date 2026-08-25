@@ -15,9 +15,12 @@ Two providers:
 """
 from __future__ import annotations
 
+import contextlib
 import json
 import os
+import signal
 import sys
+import threading
 import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Protocol
@@ -119,6 +122,45 @@ ANTHROPIC_CACHE_CONTROL = {"type": "ephemeral"}
 # observed row spent ~20 steps. This is a hang detector, not a latency budget.
 REQUEST_TIMEOUT_S = float(os.environ.get("SHADOW_REQUEST_TIMEOUT_S", "120"))
 
+# litellm's `timeout` is a *read* timeout: it fires when no bytes arrive for
+# that long. A provider that trickles bytes slowly never trips it, so a
+# single call was observed running 960s against a 120s setting. The gate's
+# row deadline cannot save that either, because it is checked between steps
+# and cannot interrupt a call already in flight.
+#
+# This is the only bound that actually holds: a wall-clock alarm around the
+# whole call, retries included. Unix-only and main-thread-only, which the
+# gate is; anywhere else it degrades to no alarm rather than misbehaving.
+HARD_REQUEST_DEADLINE_S = float(
+    os.environ.get("SHADOW_HARD_REQUEST_DEADLINE_S", "300"))
+
+
+class RequestDeadlineExceeded(TimeoutError):
+    """One provider call blew its wall-clock bound, retries included."""
+
+
+@contextlib.contextmanager
+def hard_deadline(seconds: float):
+    """Wall-clock ceiling on the enclosed block."""
+    usable = (seconds > 0
+              and hasattr(signal, "SIGALRM")
+              and threading.current_thread() is threading.main_thread())
+    if not usable:
+        yield
+        return
+
+    def _fire(_signum, _frame):
+        raise RequestDeadlineExceeded(
+            f"provider call exceeded {seconds:.0f}s of wall clock")
+
+    previous = signal.signal(signal.SIGALRM, _fire)
+    signal.setitimer(signal.ITIMER_REAL, seconds)
+    try:
+        yield
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous)
+
 
 def supports_prompt_caching(model: str) -> bool:
     """Whether to mark the fixed prefix cacheable for this model."""
@@ -183,7 +225,10 @@ class LiteLLMClient:
         # answered in this long is not going to; retries above make a timeout
         # recoverable rather than fatal.
         kwargs.setdefault("timeout", REQUEST_TIMEOUT_S)
-        resp = litellm.completion(model=self.model, messages=messages, **kwargs)
+        hard = float(kwargs.pop("hard_deadline_s", HARD_REQUEST_DEADLINE_S))
+        with hard_deadline(hard):
+            resp = litellm.completion(model=self.model, messages=messages,
+                                      **kwargs)
         dt = time.time() - t0
         usage = getattr(resp, "usage", None)
         prompt_tokens = int(getattr(usage, "prompt_tokens", 0) or 0)

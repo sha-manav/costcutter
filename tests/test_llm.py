@@ -468,3 +468,37 @@ def test_the_cache_breakpoint_covers_one_contiguous_prefix():
     assert system[0]["cache_control"] == ANTHROPIC_CACHE_CONTROL
     # The volatile message must never be marked: it would poison every hit.
     assert isinstance(marked[1]["content"], str)
+
+
+def test_a_hard_deadline_bounds_a_call_that_ignores_the_read_timeout():
+    """litellm's `timeout` is a read timeout: a provider trickling bytes never
+    trips it, and one call was seen running 960s against a 120s setting. The
+    gate's row deadline cannot help either — it is checked between steps and
+    cannot interrupt a call in flight. Only a wall-clock alarm holds."""
+    import time as _time
+
+    t0 = _time.time()
+    with pytest.raises(shadow.llm.RequestDeadlineExceeded):
+        with shadow.llm.hard_deadline(0.3):
+            _time.sleep(5)
+    assert _time.time() - t0 < 2, "the alarm must fire, not wait out the sleep"
+
+
+def test_the_deadline_disarms_so_it_cannot_fire_into_later_work():
+    """A leaked itimer would raise inside whatever ran next, which is far
+    worse than the hang it replaces."""
+    import time as _time
+
+    with shadow.llm.hard_deadline(0.3):
+        pass
+    _time.sleep(0.5)          # would fire here if the timer leaked
+
+
+def test_a_deadline_breach_is_infrastructure_not_an_agent_failure():
+    """SPEC §12.4: it must be status=error and leave the denominator, and it
+    must not be mistaken for a fatal auth/quota stop."""
+    from erpbench import gate
+
+    exc = shadow.llm.RequestDeadlineExceeded("provider call exceeded 300s")
+    assert gate._is_fatal_provider_error(exc) is None, \
+        "a slow provider is not an auth failure; it must not halt the run"

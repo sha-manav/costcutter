@@ -135,8 +135,21 @@ HARD_REQUEST_DEADLINE_S = float(
     os.environ.get("SHADOW_HARD_REQUEST_DEADLINE_S", "300"))
 
 
-class RequestDeadlineExceeded(TimeoutError):
-    """One provider call blew its wall-clock bound, retries included."""
+class RequestDeadlineExceeded(BaseException):
+    """One provider call blew its wall-clock bound, retries included.
+
+    Deliberately a **BaseException**, not an Exception. litellm wraps calls in
+    a retry decorator that catches Exception, so a deadline raised as an
+    ordinary error was caught and retried -- with the one-shot itimer already
+    spent, leaving the retry completely unbounded. The alarm fired and the
+    hang continued anyway, which is worse than not arming it, because the
+    logs show a bound that is not in force.
+
+    Subclassing BaseException puts it in the same category as
+    KeyboardInterrupt: retry wrappers do not catch it, and it unwinds to the
+    caller that armed the timer. Every call site that must survive one
+    therefore has to name it explicitly.
+    """
 
 
 @contextlib.contextmanager
@@ -226,6 +239,8 @@ class LiteLLMClient:
         # recoverable rather than fatal.
         kwargs.setdefault("timeout", REQUEST_TIMEOUT_S)
         hard = float(kwargs.pop("hard_deadline_s", HARD_REQUEST_DEADLINE_S))
+        # The alarm bounds the whole call including litellm's own retries, so
+        # they must fit inside it rather than extend past it.
         with hard_deadline(hard):
             resp = litellm.completion(model=self.model, messages=messages,
                                       **kwargs)

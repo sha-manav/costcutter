@@ -502,3 +502,40 @@ def test_a_deadline_breach_is_infrastructure_not_an_agent_failure():
     exc = shadow.llm.RequestDeadlineExceeded("provider call exceeded 300s")
     assert gate._is_fatal_provider_error(exc) is None, \
         "a slow provider is not an auth failure; it must not halt the run"
+
+
+def test_the_deadline_survives_a_retry_wrapper_that_swallows_exceptions():
+    """litellm wraps calls in a retry decorator that catches Exception. A
+    deadline raised as an ordinary error was caught and retried with the
+    one-shot itimer already spent, so the alarm fired and the hang continued
+    anyway — a bound that appears in the logs and is not in force. It must be
+    a BaseException, in the same category as KeyboardInterrupt."""
+    import time as _time
+
+    assert not issubclass(shadow.llm.RequestDeadlineExceeded, Exception), \
+        "an Exception subclass is catchable by the retry wrapper it must escape"
+
+    def swallowing_retry_loop():
+        for _ in range(5):
+            try:
+                _time.sleep(2)
+            except Exception:
+                continue
+
+    t0 = _time.time()
+    with pytest.raises(shadow.llm.RequestDeadlineExceeded):
+        with shadow.llm.hard_deadline(0.4):
+            swallowing_retry_loop()
+    assert _time.time() - t0 < 2, "the deadline did not escape the retry loop"
+
+
+def test_the_gate_catches_the_deadline_explicitly():
+    """Because it is a BaseException, a generic `except Exception` no longer
+    sees it — every call site that must survive one has to name it."""
+    import inspect
+
+    from erpbench import gate
+
+    src = inspect.getsource(gate.run_one)
+    assert "except RequestDeadlineExceeded" in src, \
+        "run_one must name the deadline, or it escapes and kills the run"

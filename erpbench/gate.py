@@ -51,6 +51,7 @@ from erpbench.preflight import (
     BUDGET_LINES, GATE_PROVIDER_URLS, record_spend, remaining, spent_on)
 from erpbench.templates import Instance, WorkflowTemplate, seeds_for
 from erpbench.verify import VerifierError, verify
+from shadow.llm import RequestDeadlineExceeded
 
 ARTIFACTS = Path(__file__).resolve().parent.parent / "artifacts"
 DEFAULT_OUT = ARTIFACTS / "calibration_gate.jsonl"
@@ -301,6 +302,12 @@ def run_one(job: Job, adapter: SystemAdapter, client: Any, cfg: Any,
             break
         try:
             resp = client.complete(messages, temperature=0.0, max_tokens=1200)
+        except RequestDeadlineExceeded as exc:
+            # BaseException, so it is not caught by the generic handler below
+            # and not by litellm's retry wrapper. A provider that stopped
+            # answering is infrastructure, not the agent failing (SPEC §12.4).
+            status, error = RunStatus.ERROR, str(exc)
+            break
         except Exception as exc:
             why = _is_fatal_provider_error(exc)
             if why:

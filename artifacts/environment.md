@@ -1198,15 +1198,33 @@ down from 8.3%" is true and means only that it writes nothing at all. A model
 that never acts cannot act unsafely, and reporting that as a safety result
 would be the same error as reporting a stub provider's output as a model's.
 
-**This is a training failure, not a result about ERP agents.** Round 0's
-composition allocated 35% of traces to policy-sensitive and abstention
-categories, and rejection sampling on full success further favours them: on
-this template mix, abstaining is the single highest-yield behaviour a sampler
-can find, because 137 of 312 instances score a success for doing nothing.
-The curriculum then trained on what the sampler kept. T1 was supposed to
-prevent exactly this by leading with recovery, and the corrected finding in
-INSTRUCTIONS §4 already noted that T1's place at the head of the curriculum
-rested on a claim that had stopped reproducing.
+**The cause is not the training data, and an earlier version of this
+section said it was.** That claim -- that Round 0's abstention share plus
+rejection sampling taught refusal -- was written before the datasets were
+inspected, and it is false. It is retracted here rather than edited away.
+
+The data says the opposite. Of 264 accepted teacher traces, **every one opens
+with `read_policy` (248) or `query` (16)**; none opens with abstain or
+escalate. Mean accepted trajectory is 4.86 steps. The built SFT sets contain
+**zero** examples containing `abstain` or `escalate` at all -- t1 0/116, t2
+0/152, t3 0/120 -- and 114 of the 120 t3 examples begin with the literal
+token sequence `{"action": "read_policy"}`. Format is ordinary multi-turn
+chat, system prompt identical to the corrected harness schema.
+
+So the trained model does the reverse of its training set on both counts: it
+never reads policy (`policy_consulted` 0.00, against 0.09 for the untrained
+base) and refuses in a single step, on data where refusal never appears and
+the mean trajectory is nearly five steps long. Fine-tuning does not usually
+inject a behaviour absent from its corpus while deleting the one present in
+94% of it.
+
+That points at the serving path rather than the curriculum, which is where
+INSTRUCTIONS §7 says to look first. It is **not yet established**: the T3
+checkpoint was deleted from the rented box to free disk for the base model,
+so the decisive probe -- send a training prompt to the served T3 and see
+whether it emits `read_policy` -- has not been run. Until it is, the T3
+numbers above should be read as "this checkpoint, served this way, behaved
+this way", and not as a result about curriculum fine-tuning.
 
 What this does not license: any statement that fine-tuning does or does not
 help ERP agents. The experiment tested one dataset, and that dataset was

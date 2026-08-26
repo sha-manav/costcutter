@@ -8,8 +8,10 @@ order of magnitude faster than re-running the seed script.
 from __future__ import annotations
 
 import contextlib
+import fcntl
 import json
 import os
+import re
 import signal
 import subprocess
 import sys
@@ -27,6 +29,63 @@ REDIS_PORTS = (11000, 13000)
 # A drop that blocks past this is stuck behind a lock, not being slow. Fail
 # loudly: a silent hang is indistinguishable from a long-running task.
 DROP_TIMEOUT_S = 120
+# The restore had no ceiling at all until 2026-08-26, so a wedged import hung
+# the shard forever instead of halting it. Generous: a cold restore of ~700
+# tables is seconds, but the lock below can queue several shards behind it.
+RESTORE_TIMEOUT_S = 900
+# Serializes the DDL section across shard processes. See _ddl_lock.
+DDL_LOCK = Path(os.environ.get(
+    "SHADOW_DDL_LOCK",
+    Path(__file__).resolve().parent.parent / "artifacts" / ".reset-ddl.lock"))
+
+
+class ResetIncomplete(RuntimeError):
+    """The restore returned success but the database is not whole.
+
+    Distinct from a failed restore, which raises CalledProcessError. This is
+    the silent case: MariaDB died mid-import on 2026-08-26 and left four sites
+    holding 146-532 of their 698 tables. Nothing noticed. ERPNext then served
+    500s, shards halted on "site unhealthy", and the actual fault -- a
+    truncated database -- was three diagnostic steps away. A reset that
+    half-works must say so.
+    """
+
+
+def _expected_tables(source: Path) -> int:
+    """How many tables the seed dump creates. Counted from the dump itself."""
+    n = _expected_tables._cache.get(source)                    # type: ignore[attr-defined]
+    if n is None:
+        n = len(re.findall(rb"^CREATE TABLE ", source.read_bytes(), re.M))
+        _expected_tables._cache[source] = n                    # type: ignore[attr-defined]
+    return n
+
+
+_expected_tables._cache = {}                                   # type: ignore[attr-defined]
+
+
+@contextlib.contextmanager
+def _ddl_lock():
+    """Serialize drop+restore across every shard on this host.
+
+    Each reset drops and recreates ~700 tables, and all of that DDL contends
+    on one shared InnoDB structure, `dict_sys.latch`. With six shards resetting
+    concurrently a thread waited past innodb_fatal_semaphore_wait_threshold and
+    InnoDB deliberately aborted the server -- MariaDB's watchdog firing exactly
+    as designed, not a bug in it. Raising the threshold would only convert the
+    crash into a stall.
+
+    Serializing is close to free here because the conditional reset already
+    skips ~86% of rollouts: what used to be six concurrent DDL storms is now an
+    occasional one. flock is released by the kernel if a shard is killed, so a
+    dead holder cannot wedge the pool.
+    """
+    DDL_LOCK.parent.mkdir(parents=True, exist_ok=True)
+    with DDL_LOCK.open("w") as fh:
+        fcntl.flock(fh, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(fh, fcntl.LOCK_UN)
 
 
 def site_db(site: str = DEFAULT_SITE) -> tuple[str, str, str]:
@@ -125,7 +184,7 @@ def reset(site: str = DEFAULT_SITE, source: Path | None = None) -> float:
     t0 = time.time()
     db_name, db_user, db_password = site_db(site)
     _kill_connections(db_name)
-    with _defer_interrupt("restore"):
+    with _defer_interrupt("restore"), _ddl_lock():
         subprocess.run(
             ["mariadb", "-h", "127.0.0.1", "-u", "root", "-padmin", "-e",
              f"DROP DATABASE IF EXISTS `{db_name}`; "
@@ -135,7 +194,19 @@ def reset(site: str = DEFAULT_SITE, source: Path | None = None) -> float:
             check=True, capture_output=True, timeout=DROP_TIMEOUT_S)
         with source.open("rb") as fh:
             subprocess.run(["mariadb", *_mysql_args(db_user, db_password),
-                            db_name], check=True, stdin=fh, capture_output=True)
+                            db_name], check=True, stdin=fh,
+                           capture_output=True, timeout=RESTORE_TIMEOUT_S)
+        expected = _expected_tables(source)
+        got = int(subprocess.run(
+            ["mariadb", *_mysql_args(db_user, db_password), "-sN", "-e",
+             "SELECT COUNT(*) FROM information_schema.tables "
+             f"WHERE table_schema='{db_name}'"],
+            check=True, capture_output=True, text=True,
+            timeout=DROP_TIMEOUT_S).stdout.strip() or 0)
+        if got < expected:
+            raise ResetIncomplete(
+                f"{db_name}: restored {got} of {expected} tables. The site is "
+                "truncated, not merely unhealthy; re-provision it before use.")
     for port in REDIS_PORTS:
         subprocess.run(["redis-cli", "-p", str(port), "flushall"],
                        check=False, capture_output=True)

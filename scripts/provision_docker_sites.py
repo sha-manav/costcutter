@@ -117,8 +117,12 @@ def main() -> int:
               file=sys.stderr)
         return 1
 
+    # --count is a count, not an end index. It read as `range(start, count+1)`
+    # until 2026-08-26, which silently provisioned nothing whenever start > 1
+    # -- precisely the "add sites without touching ones in use" case --start
+    # exists for, and it exited 0 while doing it.
     made = [provision(i, args.password)
-            for i in range(args.start, args.count + 1)]
+            for i in range(args.start, args.start + args.count)]
     subprocess.run([*COMPOSE, "restart", "frontend"], check=False,
                    capture_output=True)
 

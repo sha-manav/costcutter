@@ -86,17 +86,34 @@ def main() -> int:
             print(f"[{stage}] uploaded {path.name} -> {up.id}", flush=True)
 
         if not rec.get("job"):
-            job = client.fine_tuning.create(
-                training_file=rec["file"], model=previous,
-                n_epochs=args.epochs, lora=True,
-                suffix=f"erpbench-{stage.lower()}")
+            # Continued training uses `from_checkpoint`, not `model`. Passing a
+            # fine-tuned name as `model` fails: the SDK looks it up in the base
+            # model catalogue, where a checkpoint does not appear. `model` stays
+            # the original base throughout, and the checkpoint carries the
+            # accumulated adapter forward -- which is what SPEC §6 means by
+            # continuing one adapter rather than stacking three.
+            kwargs = dict(training_file=rec["file"], n_epochs=args.epochs,
+                          lora=True, suffix=f"erpbench-{stage.lower()}")
+            # Exactly one of model / from_checkpoint, never both.
+            if previous == args.base:
+                kwargs["model"] = args.base
+            else:
+                kwargs["from_checkpoint"] = previous
+            job = client.fine_tuning.create(**kwargs)
             rec["job"] = job.id
             rec["from"] = previous
             print(f"[{stage}] job {job.id} from {previous}", flush=True)
         state["stages"][stage] = rec
         save(state)
 
-        rec["model"] = wait_for(client, rec["job"], stage, args.stage_timeout)
+        wait_for(client, rec["job"], stage, args.stage_timeout)
+        # output_name is empty on the SDK object; the REST record carries it.
+        import httpx as _httpx
+        _r = _httpx.get(f"https://api.together.xyz/v1/fine-tunes/{rec['job']}",
+                        headers={"Authorization":
+                                 f"Bearer {os.environ['TOGETHER_API_KEY']}"},
+                        timeout=60)
+        rec["model"] = _r.json().get("model_output_name", "")
         state["stages"][stage] = rec
         save(state)
         print(f"[{stage}] done -> {rec['model']}", flush=True)

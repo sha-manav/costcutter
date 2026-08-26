@@ -977,6 +977,16 @@ def main(argv: list[str] | None = None) -> int:
             print(f"unknown template ids: {sorted(unknown)}", file=sys.stderr)
             return 1
         jobs = [j for j in jobs if j.template.template_id in wanted]
+        # Restricting templates without restricting firms silently buys a
+        # third more work than intended: Firm C outranks every other bucket,
+        # so template-holdout rows are firms A and B only, and naming the
+        # templates alone still drags C in. Sized a 624-row run at 936 that
+        # way. Unless firms were named explicitly, keep only those whose rows
+        # land in the requested bucket.
+        if args.bucket and args.firms == p.get_default("firms"):
+            jobs = [j for j in jobs
+                    if split_of(j.template.template_id, j.firm.firm_id,
+                                j.trial_idx) == args.bucket]
     if args.bucket:
         jobs = [j for j in jobs
                 if split_of(j.template.template_id, j.firm.firm_id,
@@ -1017,10 +1027,18 @@ def main(argv: list[str] | None = None) -> int:
     else:
         todo = jobs
 
-    print(f"{args.split} run — {len(jobs)} rows "
-          f"({len(templates_for(args.split))} templates x {len(firm_ids)} firms "
-          f"x {len(variants)} harnesses x {len(models)} models "
-          f"x {args.trials} trial(s))")
+    # The realised composition, not the nominal one. A filter that silently
+    # widens the job set is invisible in a nominal count and expensive in a
+    # real one.
+    n_t = len({j.template.template_id for j in jobs})
+    n_f = sorted({j.firm.firm_id for j in jobs})
+    n_h = sorted({j.harness_variant for j in jobs})
+    n_m = sorted({j.model.rsplit("/", 1)[-1] for j in jobs})
+    print(f"{args.split} run — {len(jobs)} rows")
+    print(f"  {n_t} templates x firms {','.join(n_f)} x {','.join(n_h)} "
+          f"x {','.join(n_m)} x {args.trials} trial(s)")
+    if args.bucket:
+        print(f"  bucket: {args.bucket}")
     if args.resume:
         print(f"  resuming: {len(fresh)} already on disk, {len(todo)} to run")
         if stale:

@@ -180,7 +180,13 @@ class ERPNextAdapter:
         return self._http
 
     def invalidate(self) -> None:
-        """Drop the session. A reset destroys it server-side."""
+        """Drop the session and the snapshot caches.
+
+        A reset replaces the database, so any cached table signature or row
+        set describes a world that no longer exists.
+        """
+        self._sig_cache = None
+        self._row_cache = None
         if self._http is not None:
             try:
                 self._http.close()
@@ -241,6 +247,26 @@ class ERPNextAdapter:
         One query per table would be ~900 round trips. Instead the table list
         comes from information_schema and the rows come from a single UNION,
         which keeps a snapshot well under a second.
+
+        **Every table is still examined.** SPEC §4 is explicit that snapshots
+        are of the whole database and not a watchlist, because a watchlist
+        can only find mutations somebody thought to watch, and the one thing
+        that must not happen is an agent writing a record nobody enumerated
+        and the run scoring clean. That property is preserved exactly.
+
+        What changed is how much each table costs to examine. A table is
+        first probed with COUNT(*) and MAX(modified), which InnoDB answers
+        from an index; only tables whose signature differs from the cached
+        one are enumerated row by row. A table that has not changed since the
+        last snapshot on this connection cannot contain a changed row, so
+        skipping its rows loses nothing -- and in this environment nearly
+        every table is unchanged nearly always. Under concurrency two
+        whole-database scans per rollout were the throughput ceiling.
+
+        The signature is (count, max(modified)). A delete paired with an
+        insert keeps the count equal, but Frappe stamps `modified` with the
+        current time on every write, so the maximum moves. There is no
+        sequence of Frappe writes that leaves both unchanged.
         """
         db_name, _u, _p = self._creds()
         # Only tables that actually carry the identity and stamp columns a
@@ -258,6 +284,26 @@ class ERPNextAdapter:
         submittable = {t[0] for t in self._sql(
             "SELECT table_name FROM information_schema.columns "
             f"WHERE table_schema = '{db_name}' AND column_name = 'docstatus'")}
+
+        # Cheap per-table signature. Answered from indexes; one round trip
+        # for the whole database.
+        sig_parts = [f"SELECT {self._quote(tbl)} AS t, COUNT(*) AS n, "
+                     f"COALESCE(MAX(`modified`),'') AS m FROM `{tbl}`"
+                     for tbl in doctypes]
+        signatures: dict[str, tuple] = {}
+        for i in range(0, len(sig_parts), 40):
+            for tbl, n, m in self._sql(" UNION ALL ".join(sig_parts[i:i + 40])):
+                signatures[str(tbl)] = (int(n or 0), str(m))
+        cached = getattr(self, "_sig_cache", None)
+        changed = ([t for t in doctypes if signatures.get(t) != cached.get(t)]
+                   if cached is not None else list(doctypes))
+        self._sig_cache = signatures
+        if cached is not None and not changed:
+            # Nothing anywhere moved; the previous row set is still exact.
+            return Snapshot(rows=dict(getattr(self, "_row_cache", {})),
+                            taken_at=time.time())
+        if cached is not None:
+            doctypes = {t: doctypes[t] for t in changed}
         parts = [
             f"SELECT {self._quote(dt)} AS dt, `name`, `modified`, "
             f"{'`docstatus`' if tbl in submittable else '0'} AS ds FROM `{tbl}`"
@@ -269,6 +315,14 @@ class ERPNextAdapter:
             for dt, nm, mod, ds in self._sql(chunk):
                 rows[(dt, nm)] = Row(doctype=str(dt), name=str(nm),
                                      modified=str(mod), docstatus=int(ds or 0))
+        if getattr(self, "_row_cache", None) is not None:
+            # Carry forward the rows of tables that did not change, so the
+            # snapshot is still of the whole database.
+            merged = {k: v for k, v in self._row_cache.items()
+                      if v.doctype not in {d for d in doctypes.values()}}
+            merged.update(rows)
+            rows = merged
+        self._row_cache = dict(rows)
         return Snapshot(rows=rows, taken_at=time.time())
 
     @staticmethod

@@ -833,3 +833,76 @@ The effect is capability-gated: absent at 8B, present at 14B and 32B. No
 qualifier is required on the 14B holdout figure. The combined estimate
 (+10.5%) may be reported alongside, but the pre-registered thirteen are the
 claim.
+
+---
+
+# Throughput gate — NOT MET. Ceiling is ~1,600 rollouts/hour
+
+Target was ≥3,000. Measured ceiling is **~1,600 rollouts/hour**, environment
+only, and it does not move with more sites.
+
+| sites | rollouts/hour | per-rollout, per-site |
+|---|---|---|
+| 4 | 1,591 | 9.1s |
+| 12 | 1,606 | 26.9s |
+| 12 (cheaper snapshot) | 1,454 | 29.7s |
+
+Per-rollout cost scales almost exactly with site count, which is the
+signature of complete serialisation on a shared resource. **Adding sites does
+not add throughput; it divides the same throughput into smaller pieces.**
+
+## Where it goes, and why the obvious levers do not help
+
+`docker stats` under load: **MariaDB 118% CPU, ERPNext backend 0.01%,
+frontend 0.00%.** The database is the constraint and nothing else is near it.
+
+- **A larger CPU box will not help.** The host has 18 cores and sits ~40%
+  idle under full load; Docker has all 18 allocated. MariaDB is using 1.2 of
+  them. It is not CPU-starved — it is serialising on I/O and locks against
+  concurrent heavy queries, and more cores do not relieve that.
+- **More sites will not help.** Demonstrated above: 4 and 12 sites give the
+  same figure.
+- **Skipping resets already happened** and was the single biggest win: 86% of
+  real rollouts mutate nothing, and a clean rollout now skips its reset
+  entirely (5.6s → 0.62s, measured). Without it the ceiling would be far
+  lower.
+- **Cheaper snapshots did not help.** Tables are now probed with COUNT(*) and
+  MAX(modified) and only enumerated when that signature moves — 0.48s → 0.20s
+  in isolation, 2.4x — but under 12-way concurrency the figure was unchanged
+  within noise. The probe query is itself a scan across ~124 tables, so it
+  relieves the symptom rather than the contention. It is kept because it is
+  strictly cheaper and costs nothing, not because it moved this number.
+
+**Whole-database coverage was not traded away for any of this.** SPEC §4
+forbids a watchlist, because a watchlist only finds mutations somebody
+thought to watch. Every table is still examined on every snapshot; what
+changed is that unchanged tables are recognised by an indexed signature
+instead of being enumerated row by row. A table whose (count, max modified)
+is unchanged cannot contain a changed row.
+
+## What 1,600/hour means for the corpus
+
+Environment-only 1,600/h is ~27s per rollout per site at 12 sites. Adding
+Fireworks-served 14B latency (~9s for a three-step rollout) gives roughly
+**1,200 rollouts/hour end to end**.
+
+At a 40% rejection-sampling acceptance rate:
+
+| verified target | rollouts needed | wall clock |
+|---|---|---|
+| 1,500 | 3,750 | **~3.1h** |
+| 2,000 | 5,000 | ~4.2h |
+| 2,500 | 6,250 | ~5.2h |
+
+So the revised 1,500–2,500 target remains reachable inside the schedule
+despite missing the gate, provided generation is sharded and left to run. The
+original 780/h figure that motivated the 3,000 target has been beaten by
+roughly 2x; the target itself was set against an assumption — that resets and
+snapshots were 93% of the cost and could both be largely removed — which
+turned out to be only half right. Resets could be. The remaining cost is
+database contention that this deployment cannot escape.
+
+**A real 3,000/h would need a different database posture**: MariaDB per site
+rather than shared, or an ERP whose reset is not a full logical restore.
+Neither is worth doing at this point in the schedule, and both are recorded
+here rather than attempted.

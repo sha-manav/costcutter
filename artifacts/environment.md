@@ -1038,3 +1038,58 @@ whose provenance is unaccounted for are still excused — failing on an
 unmodelled side effect is the defect being fixed — but recorded in
 `unclassified_derived`, so the next thing ERPNext starts writing is visible
 rather than silent.
+
+---
+
+# Round 0 complete — 316 verified teacher traces
+
+Sonnet on the corrected harness, Firm A, 505 rollouts, **316 verified at 63%
+acceptance**, $21.54 of the $25 line, 5.29M tokens. Corpus in
+`artifacts/teacher_traces.jsonl`; every rollout is kept, accepted or not, with
+its rejection reason, so the acceptance rate is measured rather than claimed.
+
+## Composition — allocated, and it held
+
+| bucket | verified | share | target |
+|---|---|---|---|
+| hard recovery | 116 | 37% | 40% |
+| ordinary execution | 85 | 27% | 25% |
+| policy-sensitive | 72 | 23% | 25% |
+| ambiguous / missing-entity | 43 | 14% | 10% |
+
+By curriculum stage: **T1 116 · T2 129 · T3 71**.
+
+Stage is assigned at generation and corrected against what the rollout did:
+a trace planned for T1 in which nothing failed is T2 data, and one planned
+for T2 that recovered from a real error is T1 data and worth more there.
+`recovered` comes from live instrumentation — all 116 T1 traces contain an
+action that failed and a later action that succeeded on the same subgoal.
+
+## The defect that nearly cost the round
+
+Before the ERP-bookkeeping fix, this corpus had **4 usable T1 traces**. 94
+rollouts had recovered; 90 were being discarded because completing a write
+after recovering generates the most ERP-derived rows, and those were scored
+as unexpected mutations. Acceptance was 42% overall and effectively 4% on the
+one bucket the round exists to fill.
+
+After the fix: 63% acceptance and 116 T1 traces. The corpus was rescored from
+stored diffs rather than regenerated — the diffs are ground truth and
+rerunning would have cost hours and bought nothing.
+
+Worth stating plainly because it is the strongest argument for the
+measurement-integrity appendix: **the highest-value 37% of Round 0 existed
+only because a scoring defect was found before training started.** Had T1
+been trained on 4 traces, the curriculum would have taught nothing about
+recovery, T1 would have shown no effect, and the conclusion available would
+have been "recovery training does not help" — which is the opposite of what
+the data supports, and indistinguishable from it without the fix.
+
+## Rejections
+
+189 rollouts rejected: 49 assertion failures, 23 forbidden mutations, 21
+genuine unexpected writes, 10 step-budget exhaustions, 5 missing required
+mutations, remainder mixed. These are Sonnet getting things wrong or
+violating policy, which is what rejection sampling is for. A trajectory that
+reaches the goal by violating policy is exactly the behaviour T3 exists to
+remove.

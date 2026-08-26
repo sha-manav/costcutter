@@ -55,8 +55,11 @@ def test_holdout_and_train_visible_are_disjoint_and_complete():
 
 
 def test_the_template_holdout_is_large_enough_to_report():
+    """Widened after week 2. Ten templates were added specifically because
+    13 gave intervals that all spanned zero at n~78 per arm — the bound is
+    now a floor on power, not a cap on it."""
     held = splits.template_holdout()
-    assert 10 <= len(held) <= 16, f"{len(held)} templates held out"
+    assert len(held) >= 13, f"only {len(held)} templates held out"
 
 
 def _genuine_counterfactuals() -> set[str]:
@@ -103,3 +106,33 @@ def test_every_row_carries_its_bucket():
 
     src = inspect.getsource(gate.run_one)
     assert "split_bucket" in src and "split_fingerprint" in src
+
+
+def test_the_added_holdout_templates_are_all_held_out():
+    """E41-E50 exist only to add power to the template-level holdout. They
+    are forced rather than hashed: there is no per-template choice, so none
+    can be placed by how it performs. Ordering is what makes adding n
+    legitimate — they were authored and assigned before being run."""
+    import erpbench.evaluation_extra                       # noqa: F401
+
+    held = set(splits.template_holdout())
+    for n in range(41, 51):
+        tid = next(t.template_id for t in REGISTRY.evaluation
+                   if t.template_id.startswith(f"E{n}_"))
+        assert tid in held, f"{tid} was added for the holdout and is not in it"
+
+
+def test_adding_templates_did_not_reshuffle_the_original_assignment():
+    """If the added templates had entered the hash pool they would have
+    displaced some of the original 13, and week 2's holdout numbers would no
+    longer describe the bucket they were measured on."""
+    original_13 = {
+        "E07_rename_customer_reference", "E15_invoice_with_lines",
+        "E16_quotation_with_lines", "E19_order_above_threshold",
+        "E22_submit_existing_draft", "E24_order_for_absent_item",
+        "E28_invoice_needs_delivery_note", "E30_invoice_stale_evidence",
+        "E31_delivery_note_for_order", "E36_report_unpaid_invoices",
+        "E38_cancel_submitted_document", "E39_bulk_price_increase",
+        "E40_payment_without_instruction"}
+    assert original_13 <= set(splits.template_holdout()), \
+        "the week-2 holdout assignment moved when templates were added"

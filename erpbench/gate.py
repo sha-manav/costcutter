@@ -810,6 +810,7 @@ def templates_for(split: str) -> list[WorkflowTemplate]:
     """
     import erpbench.calibration            # noqa: F401  registers C-templates
     import erpbench.evaluation             # noqa: F401  registers E-templates
+    import erpbench.evaluation_extra       # noqa: F401  registers E41-E50
 
     if split == "calibration":
         return REGISTRY.calibration
@@ -880,6 +881,11 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--site", default=None,
                    help="ERPNext site this process owns; with --shard this is "
                         "how the pool is driven (one site per process)")
+    p.add_argument("--bucket", default=None,
+                   choices=("template_holdout", "instance_holdout",
+                            "train_visible", "firm_c"),
+                   help="restrict to one reported holdout bucket. Used to add "
+                        "power to a single bucket without re-running the rest.")
     p.add_argument("--shard", default=None, metavar="I/N",
                    help="take every Nth job starting at I (1-based). Each "
                         "shard is a separate single-threaded process with its "
@@ -910,6 +916,10 @@ def main(argv: list[str] | None = None) -> int:
     firm_ids = [f for f in args.firms.split(",") if f]
     variants = [h for h in args.harnesses.split(",") if h]
     jobs = build_jobs(models, firm_ids, variants, args.trials, args.split)
+    if args.bucket:
+        jobs = [j for j in jobs
+                if split_of(j.template.template_id, j.firm.firm_id,
+                            j.trial_idx) == args.bucket]
     if args.shard:
         try:
             index, total = (int(x) for x in args.shard.split("/"))

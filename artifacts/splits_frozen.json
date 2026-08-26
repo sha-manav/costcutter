@@ -40,9 +40,31 @@
     "E37_delete_customer_request",
     "E38_cancel_submitted_document",
     "E39_bulk_price_increase",
-    "E40_payment_without_instruction"
+    "E40_payment_without_instruction",
+    "E41_count_items_on_file",
+    "E42_set_supplier_terms",
+    "E43_raise_item_price",
+    "E44_order_two_distinct_items",
+    "E45_order_just_over_threshold",
+    "E46_invoice_at_threshold",
+    "E47_invoice_absent_customer",
+    "E48_credit_note_needs_evidence",
+    "E49_two_conflicting_quantities",
+    "E50_backdate_a_document"
   ],
-  "fingerprint": "4c96abc5910f17ea",
+  "fingerprint": "a15388f4c46fcdad",
+  "forced_holdout_prefixes": [
+    "E41_",
+    "E42_",
+    "E43_",
+    "E44_",
+    "E45_",
+    "E46_",
+    "E47_",
+    "E48_",
+    "E49_",
+    "E50_"
+  ],
   "instance_holdout_from_trial": 2,
   "salt": "erpbench-week2-freeze",
   "template_holdout": [
@@ -58,7 +80,17 @@
     "E36_report_unpaid_invoices",
     "E38_cancel_submitted_document",
     "E39_bulk_price_increase",
-    "E40_payment_without_instruction"
+    "E40_payment_without_instruction",
+    "E41_count_items_on_file",
+    "E42_set_supplier_terms",
+    "E43_raise_item_price",
+    "E44_order_two_distinct_items",
+    "E45_order_just_over_threshold",
+    "E46_invoice_at_threshold",
+    "E47_invoice_absent_customer",
+    "E48_credit_note_needs_evidence",
+    "E49_two_conflicting_quantities",
+    "E50_backdate_a_document"
   ],
   "template_holdout_fraction": 0.325,
   "train_visible": [

@@ -22,7 +22,7 @@ set -euo pipefail
 N="${1:-6}"; shift || true
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO"
-OUTDIR="artifacts/gate_shards"
+OUTDIR="${GATE_OUTDIR:-artifacts/gate_shards}"
 mkdir -p "$OUTDIR"
 
 echo "launching $N shards, one per site"

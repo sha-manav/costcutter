@@ -9,13 +9,15 @@ counted twice.
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 
-SHARDS = REPO / "artifacts" / "gate_shards"
+SHARDS = Path(os.environ.get("GATE_OUTDIR",
+                             REPO / "artifacts" / "gate_shards"))
 
 # One file per split. The destination used to be hardcoded to the calibration
 # results, so finishing an evaluation run would have merged 2,160 evaluation
@@ -24,7 +26,8 @@ SHARDS = REPO / "artifacts" / "gate_shards"
 # from it. Split is read from the rows themselves rather than passed in,
 # because a flag can be forgotten and a template id cannot.
 DESTS = {"calibration": REPO / "artifacts" / "calibration_gate.jsonl",
-         "evaluation": REPO / "artifacts" / "evaluation_run.jsonl"}
+         "evaluation": Path(os.environ.get(
+             "GATE_DEST", REPO / "artifacts" / "evaluation_run.jsonl"))}
 
 
 def split_of_rows(rows: list[dict]) -> str:

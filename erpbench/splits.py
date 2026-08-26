@@ -33,6 +33,14 @@ from erpbench.templates import REGISTRY
 # training starts silently converts holdout templates into seen ones.
 SPLIT_SALT = "erpbench-week2-freeze"
 
+# Ten templates added after week 2 to raise power on the template-level
+# holdout, which is the one measurement that cannot be strengthened once
+# training begins. They are held out unconditionally rather than by hash:
+# there is no per-template choice to make, so none can be placed by how it
+# performs. See erpbench/evaluation_extra.py for the full reasoning and the
+# limitation that the author had seen the week-2 bucket results.
+FORCED_HOLDOUT_PREFIXES = tuple(f"E{n}_" for n in range(41, 51))
+
 # Roughly a third held out. Enough templates for a usable interval on the
 # generalization number, while leaving the majority available to train on.
 TEMPLATE_HOLDOUT_FRACTION = 0.325
@@ -49,13 +57,25 @@ def _score(template_id: str) -> float:
     return int(digest[:12], 16) / float(1 << 48)
 
 
+def _is_forced(template_id: str) -> bool:
+    return template_id.startswith(FORCED_HOLDOUT_PREFIXES)
+
+
 def template_holdout(template_ids: list[str] | None = None) -> list[str]:
-    """Templates reserved from training, by hash rather than by choice."""
+    """Templates reserved from training.
+
+    The original 40 are assigned by hash so none could be hand-picked. The
+    ten added after week 2 are forced, because they exist only to add power
+    to this bucket and are all held out -- a hash would have scattered most
+    of them into the training split and defeated the purpose.
+    """
     ids = sorted(template_ids if template_ids is not None
                  else [t.template_id for t in REGISTRY.evaluation])
-    ranked = sorted(ids, key=_score)
+    forced = [t for t in ids if _is_forced(t)]
+    hashed = [t for t in ids if not _is_forced(t)]
+    ranked = sorted(hashed, key=_score)
     n = round(len(ranked) * TEMPLATE_HOLDOUT_FRACTION)
-    return sorted(ranked[:n])
+    return sorted(ranked[:n] + forced)
 
 
 def is_template_holdout(template_id: str) -> bool:
@@ -94,6 +114,7 @@ def manifest() -> dict[str, Any]:
         "template_holdout": held,
         "train_visible": [t for t in every if t not in set(held)],
         "blind_firm": "C",
+        "forced_holdout_prefixes": list(FORCED_HOLDOUT_PREFIXES),
     }
 
 
@@ -114,6 +135,7 @@ def freeze(dest: Path | None = None) -> Path:
 
 if __name__ == "__main__":
     import erpbench.evaluation                              # noqa: F401
+    import erpbench.evaluation_extra                        # noqa: F401
 
     path = freeze()
     m = manifest()

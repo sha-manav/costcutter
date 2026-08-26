@@ -304,7 +304,8 @@ def _is_fatal_provider_error(exc: Exception) -> str | None:
 
 def run_one(job: Job, adapter: SystemAdapter, client: Any, cfg: Any,
             max_steps: int = MAX_STEPS,
-            row_deadline_s: float = ROW_DEADLINE_S) -> dict[str, Any]:
+            row_deadline_s: float = ROW_DEADLINE_S,
+            instance: Instance | None = None) -> dict[str, Any]:
     """Execute one instance end to end and return its result row.
 
     Raises GateHalt for anything that is the world breaking rather than the
@@ -312,7 +313,12 @@ def run_one(job: Job, adapter: SystemAdapter, client: Any, cfg: Any,
     """
     from shadow.bench.metrics import usd
 
-    instance: Instance = job.template.instantiate(job.seed, job.firm)
+    # Teacher generation overrides parameters to force the situations Round 0
+    # needs, so it supplies the instance rather than letting the template draw
+    # one. Assertions still come from the template's generator (SPEC §10.9);
+    # only which point in the parameter space is chosen differs.
+    if instance is None:
+        instance = job.template.instantiate(job.seed, job.firm)
     trace = RunTrace(run_id=job.rid, template_id=job.template.template_id,
                      firm_id=job.firm.firm_id,
                      harness_variant=job.harness_variant, model=job.model,

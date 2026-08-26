@@ -946,3 +946,94 @@ def test_the_merge_writes_one_file_per_split():
     assert mod.split_of_rows([{"template_id": "E01_x"}]) == "evaluation"
     with pytest.raises(SystemExit):
         mod.split_of_rows([{"template_id": "C01_x"}, {"template_id": "E01_x"}])
+
+
+# --------------------------------------------------------------------------
+# Conditional reset — SPEC §6 throughput without weakening SPEC §4
+# --------------------------------------------------------------------------
+
+class _CountingAdapter(FakeAdapter):
+    """Counts resets and can be told to report a dirty diff."""
+
+    def __init__(self, mutate=None):
+        super().__init__(mutate=mutate)
+        self.reset_count = 0
+
+    def reset(self, source=None):
+        self.reset_count += 1
+        return super().reset(source)
+
+
+def _run(adapter, firm="A", template="C15_no_action_required"):
+    return gate.run_one(a_job(template, firm), adapter,
+                        ScriptedClient(['{"action": "done", "answer": "none"}']),
+                        get_config(), max_steps=3)
+
+
+def test_a_clean_rollout_lets_the_next_one_skip_its_reset():
+    """The reset is 90% of environment cost. A rollout that provably changed
+    nothing leaves the site already in the right state."""
+    gate._LAST_ROLLOUT.clear()
+    ad = _CountingAdapter()
+    _run(ad); _run(ad); _run(ad)
+    assert ad.reset_count == 1, (
+        f"reset {ad.reset_count} times for three rollouts that wrote nothing")
+
+
+def test_a_rollout_that_wrote_forces_the_next_reset():
+    """Decided on the observed diff, never predicted from the template. A
+    template whose correct answer is to write nothing does not mean the agent
+    wrote nothing — and the runs that violate their envelope are exactly the
+    ones that must not leak into the next rollout."""
+    gate._LAST_ROLLOUT.clear()
+    dirty = Diff(created=[Row(doctype="Customer", name="X", modified="1")])
+    ad = _CountingAdapter(mutate=dirty)
+    _run(ad); _run(ad)
+    assert ad.reset_count == 2, "a dirty rollout must force the next reset"
+
+
+def test_changing_firm_always_resets():
+    """Firms have disjoint entity sets (SPEC §5); carrying one firm's world
+    into another's rollout would break the cross-firm comparison."""
+    gate._LAST_ROLLOUT.clear()
+    ad = _CountingAdapter()
+    _run(ad, firm="A"); _run(ad, firm="B"); _run(ad, firm="A")
+    assert ad.reset_count == 3
+
+
+def test_a_run_that_dies_before_its_diff_does_not_licence_a_skip():
+    """The licence is an *observed* empty diff, not a successful run.
+
+    A transient provider error still reaches the snapshot, so if the diff
+    comes back empty the site really is clean and the next rollout may skip.
+    What must not licence a skip is a run that never got that far — an
+    adapter failure raises GateHalt before the diff — which is why the record
+    is written pessimistically at the start of every rollout rather than
+    trusted from the previous one.
+    """
+    gate._LAST_ROLLOUT.clear()
+    ad = _CountingAdapter()
+    _run(ad)                                     # clean: licences a skip
+
+    class Dead(_CountingAdapter):
+        def snapshot(self):
+            raise AdapterError("site died mid-rollout")
+
+    dead = Dead()
+    gate._record_rollout(dead, "A", True)        # pretend it looked clean
+    with pytest.raises(gate.GateHalt):
+        _run(dead)
+    assert gate._may_skip_reset(dead, "A") is False, \
+        "a rollout that never reached its diff must not licence a skip"
+
+
+def test_a_provider_error_with_a_clean_diff_may_still_licence_a_skip():
+    """The converse, stated so the rule is not over-tightened later: the
+    database does not become suspect because the provider hiccuped."""
+    gate._LAST_ROLLOUT.clear()
+    ad = _CountingAdapter()
+    row = gate.run_one(a_job(), ad,
+                       ScriptedClient([], raises=RuntimeError("connection reset")),
+                       get_config(), max_steps=3)
+    assert row["status"] == RunStatus.ERROR.value
+    assert gate._may_skip_reset(ad, "A") is True

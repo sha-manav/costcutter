@@ -119,6 +119,28 @@ class MissingSeed(GateHalt):
     """A firm's seed image is not on disk."""
 
 
+# Per-adapter record of what the last rollout on that site left behind.
+# Keyed by id() of the adapter, which is stable within a shard process and
+# meaningless across them -- exactly the scope a site-owning worker needs.
+_LAST_ROLLOUT: dict[int, tuple[str, bool]] = {}
+
+
+def _may_skip_reset(adapter: Any, firm_id: str) -> bool:
+    """Whether this site is already in the right state.
+
+    True only when the previous rollout on this adapter wanted the same
+    firm's seed and was observed to change nothing. Anything else -- a
+    different firm, a first rollout, a rollout that wrote, or one that ended
+    in an error before its diff was taken -- resets.
+    """
+    last = _LAST_ROLLOUT.get(id(adapter))
+    return last is not None and last == (firm_id, True)
+
+
+def _record_rollout(adapter: Any, firm_id: str, unchanged: bool) -> None:
+    _LAST_ROLLOUT[id(adapter)] = (firm_id, unchanged)
+
+
 def firm_seed(firm_id: str) -> Path:
     """The seed image for one firm, or a halt.
 
@@ -303,8 +325,27 @@ def run_one(job: Job, adapter: SystemAdapter, client: Any, cfg: Any,
     # entity sets (SPEC §5) so a model cannot carry a memorised customer name
     # across them; resetting every firm to one image would quietly undo that
     # and turn the cross-firm comparison into a recall test.
+    #
+    # The reset is 90% of the environment cost per rollout (5.3s of 5.9s
+    # measured), and a large share of rollouts write nothing at all -- 20 of
+    # the 40 evaluation templates have "write nothing" as the correct answer
+    # on the strictest firm. Skipping it is safe *only* when the previous
+    # rollout on this exact site left the database provably unchanged and
+    # wanted the same firm's seed. That condition is checked against an
+    # observed diff, never predicted from the template: a template whose
+    # correct answer is to write nothing does not mean the agent wrote
+    # nothing, and it is precisely the runs that violate their envelope which
+    # must not leak into the next rollout.
+    skip = _may_skip_reset(adapter, job.firm.firm_id)
+    _record_rollout(adapter, job.firm.firm_id, False)   # pessimistic until proven
     try:
-        adapter.reset(firm_seed(job.firm.firm_id))
+        if skip:
+            # Not part of the SystemAdapter protocol -- it is an ERPNext
+            # session detail, and an adapter without it simply keeps its
+            # session.
+            getattr(adapter, "invalidate", lambda: None)()
+        else:
+            adapter.reset(firm_seed(job.firm.firm_id))
         if instance.setup is not None:
             instance.setup(adapter)
         before = adapter.snapshot()
@@ -386,6 +427,14 @@ def run_one(job: Job, adapter: SystemAdapter, client: Any, cfg: Any,
         diff = adapter.diff(before, after)
     except AdapterError as exc:
         raise GateHalt(f"snapshot failed scoring {job.rid}: {exc}") from exc
+
+    # Only an *observed* empty diff lets the next rollout skip its reset.
+    # A transient provider error still reaches this point, and a database
+    # does not become suspect because the provider hiccuped -- what must
+    # never licence a skip is a rollout that died before its diff was taken,
+    # which is why the record is written pessimistically at the start rather
+    # than trusted from the previous rollout.
+    _record_rollout(adapter, job.firm.firm_id, diff.empty)
 
     # Attribute mutations to the steps that made them, so the behaviour
     # metrics distinguish "called create and it wrote" from "called create

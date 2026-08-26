@@ -16,7 +16,26 @@ REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 
 SHARDS = REPO / "artifacts" / "gate_shards"
-DEST = REPO / "artifacts" / "calibration_gate.jsonl"
+
+# One file per split. The destination used to be hardcoded to the calibration
+# results, so finishing an evaluation run would have merged 2,160 evaluation
+# rows into the 810-row week-1 record -- two corpora, two reported
+# measurements, one file, and the calibration numbers no longer reproducible
+# from it. Split is read from the rows themselves rather than passed in,
+# because a flag can be forgotten and a template id cannot.
+DESTS = {"calibration": REPO / "artifacts" / "calibration_gate.jsonl",
+         "evaluation": REPO / "artifacts" / "evaluation_run.jsonl"}
+
+
+def split_of_rows(rows: list[dict]) -> str:
+    """Which corpus these rows came from, or a refusal if they are mixed."""
+    kinds = {"calibration" if str(r.get("template_id", "")).startswith("C")
+             else "evaluation" for r in rows}
+    if len(kinds) != 1:
+        raise SystemExit(
+            "shards contain rows from more than one split; refusing to merge. "
+            "Move the stale shard files aside and re-run.")
+    return kinds.pop()
 
 
 def main() -> int:
@@ -24,26 +43,31 @@ def main() -> int:
     if not files:
         print(f"no shard files in {SHARDS}", file=sys.stderr)
         return 1
-    by_id: dict[str, dict] = {}
-    if DEST.exists():                       # keep anything already measured
-        for line in DEST.read_text().splitlines():
-            if line.strip():
-                row = json.loads(line)
-                by_id[row.get("run_id", id(row))] = row
-    per_file = {}
+    shard_rows, per_file = [], {}
     for f in files:
-        n = 0
-        for line in f.read_text().splitlines():
+        rows = [json.loads(l) for l in f.read_text().splitlines() if l.strip()]
+        per_file[f.name] = len(rows)
+        shard_rows += rows
+    if not shard_rows:
+        print("shard files are empty", file=sys.stderr)
+        return 1
+
+    split = split_of_rows(shard_rows)
+    dest = DESTS[split]
+
+    by_id: dict[str, dict] = {}
+    if dest.exists():                       # keep anything already measured
+        for line in dest.read_text().splitlines():
             if line.strip():
                 row = json.loads(line)
                 by_id[row.get("run_id", id(row))] = row
-                n += 1
-        per_file[f.name] = n
-    DEST.write_text("\n".join(json.dumps(r, default=str)
+    for row in shard_rows:
+        by_id[row.get("run_id", id(row))] = row
+    dest.write_text("\n".join(json.dumps(r, default=str)
                               for r in by_id.values()) + "\n")
     for name, n in per_file.items():
         print(f"  {name:28} {n:4} rows")
-    print(f"merged -> {DEST.name}: {len(by_id)} unique rows")
+    print(f"merged {split} -> {dest.name}: {len(by_id)} unique rows")
     return 0
 
 

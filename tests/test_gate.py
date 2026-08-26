@@ -925,3 +925,24 @@ def test_the_pool_driver_runs_shards_unbuffered():
               / "scripts" / "run_gate_pool.sh").read_text()
     assert "python -u -m erpbench.gate" in driver, \
         "shards must run unbuffered or their logs stay empty while they work"
+
+
+def test_the_merge_writes_one_file_per_split():
+    """The destination was hardcoded to the calibration results, so finishing
+    an evaluation run would have merged 2,160 evaluation rows into the 810-row
+    week-1 record — two reported measurements in one file, with the
+    calibration numbers no longer reproducible from it."""
+    import importlib.util
+    from pathlib import Path
+
+    path = (Path(__file__).resolve().parent.parent / "scripts"
+            / "merge_gate_shards.py")
+    spec = importlib.util.spec_from_file_location("_merge", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    assert mod.DESTS["calibration"] != mod.DESTS["evaluation"]
+    assert mod.split_of_rows([{"template_id": "C01_x"}]) == "calibration"
+    assert mod.split_of_rows([{"template_id": "E01_x"}]) == "evaluation"
+    with pytest.raises(SystemExit):
+        mod.split_of_rows([{"template_id": "C01_x"}, {"template_id": "E01_x"}])

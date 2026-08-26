@@ -1,56 +1,52 @@
-# STOPPED — week 1 complete, NO-GO, awaiting three decisions
+# COMPLETE — week 2 done, GO on Qwen3-14B
 
-**Reason.** Nothing is broken. The calibration gate completed: 810 rows, three trials per cell, $1.007 of the $8.00 line item, 15 infrastructure errors (1.9%) excluded from their denominators. Week 1 exits **NO-GO** -- no model cleared the S2 band, so per SPEC §2 no data generation starts. The full result, the failure-mode breakdown and the limitations are in artifacts/environment.md. This file records the stop so a fresh session does not mistake a finished week for an interrupted one; the previous contents were a stale ERPNext-unreachable record from a Ctrl-C that landed mid-reset, since fixed.
+**Reason.** Nothing is halted. Week 2's evaluation run completed: 2,160 rows across 40 templates x 3 firms x 2 harness variants x 3 models x 3 trials, $2.37 of the $12 api_anchors line, 111 infrastructure errors (5.1%) excluded from their denominators. Qwen3-14B clears both bands and the go/no-go is **GO**, so data generation is unblocked. Full results, the retraction of week 1's sign-reversal headline, the holdout breakdown and the limitations are in artifacts/environment.md under 'Week 2'. This file previously held a genuine mid-run halt -- a transient 403 from ERPNext tripped the verifier guard on E28 -- which resume recovered; all 40 templates have their full 54 rows and nothing was corrupted.
 
 | | |
 |---|---|
-| Line item | `calibration_gate` |
-| Reserved | $8.00 |
-| Spent | $1.01 |
-| Remaining | $6.99 |
-| Rows completed | 810 |
+| Line item | `api_anchors` |
+| Reserved | $12.00 |
+| Spent | $2.39 |
+| Remaining | $9.61 |
+| Rows completed | 2160 |
 | Rows remaining | 0 |
 
 ## Resume
 
 ```bash
-# Week 2, once the decisions above are made:
-source infra/env.docker.sh
-export OPENROUTER_API_KEY=...
-bash scripts/run_gate_pool.sh 6 --require-model --resume --trials 3
+# Week 2's remaining deliverable — publish the environment standalone.
+# It needs no model and stands on its own regardless of weeks 3-5.
 
-# If ERPNext is not running (after a reboot):
-bash infra/setup_docker.sh
-.venv/bin/python scripts/provision_docker_sites.py --count 6
+# Week 3 begins with teacher traces ($25 line), now unblocked by the GO:
+source infra/env.docker.sh
+export OPENROUTER_API_KEY=...   # type it; do not paste from a doc
+# (teacher-trace runner is not yet written)
 ```
 
 ## Needs a human decision
 
-Three decisions, none of which code or the spec can settle.
+Nothing blocking. Three things to decide before week 3 starts.
 
-1. **Proceed to week 2 despite NO-GO?** The go/no-go blocks *data generation*
-   (weeks 3-4), not authoring and measurement, and publishing the environment
-   standalone needs no model. SPEC §2's remedy for NO-GO is "the harness is the
-   problem" -- the failure-mode breakdown says it is not: step-budget exhaustion
-   is 0-2%, and failures are genuine task errors and policy non-compliance.
-   Retuning difficulty is forbidden (SPEC §10.3) and should stay forbidden.
+1. **The template-level holdout is not significant for any model.** That is SPEC
+   §4's real generalization number, and every interval spans zero at n~75 per
+   arm. Options: accept and report it as a stated limitation, or raise trials on
+   the holdout templates specifically to narrow it before training begins. The
+   second is cheap (~$1) and would make the week-6 claim much stronger, because
+   after training there is no clean way to go back and strengthen a pre-training
+   baseline.
 
-2. **Base model: 32B by the rule, or 14B by the evidence?** The precommitted
-   order selects 32B, which has no detectable harness gain (+6.2%, spans zero)
-   and the worst violation rate (19.4%). 14B is the only model with a
-   significant positive effect (+13.7% [+3.4, +23.6]) and the highest S2
-   (31.1%). Following the rule means training the model the corrected harness
-   demonstrably does not help. Overriding it is defensible but must be a
-   documented, deliberate exception rather than a quiet preference.
+2. **32B scores higher than 14B on S2 (46.3% vs 39.6%) but the rule selects
+   14B**, first to clear. Following the rule is correct and is what was done.
+   Worth deciding deliberately whether weeks 3-5 train 14B as selected, or 32B
+   as the stronger model with the deviation documented.
 
-3. **Figure 1 becomes per-model with intervals.** A single averaged S1->S2 bar
-   reports roughly zero and hides all three results. Not blocking week 2's
-   measurement -- the same rows are collected either way -- but it changes what
-   the figure claims.
+3. **Pin the serving provider from row one in week 5.** Weeks 1-2 ran on
+   OpenRouter's default routing across upstream providers with differing
+   quantizations. That is noise rather than bias here, but the Firm C blind pass
+   is one-shot and should not carry an uncontrolled variable.
 
-Infrastructure is ready: six-site pool provisioned and isolation-verified,
-process-per-site driver, provider pinning, wall-clock request bound,
-interrupt-safe reset. Week 2 should run in ~10 hours rather than ~60.
+Infrastructure is ready: six-site pool, process-per-site driver, thread-based
+request bound, split-aware merge, frozen holdouts, 252 tests passing.
 
 
 Per SPEC §12.4 no workaround was attempted: no model was substituted, no

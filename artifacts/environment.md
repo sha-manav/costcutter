@@ -1139,3 +1139,100 @@ result.
    [+0.5, +14.5] on pre-registered unseen templates, four documented
    instrument defects and 316 verified teacher traces all stand. The
    three-stage claim goes unmade.
+
+---
+
+# S1 → S2 → S3 on one serving path (2026-08-26)
+
+All four arms below were served by the same vLLM process on the same rented
+H100, thinking disabled, greedy decoding, and scored by the same code. This
+is the comparison the earlier numbers could not support: S1 and S2 in the
+published baseline came through OpenRouter, and setting a vLLM-served S3
+against an OpenRouter-served S2 confounds training with serving path.
+
+Pre-registered thirteen templates × firms A and B × 12 trials. Firm C
+untouched and still blind. Infrastructure errors excluded from denominators.
+
+| Model | Harness | Success | 95% CI |
+|---|---|---|---|
+| Base Qwen3-14B | naive | 39/308 = 12.7% | [9.4, 16.8] |
+| Base Qwen3-14B | corrected | 67/312 = 21.5% | [17.3, 26.4] |
+| T3 (curriculum) | naive | 63/312 = 20.2% | [16.1, 25.0] |
+| T3 (curriculum) | corrected | 88/312 = 28.2% | [23.5, 33.4] |
+
+**Harness effect**, model held fixed — Figure 1, now on a controlled path:
+
+- Base: **+8.8% [+2.9, +14.7]** — excludes zero
+- T3: **+8.0% [+1.3, +14.6]** — excludes zero
+
+The harness result reproduces at both model states and matches the +7.5%
+[+0.5, +14.5] measured through OpenRouter. That is the one claim in this
+section that survives scrutiny.
+
+**Training effect**, harness held fixed: +7.5% [+1.7, +13.3] naive, +6.7%
+[−0.1, +13.4] corrected. Do not read these as competence gains. See below.
+
+## The training did not teach the task. It taught refusal.
+
+T3 scores higher and is worthless. Splitting the same 312 rows by whether the
+task's envelope actually requires a write settles it:
+
+| Model | Tasks requiring a write | Tasks requiring none |
+|---|---|---|
+| Base | 6/175 = **3.4%** | 61/137 = 44.5% |
+| T3 | 0/175 = **0.0%** | 88/137 = **64.2%** |
+
+T3 succeeds on **zero** tasks that require writing to the ERP, and is worse
+than the untrained base there. Every point of its apparent gain comes from
+tasks where the correct outcome is to write nothing.
+
+The action logs say the same thing without the arithmetic. Of 312 T3
+rollouts, **300 consist of a single action**, and 276 of those are `escalate`
+or `abstain` emitted as the first and only move — before any query, on tasks
+whose entities exist and whose amounts are under every threshold. Mean steps
+fell 2.12 → 1.04 and recorded mutations fell to 0.00. The base model at least
+sometimes looks: 55 of its rollouts open with `query` and 45 with a write.
+
+The safety numbers are therefore vacuous. "T3 commits zero forbidden writes,
+down from 8.3%" is true and means only that it writes nothing at all. A model
+that never acts cannot act unsafely, and reporting that as a safety result
+would be the same error as reporting a stub provider's output as a model's.
+
+**This is a training failure, not a result about ERP agents.** Round 0's
+composition allocated 35% of traces to policy-sensitive and abstention
+categories, and rejection sampling on full success further favours them: on
+this template mix, abstaining is the single highest-yield behaviour a sampler
+can find, because 137 of 312 instances score a success for doing nothing.
+The curriculum then trained on what the sampler kept. T1 was supposed to
+prevent exactly this by leading with recovery, and the corrected finding in
+INSTRUCTIONS §4 already noted that T1's place at the head of the curriculum
+rested on a claim that had stopped reproducing.
+
+What this does not license: any statement that fine-tuning does or does not
+help ERP agents. The experiment tested one dataset, and that dataset was
+degenerate. The harness comparison above is unaffected — it holds the model
+fixed, so a collapsed model and a healthy one both measure it, and both give
+the same answer.
+
+## Instrument defect #5 — a database that half-restored and said nothing
+
+Mid-run, MariaDB aborted itself: `innodb_fatal_semaphore_wait_threshold was
+exceeded for dict_sys.latch`. Six shards each dropping and recreating ~700
+tables contend on one InnoDB dictionary structure until the watchdog fires.
+It left four sites holding 146–532 of their 698 tables.
+
+Nothing detected the truncation. `reset()` had already returned. The symptom
+surfaced two layers away as `ERPNext site unhealthy`, and a `tabCustomer`
+count — the obvious health check — passed on a site missing 166 other tables.
+
+Same shape as defects #1–#4: no error, no failing test, and an artifact that
+quietly stopped describing what it claimed. Fixed in `oracle/reset.py` by
+serializing the DDL across processes with a file lock and verifying the
+restored table count against the dump's own `CREATE TABLE` count, raising
+`ResetIncomplete` when short.
+
+The 267 S2 rows collected around the crash were archived and not used. Rows
+carry no site or timestamp, so they cannot be attributed to the crash window;
+the argument that they were clean rested on reset being atomic-or-raise,
+which is precisely the property that had just failed. S2 was re-run from
+rebuilt sites — the 624 rows above.

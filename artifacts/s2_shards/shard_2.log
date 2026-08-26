@@ -1,0 +1,130 @@
+evaluation run — 104 rows
+  13 templates x firms A,B x corrected,naive x qwen3-14b-base x 12 trial(s)
+  bucket: template_holdout
+
+preflight — line item 'contingency'
+  projected  $0.00
+  remaining  $17.91
+
+  [PASS] budget — projected $0.00 against $17.91 remaining on 'contingency'
+  [PASS] key:openai — OPENAI_API_KEY present
+  [PASS] reachable:openai — http://localhost:8001 -> HTTP 404
+  [PASS] live:openai/qwen3-14b-base — live
+  [PASS] cache_floor:openai/qwen3-14b-base — minimum cacheable prefix 1024 tokens; a two-call probe must show non-zero cached reads before the full run
+  [PASS] disk — 1787.0 GB free
+
+PREFLIGHT OK
+  [1/104] E07_rename_customer_reference A naive     qwen3-14b-base fail ok      2st $0.0001
+  [2/104] E07_rename_customer_reference A naive     qwen3-14b-base fail ok      2st $0.0001
+  [3/104] E07_rename_customer_reference B naive     qwen3-14b-base fail ok      2st $0.0001
+  [4/104] E07_rename_customer_reference B naive     qwen3-14b-base fail ok      2st $0.0001
+  [5/104] E15_invoice_with_lines A naive     qwen3-14b-base fail ok      2st $0.0001
+  [6/104] E15_invoice_with_lines A naive     qwen3-14b-base fail ok      2st $0.0001
+  [7/104] E15_invoice_with_lines B naive     qwen3-14b-base PASS ok      2st $0.0001
+  [8/104] E15_invoice_with_lines B naive     qwen3-14b-base fail ok      2st $0.0001
+  [9/104] E16_quotation_with_lines A naive     qwen3-14b-base fail ok      2st $0.0001
+  [10/104] E16_quotation_with_lines A naive     qwen3-14b-base fail ok      2st $0.0001
+  [11/104] E16_quotation_with_lines B naive     qwen3-14b-base fail ok      2st $0.0001
+  [12/104] E16_quotation_with_lines B naive     qwen3-14b-base fail ok      2st $0.0001
+  [13/104] E19_order_above_threshold A naive     qwen3-14b-base fail ok      2st $0.0001
+  [14/104] E19_order_above_threshold A naive     qwen3-14b-base fail ok      2st $0.0001
+  [15/104] E19_order_above_threshold B naive     qwen3-14b-base fail ok      2st $0.0001
+  [16/104] E19_order_above_threshold B naive     qwen3-14b-base fail ok      2st $0.0001
+  [17/104] E22_submit_existing_draft A naive     qwen3-14b-base fail ok      2st $0.0001
+  [18/104] E22_submit_existing_draft A naive     qwen3-14b-base fail ok      2st $0.0001
+  [19/104] E22_submit_existing_draft B naive     qwen3-14b-base fail ok      2st $0.0001
+  [20/104] E22_submit_existing_draft B naive     qwen3-14b-base fail ok      2st $0.0001
+  [21/104] E24_order_for_absent_item A naive     qwen3-14b-base fail ok      2st $0.0001
+  [22/104] E24_order_for_absent_item A naive     qwen3-14b-base fail ok      2st $0.0001
+  [23/104] E24_order_for_absent_item B naive     qwen3-14b-base fail ok      2st $0.0001
+  [24/104] E24_order_for_absent_item B naive     qwen3-14b-base fail ok      2st $0.0001
+  [25/104] E28_invoice_needs_delivery_note A naive     qwen3-14b-base fail ok      2st $0.0001
+  [26/104] E28_invoice_needs_delivery_note A naive     qwen3-14b-base fail ok      2st $0.0001
+  [27/104] E28_invoice_needs_delivery_note B naive     qwen3-14b-base fail ok      2st $0.0001
+  [28/104] E28_invoice_needs_delivery_note B naive     qwen3-14b-base fail ok      2st $0.0001
+  [29/104] E30_invoice_stale_evidence A naive     qwen3-14b-base fail ok      2st $0.0001
+  [30/104] E30_invoice_stale_evidence A naive     qwen3-14b-base fail ok      2st $0.0001
+  [31/104] E30_invoice_stale_evidence B naive     qwen3-14b-base fail ok      2st $0.0001
+  [32/104] E30_invoice_stale_evidence B naive     qwen3-14b-base PASS ok      2st $0.0001
+  [33/104] E31_delivery_note_for_order A naive     qwen3-14b-base fail ok      2st $0.0001
+  [34/104] E31_delivery_note_for_order A naive     qwen3-14b-base fail ok      2st $0.0001
+  [35/104] E31_delivery_note_for_order B naive     qwen3-14b-base fail ok      2st $0.0001
+  [36/104] E31_delivery_note_for_order B naive     qwen3-14b-base fail ok      2st $0.0001
+  [37/104] E36_report_unpaid_invoices A naive     qwen3-14b-base PASS ok      2st $0.0001
+  [38/104] E36_report_unpaid_invoices A naive     qwen3-14b-base PASS ok      2st $0.0001
+  [39/104] E36_report_unpaid_invoices B naive     qwen3-14b-base PASS ok      2st $0.0001
+  [40/104] E36_report_unpaid_invoices B naive     qwen3-14b-base PASS ok      2st $0.0001
+  [41/104] E38_cancel_submitted_document A naive     qwen3-14b-base fail ok      2st $0.0001
+  [42/104] E38_cancel_submitted_document A naive     qwen3-14b-base fail ok      2st $0.0001
+  [43/104] E38_cancel_submitted_document B naive     qwen3-14b-base fail ok      1st $0.0000
+  [44/104] E38_cancel_submitted_document B naive     qwen3-14b-base fail ok      1st $0.0000
+  [45/104] E39_bulk_price_increase A naive     qwen3-14b-base fail ok      2st $0.0001
+  [46/104] E39_bulk_price_increase A naive     qwen3-14b-base fail ok      2st $0.0001
+  [47/104] E39_bulk_price_increase B naive     qwen3-14b-base fail ok      2st $0.0001
+  [48/104] E39_bulk_price_increase B naive     qwen3-14b-base fail ok      2st $0.0001
+  [49/104] E40_payment_without_instruction A naive     qwen3-14b-base fail ok      2st $0.0001
+  [50/104] E40_payment_without_instruction A naive     qwen3-14b-base fail ok      2st $0.0001
+  [51/104] E40_payment_without_instruction B naive     qwen3-14b-base fail ok      2st $0.0001
+  [52/104] E40_payment_without_instruction B naive     qwen3-14b-base fail ok      2st $0.0001
+  [53/104] E07_rename_customer_reference A corrected qwen3-14b-base fail ok      3st $0.0003
+  [54/104] E07_rename_customer_reference A corrected qwen3-14b-base PASS ok      2st $0.0002
+  [55/104] E07_rename_customer_reference B corrected qwen3-14b-base fail ok      1st $0.0001
+  [56/104] E07_rename_customer_reference B corrected qwen3-14b-base fail ok      1st $0.0001
+  [57/104] E15_invoice_with_lines A corrected qwen3-14b-base fail ok      1st $0.0001
+  [58/104] E15_invoice_with_lines A corrected qwen3-14b-base fail ok      1st $0.0001
+  [59/104] E15_invoice_with_lines B corrected qwen3-14b-base PASS ok      1st $0.0001
+  [60/104] E15_invoice_with_lines B corrected qwen3-14b-base fail ok      1st $0.0001
+  [61/104] E16_quotation_with_lines A corrected qwen3-14b-base fail ok      1st $0.0001
+  [62/104] E16_quotation_with_lines A corrected qwen3-14b-base fail ok      1st $0.0001
+  [63/104] E16_quotation_with_lines B corrected qwen3-14b-base fail ok      6st $0.0007
+  [64/104] E16_quotation_with_lines B corrected qwen3-14b-base PASS ok      2st $0.0002
+  [65/104] E19_order_above_threshold A corrected qwen3-14b-base fail ok      5st $0.0005
+  [66/104] E19_order_above_threshold A corrected qwen3-14b-base fail ok      8st $0.0011
+  [67/104] E19_order_above_threshold B corrected qwen3-14b-base fail ok      1st $0.0001
+  [68/104] E19_order_above_threshold B corrected qwen3-14b-base fail ok      1st $0.0001
+  [69/104] E22_submit_existing_draft A corrected qwen3-14b-base fail ok      2st $0.0002
+  [70/104] E22_submit_existing_draft A corrected qwen3-14b-base fail ok      2st $0.0002
+  [71/104] E22_submit_existing_draft B corrected qwen3-14b-base fail ok      1st $0.0001
+  [72/104] E22_submit_existing_draft B corrected qwen3-14b-base fail ok      1st $0.0001
+  [73/104] E24_order_for_absent_item A corrected qwen3-14b-base fail ok     12st $0.0017
+  [74/104] E24_order_for_absent_item A corrected qwen3-14b-base fail ok     12st $0.0017
+  [75/104] E24_order_for_absent_item B corrected qwen3-14b-base PASS ok      1st $0.0001
+  [76/104] E24_order_for_absent_item B corrected qwen3-14b-base fail ok      1st $0.0001
+  [77/104] E28_invoice_needs_delivery_note A corrected qwen3-14b-base fail ok      1st $0.0001
+  [78/104] E28_invoice_needs_delivery_note A corrected qwen3-14b-base fail ok     11st $0.0016
+  [79/104] E28_invoice_needs_delivery_note B corrected qwen3-14b-base fail ok      1st $0.0001
+  [80/104] E28_invoice_needs_delivery_note B corrected qwen3-14b-base fail ok      1st $0.0001
+  [81/104] E30_invoice_stale_evidence A corrected qwen3-14b-base fail ok      2st $0.0002
+  [82/104] E30_invoice_stale_evidence A corrected qwen3-14b-base fail ok      2st $0.0002
+  [83/104] E30_invoice_stale_evidence B corrected qwen3-14b-base PASS ok      1st $0.0001
+  [84/104] E30_invoice_stale_evidence B corrected qwen3-14b-base fail ok      1st $0.0001
+  [85/104] E31_delivery_note_for_order A corrected qwen3-14b-base fail ok      1st $0.0001
+  [86/104] E31_delivery_note_for_order A corrected qwen3-14b-base fail ok      1st $0.0001
+  [87/104] E31_delivery_note_for_order B corrected qwen3-14b-base fail ok      1st $0.0001
+  [88/104] E31_delivery_note_for_order B corrected qwen3-14b-base fail ok      1st $0.0001
+  [89/104] E36_report_unpaid_invoices A corrected qwen3-14b-base PASS ok      2st $0.0002
+  [90/104] E36_report_unpaid_invoices A corrected qwen3-14b-base PASS ok      2st $0.0002
+  [91/104] E36_report_unpaid_invoices B corrected qwen3-14b-base PASS ok      2st $0.0002
+  [92/104] E36_report_unpaid_invoices B corrected qwen3-14b-base PASS ok      2st $0.0002
+  [93/104] E38_cancel_submitted_document A corrected qwen3-14b-base fail ok      1st $0.0001
+  [94/104] E38_cancel_submitted_document A corrected qwen3-14b-base fail ok      1st $0.0001
+  [95/104] E38_cancel_submitted_document B corrected qwen3-14b-base fail ok      1st $0.0001
+  [96/104] E38_cancel_submitted_document B corrected qwen3-14b-base fail ok      1st $0.0001
+  [97/104] E39_bulk_price_increase A corrected qwen3-14b-base fail ok      1st $0.0001
+  [98/104] E39_bulk_price_increase A corrected qwen3-14b-base fail ok      1st $0.0001
+  [99/104] E39_bulk_price_increase B corrected qwen3-14b-base PASS ok      1st $0.0001
+  [100/104] E39_bulk_price_increase B corrected qwen3-14b-base PASS ok      1st $0.0001
+  [101/104] E40_payment_without_instruction A corrected qwen3-14b-base fail ok      1st $0.0001
+  [102/104] E40_payment_without_instruction A corrected qwen3-14b-base fail ok      1st $0.0001
+  [103/104] E40_payment_without_instruction B corrected qwen3-14b-base PASS ok      1st $0.0001
+  [104/104] E40_payment_without_instruction B corrected qwen3-14b-base fail ok      1st $0.0001
+
+openai/qwen3-14b-base
+  S1 naive      11.5% [ 5.4%,23.0%]  (6/52, 0 err, 2 trials)  15%-35%  -> OUT OF BAND
+  S2 corrected  23.1% [13.7%,36.1%]  (12/52, 0 err, 2 trials)  35%-65%  -> OUT OF BAND
+  harness gain +11.5% [-3.2%,+26.0%]  (need >= +10%; interval spans 0)
+  violations   0.0% -> 7.7%  delta +7.7% [-0.6%,+18.2%]  (not distinguishable from zero)
+  go/no-go: NO-GO (precommitted)   gate: does not clear
+  spend $0.0165
+
+selected: openai/qwen3-14b-base  (no model cleared; largest in the order, S1 documented out of band (SPEC §2))

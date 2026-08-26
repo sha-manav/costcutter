@@ -962,3 +962,79 @@ test failed, and the scoring silently measured something other than what it
 claimed — here, the ERP's internal bookkeeping rather than the agent's
 choices. It was found only because Round 0 pushed the harness into a regime
 the evaluation runs never reached: an agent that mostly succeeds.
+
+---
+
+# Corrected numbers after the ERP-bookkeeping fix (instrument defect #4)
+
+The derived-write correction is applied. These supersede every earlier figure
+in this document; the pre-correction numbers are retained above only as the
+record of what was found and when.
+
+## Figure 1 — the pre-registered thirteen
+
+| | S1 naive | S2 corrected | gain |
+|---|---|---|---|
+| as first published | 22.6% | 31.4% | +8.8% [+1.8, +15.7] |
+| **corrected** | **24.5%** | **32.1%** | **+7.5% [+0.5, +14.5]** |
+
+**The result survives — the interval still excludes zero — but it moved, and
+by more than the full baseline did.** The lower bound falls from +1.8% to
++0.5%, close enough to the boundary that the claim should be stated as
+established rather than comfortable.
+
+The movement is asymmetric by construction: **6 naive rows flip fail→pass
+against 2 corrected rows.** The naive harness produces more
+envelope-dirty successes, so excusing ERP bookkeeping helps it more and the
+gap narrows. Any correction of this kind will favour the weaker arm, because
+the weaker arm has more near-misses to rescue.
+
+**A correction recorded in this document earlier said the effect was
+negligible and that no conclusion changed. That was measured on the full
+2,160-row baseline, where it is ~0.2 points, and then generalised to Figure 1
+without recomputing it there.** On thirteen templates six rows is 1.9% of an
+arm. The right number was available and was not taken.
+
+## Full evaluation baseline
+
+| Model | S1 naive | S2 corrected | gain |
+|---|---|---|---|
+| Qwen3-8B | 28.9% | 30.1% | +1.2% [−5.5, +7.9] |
+| Qwen3-14B | 19.8% | 40.2% | +20.5% [+13.6, +27.1] |
+| Qwen3-32B | 29.1% | 47.2% | +18.1% [+10.7, +25.2] |
+
+Here the correction really is negligible — gains move by 0.2–0.3 points and
+nothing changes qualitatively. The capability-gating result stands: no effect
+at 8B, large effects at 14B and 32B, 8B's interval overlapping neither.
+
+## Instrument defect #4 — and what makes it distinct
+
+Same shape as the first three: nothing errored, no test failed, and the
+scoring silently measured something other than what it claimed — here, the
+ERP's internal bookkeeping rather than the agent's choices.
+
+What is different, and why it belongs in the methods section rather than an
+appendix: **it was invisible in the evaluation set and only appeared when
+Round 0 drove the harness into a regime the evaluation never reached — an
+agent that mostly succeeds.** Evaluation rollouts largely failed or
+abstained, so they wrote little and dragged little bookkeeping behind them.
+Sonnet on the permissive firm completes writes, and the defect went from 1.2%
+of rows to the single largest rejection cause, concentrated on precisely the
+hard-recovery traces the round exists to produce: 94 rollouts recovered, 4
+survived rejection.
+
+The general lesson is about evaluation coverage. A benchmark exercised only
+by models that mostly fail is not exercised in the region where a *good*
+agent operates, and defects can hide there indefinitely. Round 0 was the
+first time this environment saw sustained competence, and it immediately
+found a scoring error that four earlier runs and 3,000 rows had not.
+
+The fix is provenance-based rather than a name list, established by
+construction: `scripts/derive_bookkeeping.py` performs known-good primary
+writes against a seeded site with nothing else acting and records what
+appears alongside. A derived row is excused only when the write that causes
+it is present and was itself permitted. Rows that look like bookkeeping but
+whose provenance is unaccounted for are still excused — failing on an
+unmodelled side effect is the defect being fixed — but recorded in
+`unclassified_derived`, so the next thing ERPNext starts writing is visible
+rather than silent.

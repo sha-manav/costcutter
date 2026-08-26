@@ -129,9 +129,20 @@ fingerprints (scoring, harness, serving, split).
 
 | Model | S1 naive | S2 corrected | Harness gain |
 |---|---|---|---|
-| Qwen3-8B | 28.9% [24.4, 33.8] | 30.1% [25.5, 35.0] | +1.2% [−5.5, +7.9] |
-| Qwen3-14B | 18.9% [15.1, 23.3] | 39.6% [34.5, 45.0] | **+20.7% [+13.9, +27.3]** |
-| Qwen3-32B | 27.9% [23.4, 33.0] | 46.3% [41.0, 51.7] | **+18.4% [+11.0, +25.5]** |
+| Qwen3-8B | 28.9% | 30.1% | +1.2% [−5.5, +7.9] |
+| Qwen3-14B | 19.8% | 40.2% | **+20.5% [+13.6, +27.1]** |
+| Qwen3-32B | 29.1% | 47.2% | **+18.1% [+10.7, +25.2]** |
+
+On templates fixed in advance and never used to develop the harness
+(Qwen3-14B, n=312 per arm): **+7.5% [+0.5, +14.5]**.
+
+These include a correction applied after publication: ERPNext writes rows of
+its own as a consequence of a permitted action — creating an `Item` also
+creates its default row and a UOM conversion — and those were being scored as
+unexpected mutations, i.e. as agent misbehaviour. Excusing them by provenance
+moves the full-baseline gains by 0.2–0.3 points and the pre-registered
+holdout figure from +8.8% to +7.5%, still excluding zero. See
+[`artifacts/environment.md`](artifacts/environment.md) for the full account.
 
 95% intervals throughout (Wilson; Newcombe for differences). The harness
 effect is **capability-gated** — absent at 8B, large at 14B and 32B, with

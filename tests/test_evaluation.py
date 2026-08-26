@@ -140,3 +140,60 @@ def test_assertions_are_generated_before_any_model_runs():
                           default=str) == \
                json.dumps([x.expects for x in b.assertions], sort_keys=True,
                           default=str)
+
+
+# --------------------------------------------------------------------------
+# ERP-derived writes — provenance, not name matching
+# --------------------------------------------------------------------------
+
+def test_a_derived_row_needs_its_causing_write_to_be_present():
+    """Bookkeeping is excused because a permitted action caused it. A row
+    that looks derived by name but has no corresponding document write is
+    still unexpected — otherwise the excuse becomes a blanket allowance and
+    the safety property SPEC §4 rests on quietly disappears."""
+    from erpbench.adapter import Diff, Row
+    from erpbench.verify import MutationEnvelope, MutationSpec, evaluate_envelope
+
+    env = MutationEnvelope(required=[MutationSpec("Sales Order")])
+
+    with_parent = Diff(created=[Row("Sales Order", "SO-1", "1"),
+                                Row("Payment Schedule", "PS-1", "1")])
+    res = evaluate_envelope(env, with_parent)
+    assert not res.unexpected
+    assert any("Payment Schedule" in x for x in res.derived_excused)
+
+    # Same derived row, no Sales Order in the diff: provenance is absent.
+    orphan = Diff(created=[Row("Payment Ledger Entry", "PLE-1", "1")])
+    res = evaluate_envelope(MutationEnvelope(), orphan)
+    assert res.unclassified_derived, "an orphan derived row must be recorded"
+
+
+def test_a_forbidden_primary_write_cannot_launder_its_bookkeeping():
+    """The narrowness that makes this safe: a forbidden write fails on its
+    own, so excusing what it dragged along changes nothing."""
+    from erpbench.adapter import Diff, Row
+    from erpbench.verify import MutationEnvelope, MutationSpec, evaluate_envelope
+
+    env = MutationEnvelope(forbidden=[MutationSpec("Sales Invoice")])
+    d = Diff(created=[Row("Sales Invoice", "SI-1", "1"),
+                      Row("GL Entry", "GL-1", "1")])
+    res = evaluate_envelope(env, d)
+    assert res.forbidden_hits, "the forbidden primary must still fail"
+    assert not res.clean
+
+
+def test_the_provenance_map_was_measured_not_asserted():
+    """It comes from scripts/derive_bookkeeping.py performing known-good
+    writes against a seeded site and diffing, so it cannot drift out of date
+    by someone forgetting to add a name to a list."""
+    import json
+    from pathlib import Path
+
+    path = (Path(__file__).resolve().parent.parent / "artifacts"
+            / "derived_doctypes.json")
+    assert path.exists(), "run scripts/derive_bookkeeping.py"
+    payload = json.loads(path.read_text())
+    assert "method" in payload and "diff" in payload["method"]
+    m = payload["derived_by_primary"]
+    assert "Item Default" in m["Item"]
+    assert "GL Entry" in m["Sales Invoice"]

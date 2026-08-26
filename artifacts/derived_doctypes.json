@@ -1,0 +1,29 @@
+{
+  "derived_by_primary": {
+    "Customer": [],
+    "Item": [
+      "Item Default",
+      "UOM Conversion Detail"
+    ],
+    "Item Price": [],
+    "Quotation": [
+      "Comment",
+      "Payment Schedule",
+      "Quotation Item"
+    ],
+    "Sales Invoice": [
+      "GL Entry",
+      "Payment Ledger Entry",
+      "Payment Schedule",
+      "Sales Invoice Item"
+    ],
+    "Sales Order": [
+      "Comment",
+      "Payment Schedule",
+      "Sales Order Item"
+    ],
+    "Supplier": []
+  },
+  "measured_against": "firm_A seed, ERPNext v15.99.1",
+  "method": "known-good primary write, whole-database diff, nothing else acting"
+}

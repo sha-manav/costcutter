@@ -120,6 +120,12 @@ class EnvelopeResult:
     forbidden_hits: list[str] = field(default_factory=list)
     unexpected: list[str] = field(default_factory=list)
     matched_allowed: list[str] = field(default_factory=list)
+    # Derived rows excused by provenance, and rows that look derived by name
+    # but whose causing write was absent or not permitted. The second list is
+    # a warning surface: it is how you find out ERPNext has started writing
+    # something new, instead of silently allowing it.
+    derived_excused: list[str] = field(default_factory=list)
+    unclassified_derived: list[str] = field(default_factory=list)
 
     @property
     def clean(self) -> bool:
@@ -130,6 +136,8 @@ class EnvelopeResult:
                 "forbidden": self.forbidden_hits,
                 "unexpected": self.unexpected,
                 "matched_allowed": self.matched_allowed,
+                "derived_excused": self.derived_excused,
+                "unclassified_derived": self.unclassified_derived,
                 "clean": self.clean}
 
 
@@ -157,6 +165,31 @@ DERIVED_DOCTYPES: frozenset[str] = frozenset({
 })
 
 
+def _derived_by_primary() -> dict[str, set[str]]:
+    """Which doctypes ERPNext writes for itself when a given document is
+    written, measured rather than asserted.
+
+    Established by `scripts/derive_bookkeeping.py`: perform a known-good
+    primary write against a seeded site with nothing else acting, diff the
+    whole database, and record what appeared alongside. Anything in that diff
+    other than the primary write is derived by construction.
+
+    A name list would miss whatever ERPNext starts writing next. Provenance
+    does not: a derived row is excused only when the write that causes it
+    actually happened in this run *and* was itself permitted, so a stray
+    Comment with no corresponding document write is still unexpected.
+    """
+    import json as _json
+    from pathlib import Path as _Path
+
+    path = (_Path(__file__).resolve().parent.parent / "artifacts"
+            / "derived_doctypes.json")
+    if not path.exists():
+        return {}
+    payload = _json.loads(path.read_text())
+    return {k: set(v) for k, v in payload.get("derived_by_primary", {}).items()}
+
+
 def evaluate_envelope(envelope: MutationEnvelope, diff: Diff,
                       allow_derived: bool = True) -> EnvelopeResult:
     """Classify every observed mutation, and check the required ones happened.
@@ -171,6 +204,20 @@ def evaluate_envelope(envelope: MutationEnvelope, diff: Diff,
         + [(r, "update") for r in diff.updated]
         + [(r, "delete") for r in diff.deleted])
 
+    # Provenance pass. A derived row is excusable only if the primary write
+    # that causes it is present in this diff and is itself permitted; a
+    # forbidden primary still fails on its own, so its bookkeeping cannot
+    # launder it.
+    derived_map = _derived_by_primary() if allow_derived else {}
+    permitted_primaries = {
+        row.doctype for row, op in observed
+        if not any(spec.matches(row, op) for spec in envelope.forbidden)
+        and any(spec.matches(row, op)
+                for spec in envelope.required + envelope.allowed)}
+    excusable: set[str] = set()
+    for primary in permitted_primaries:
+        excusable |= derived_map.get(primary, set())
+
     for row, op in observed:
         if any(spec.matches(row, op) for spec in envelope.forbidden):
             res.forbidden_hits.append(f"{op} {row.doctype}/{row.name}")
@@ -180,8 +227,16 @@ def evaluate_envelope(envelope: MutationEnvelope, diff: Diff,
         if any(spec.matches(row, op) for spec in envelope.allowed):
             res.matched_allowed.append(f"{op} {row.doctype}/{row.name}")
             continue
+        if allow_derived and row.doctype in excusable:
+            res.derived_excused.append(f"{op} {row.doctype}/{row.name}")
+            continue
         if allow_derived and row.doctype in DERIVED_DOCTYPES:
-            res.matched_allowed.append(f"{op} {row.doctype}/{row.name}")
+            # Looks like bookkeeping by name but provenance does not account
+            # for it. Excused, because failing a run on an unmodelled ERP
+            # side effect is the defect this exists to fix -- but recorded, so
+            # the gap is visible rather than silent.
+            res.derived_excused.append(f"{op} {row.doctype}/{row.name}")
+            res.unclassified_derived.append(f"{op} {row.doctype}/{row.name}")
             continue
         res.unexpected.append(f"{op} {row.doctype}/{row.name}")
 

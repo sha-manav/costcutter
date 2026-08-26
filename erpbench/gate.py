@@ -91,6 +91,11 @@ CONFIDENCE_Z = 1.96             # 95%
 # §12.3 wants that stopped rather than absorbed.
 MAX_CONSECUTIVE_ERRORS = 5
 
+# Consecutive empty completions inside one rollout before the provider is
+# judged dead rather than glitching. Three, because one is noise and a
+# genuinely broken endpoint will not produce content on the third either.
+MAX_EMPTY_REPLIES = 3
+
 # Per-row wall ceiling. The request timeout in shadow/llm.py bounds one HTTP
 # call; it does not bound a row, because `num_retries` multiplies it and the
 # step budget multiplies that again -- 5 attempts x 120s x 20 steps is over
@@ -363,6 +368,7 @@ def run_one(job: Job, adapter: SystemAdapter, client: Any, cfg: Any,
     messages = [{"role": "system", "content": SYSTEM_PREAMBLE + harness.schema},
                 {"role": "user", "content": instance.instruction}]
     answer, escalated, abstained = "", False, False
+    empty_replies = 0
     status, error = RunStatus.OK, None
 
     deadline = time.time() + row_deadline_s
@@ -405,7 +411,23 @@ def run_one(job: Job, adapter: SystemAdapter, client: Any, cfg: Any,
                 f"{job.model} resolved to the offline provider mid-run; "
                 "SPEC §12.4 forbids recording simulated output as a result")
         if not (resp.text or "").strip():
-            raise GateHalt(f"{job.model} returned an empty completion")
+            # SPEC §12.3 makes "provider returning empty completions" an
+            # immediate stop, and that is right for a provider that has
+            # stopped producing output. It is not right for one blip after
+            # five good rollouts, which is what killed the Round 0 pilot.
+            # Retry the step; halt only if the provider is genuinely dead.
+            empty_replies += 1
+            if empty_replies >= MAX_EMPTY_REPLIES:
+                raise GateHalt(
+                    f"{job.model} returned {empty_replies} empty completions "
+                    "in a row; the provider has stopped producing output")
+            trace.record({"raw": ""}, Outcome.MALFORMED,
+                         detail="empty completion")
+            messages.append({"role": "user",
+                             "content": "ERROR: empty reply. Respond with one "
+                                        "JSON object and nothing else."})
+            continue
+        empty_replies = 0
 
         action = _parse_action(resp.text)
         if action is None:

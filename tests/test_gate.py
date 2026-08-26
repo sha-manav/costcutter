@@ -1065,3 +1065,22 @@ def test_temperature_is_a_parameter_not_a_constant():
                  Recording(['{"action": "done", "answer": "x"}']),
                  get_config(), max_steps=2)
     assert captured["temperature"] == 0.0, "measurement default must stay greedy"
+
+
+def test_one_empty_completion_is_retried_not_fatal():
+    """SPEC §12.3 stops on 'provider returning empty completions', which is
+    right for a provider that has stopped producing output and wrong for one
+    blip. A single empty reply after five good rollouts killed the Round 0
+    pilot mid-run."""
+    row = gate.run_one(a_job(), FakeAdapter(),
+                       ScriptedClient(["", '{"action": "done", "answer": "x"}']),
+                       get_config(), max_steps=4)
+    assert row["status"] == RunStatus.OK.value
+    assert row["behaviour"]["malformed_actions"] == 1
+
+
+def test_a_provider_that_only_returns_empty_still_halts():
+    """The rule it replaces must still fire when it should."""
+    with pytest.raises(gate.GateHalt, match="empty completions"):
+        gate.run_one(a_job(), FakeAdapter(), ScriptedClient([""]),
+                     get_config(), max_steps=8)

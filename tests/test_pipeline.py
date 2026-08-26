@@ -172,6 +172,12 @@ def test_reset_clears_connections_before_dropping(monkeypatch):
             order.append("drop")
             # Without a timeout a blocked drop hangs the whole run.
             assert kwargs.get("timeout"), "DROP DATABASE ran with no timeout"
+        elif "information_schema.tables" in joined:
+            # The post-restore integrity check. Added after a MariaDB crash
+            # left four sites half-restored with nothing detecting it.
+            order.append("verify")
+            return type("R", (), {"returncode": 0, "stdout": "698\n",
+                                  "stderr": ""})()
         elif "redis-cli" in joined:
             order.append("flush")
         else:
@@ -186,3 +192,5 @@ def test_reset_clears_connections_before_dropping(monkeypatch):
 
     reset_mod.reset("shadow.localhost")
     assert order.index("kill") < order.index("drop")
+    # The restore is verified, and only after it has run.
+    assert order.index("import") < order.index("verify")

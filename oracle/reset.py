@@ -80,12 +80,18 @@ def _ddl_lock():
     dead holder cannot wedge the pool.
     """
     DDL_LOCK.parent.mkdir(parents=True, exist_ok=True)
-    with DDL_LOCK.open("w") as fh:
-        fcntl.flock(fh, fcntl.LOCK_EX)
+    # os.open rather than Path.open: the lock needs a real file descriptor,
+    # and going through Path.open would pick up any test that substitutes it
+    # for the seed dump.
+    fd = os.open(DDL_LOCK, os.O_CREAT | os.O_WRONLY, 0o644)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
         try:
             yield
         finally:
-            fcntl.flock(fh, fcntl.LOCK_UN)
+            fcntl.flock(fd, fcntl.LOCK_UN)
+    finally:
+        os.close(fd)
 
 
 def site_db(site: str = DEFAULT_SITE) -> tuple[str, str, str]:

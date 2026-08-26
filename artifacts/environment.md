@@ -765,3 +765,71 @@ cannot be ruled out.
 This is why the thirteen fixed templates are being powered separately, and
 why the combined estimate carries its qualifier wherever it appears —
 including in Figure 1's caption, not only in the appendix.
+
+---
+
+# The harness effect on unseen templates — definitive presentation
+
+Qwen3-14B, template-level holdout, 12 trials per cell. This is the
+presentation of the harness effect for the rest of the project; earlier
+holdout figures are superseded.
+
+| | S1 naive | S2 corrected | gain | n/arm |
+|---|---|---|---|---|
+| **1. Thirteen fixed templates** — pre-registered, hash-selected before week 2 | 22.6% [18.3, 27.6] | 31.4% [26.5, 36.8] | **+8.8% [+1.8, +15.7]** | 312 |
+| 2. Ten post-hoc templates — authored after the arms were known | 9.2% [5.2, 15.8] | 24.2% [17.4, 32.6] | +14.9% [+5.5, +24.2] | 120 |
+| 3. Combined | 18.9% [15.5, 22.9] | 29.4% [25.3, 33.9] | +10.5% [+4.8, +16.1] | 432 |
+
+Worst case, every abandoned row counted a failure: +9.0%, +15.0%, +10.6%
+respectively — no interval crosses zero under that treatment either.
+
+## The result
+
+**The corrected harness improves Qwen3-14B by +8.8 points [+1.8, +15.7] on
+templates fixed in advance and never used to develop it.** That is the
+harness result and it is what Figure 1 reports.
+
+The thirteen were selected by hashing template ids against a fixed salt
+before week 2 was measured, so no template could be placed by how it
+performs. They were powered from n=78 to n=156 to n=312 per arm without their
+membership ever changing. The progression is the signature of a real effect
+emerging from noise rather than one appearing with more data:
+
+| n/arm | gain | |
+|---|---|---|
+| 78 | +8.0% [−6.0, +22.0] | spans zero |
+| 156 | +6.9% [−3.0, +16.0] | spans zero |
+| **312** | **+8.8% [+1.8, +15.7]** | **excludes zero** |
+
+The point estimate stayed within two points across a fourfold increase in
+sample size while the interval narrowed by two thirds.
+
+## The authorship concern is resolved
+
+The ten post-hoc templates showed a larger effect (+14.9%) than the fixed
+thirteen, and it was not possible to separate "these are a fairer sample of
+the corpus" from "these were authored by someone who knew which arm was
+winning". That mattered when the fixed thirteen were the only non-significant
+set, because the combined result then depended on the post-hoc ones.
+
+It no longer does. **The pre-registered thirteen clear zero on their own**, so
+the headline rests entirely on templates fixed before any of this was known.
+The ten become corroboration: same direction, larger magnitude, and their
+larger magnitude still has the partial mechanism recorded in the methods note
+above — more stop-cases, which the corrected harness documents and the naive
+one does not. That mechanism remains unproven and is still not offered as an
+explanation. It simply no longer bears any weight.
+
+## What Figure 1 reports
+
+Per-model, with intervals, and the template-level holdout as the
+generalization number:
+
+- **Qwen3-8B**: +1.2% [−5.5, +7.9] on the full evaluation set — no effect
+- **Qwen3-14B**: +8.8% [+1.8, +15.7] on pre-registered unseen templates
+- **Qwen3-32B**: +18.4% [+11.0, +25.5] on the full evaluation set
+
+The effect is capability-gated: absent at 8B, present at 14B and 32B. No
+qualifier is required on the 14B holdout figure. The combined estimate
+(+10.5%) may be reported alongside, but the pre-registered thirteen are the
+claim.

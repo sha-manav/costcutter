@@ -1218,13 +1218,46 @@ the mean trajectory is nearly five steps long. Fine-tuning does not usually
 inject a behaviour absent from its corpus while deleting the one present in
 94% of it.
 
-That points at the serving path rather than the curriculum, which is where
-INSTRUCTIONS §7 says to look first. It is **not yet established**: the T3
-checkpoint was deleted from the rented box to free disk for the base model,
-so the decisive probe -- send a training prompt to the served T3 and see
-whether it emits `read_policy` -- has not been run. Until it is, the T3
-numbers above should be read as "this checkpoint, served this way, behaved
-this way", and not as a result about curriculum fine-tuning.
+INSTRUCTIONS §7 says to suspect the harness before the model, so the serving
+path was checked next. It is clean, and four candidate explanations are now
+eliminated by evidence rather than by argument:
+
+- **Not a truncated or partial checkpoint.** The T3 tarball on the box was
+  23.2GB and vLLM's log records all 8 of 8 safetensors shards loading, 27.52
+  GiB of weights resident, tokenizer initialised from the model directory.
+- **Not an unapplied LoRA.** The checkpoints are full merged weights -- eight
+  shards plus config and tokenizer -- not adapters, so serving them with
+  `--model <dir>` was correct.
+- **Not prompt drift between training and evaluation.** The system prompt in
+  `artifacts/sft/t3.jsonl` is byte-identical to what `gate.py` sends
+  (`SYSTEM_PREAMBLE + CORRECTED_SCHEMA`, sha256 b8740084bdf12261, 2443
+  bytes), and `harness_fingerprint` is the same value cd3855905de65f54
+  across the teacher traces, the S2 evaluation and the S3 evaluation.
+- **Not the data's surface composition**, as set out above.
+
+So the measurement is sound and the collapse is a real property of the
+checkpoint that was trained. What produced it is **not identified**. What can
+be said is that three chained fine-tunes over 116, 152 and 120 examples
+turned a model that sometimes worked into one that emits a single
+schema-valid refusal token sequence and stops -- a low-entropy degenerate
+output, which is the ordinary signature of overfitting a small corpus, except
+that the specific output it collapsed onto never appears in that corpus.
+
+Pending, and the right next experiment: evaluate the T1 and T2 checkpoints on
+the same 312 rows. If refusal appears already at T1 and deepens, the fault is
+in the training configuration and is visible at the first stage; if T1 and T2
+behave and only T3 collapses, it is the chaining. That is a diagnosis of the
+pipeline, and until it is run, no claim should be made in either direction
+about whether curriculum fine-tuning helps here.
+
+**A separate defect found while preparing that run:** both local checkpoint
+archives are corrupt. `zstd -t` reports "premature end" on `t1.tar.zst` and
+`t2.tar.zst`, and t1 unpacks to 3 of its 8 weight shards with no tokenizer
+files at all. `fetch_checkpoints.sh` runs curl under `set -euo pipefail` with
+`--max-time 1800` and then reports the size it downloaded, which looks like a
+successful fetch and is how both files came to sit on disk for a day looking
+finished. Same family as the others: no error, and an artifact that stopped
+being what it claimed.
 
 What this does not license: any statement that fine-tuning does or does not
 help ERP agents. The experiment tested one dataset, and that dataset was

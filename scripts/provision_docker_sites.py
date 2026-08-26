@@ -49,8 +49,25 @@ def _backend(*args: str, stdin=None) -> subprocess.CompletedProcess:
                           check=True, capture_output=True, stdin=stdin)
 
 
-def provision(i: int, password: str) -> dict:
+def in_use(site: str) -> bool:
+    """Whether a gate process currently owns this site."""
+    out = subprocess.run(["ps", "-eo", "command"], capture_output=True,
+                         text=True).stdout
+    return f"--site {site}" in out
+
+
+def provision(i: int, password: str, force: bool = False) -> dict:
     site, db = site_name(i), db_name(i)
+    # Provisioning drops the database. Doing that to a site a shard owns
+    # replaces its world mid-rollout, which is the one-worker-per-site
+    # invariant broken from the outside -- it has happened twice, both times
+    # from a second shell during this session, and both times the rows in
+    # flight had to be thrown away. Refuse rather than warn.
+    if in_use(site) and not force:
+        raise SystemExit(
+            f"{site} is owned by a running gate process. Provisioning would "
+            f"drop its database mid-rollout. Stop that shard first, or use "
+            f"--start to provision only new sites.")
     _sql(f"DROP DATABASE IF EXISTS `{db}`; "
          f"CREATE DATABASE `{db}` CHARACTER SET utf8mb4 "
          f"COLLATE utf8mb4_unicode_ci; "
@@ -89,6 +106,9 @@ def healthy(site: str) -> bool:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--count", type=int, default=6)
+    ap.add_argument("--start", type=int, default=1,
+                    help="first site index to provision. Use this to add "
+                         "sites without touching ones already in use.")
     ap.add_argument("--password", default="benchpool")
     args = ap.parse_args()
 
@@ -97,7 +117,8 @@ def main() -> int:
               file=sys.stderr)
         return 1
 
-    made = [provision(i, args.password) for i in range(1, args.count + 1)]
+    made = [provision(i, args.password)
+            for i in range(args.start, args.count + 1)]
     subprocess.run([*COMPOSE, "restart", "frontend"], check=False,
                    capture_output=True)
 

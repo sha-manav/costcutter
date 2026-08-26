@@ -15,7 +15,8 @@
     "T3": {
       "file": "file-30cfbfb4-c780-4580-b729-727f0d020172",
       "from": "manavs@stanford.edu/Qwen3-14B-erpbench-t2-2ed0073d",
-      "job": "ft-702b8c3a-cf48"
+      "job": "ft-702b8c3a-cf48",
+      "model": "manavs@stanford.edu/Qwen3-14B-erpbench-t3-5281e5da"
     }
   }
 }

@@ -1093,3 +1093,49 @@ mutations, remainder mixed. These are Sonnet getting things wrong or
 violating policy, which is what rejection sampling is for. A trajectory that
 reaches the goal by violating policy is exactly the behaviour T3 exists to
 remove.
+
+---
+
+# Training: T1–T3 on Together, and the serving wall
+
+Fireworks does not carry Qwen3-14B. Together does — for **fine-tuning only**.
+Serverless inference is disabled for it, it is absent from the dedicated
+endpoint catalogue, and the console reports "no deployment profiles available
+for this model" for the fine-tuned checkpoint. Endpoint creation over the API
+is refused: v1 is legacy and read-only, v2 is not exposed at the documented
+path.
+
+So the curriculum trains and the result cannot be served on the platform that
+produced it.
+
+**The weights are downloadable, which preserves the base-model choice.**
+`GET /v1/finetune/download` returns 8.6GB per checkpoint (302 redirect, needs
+following). That means Qwen3-14B remains viable: the model can be served on a
+rented GPU with vLLM rather than abandoned for one Together happens to host.
+
+Checkpoints are gitignored — 8.6GB each is not something to force-add, and
+the manifest plus job ids are enough to re-download.
+
+## Why the base model cannot simply be swapped
+
+Of the Qwen models this account can both fine-tune and deploy, exactly one
+exists: `Qwen2.5-7B-Instruct`. Switching to it would abandon the precommitted
+fallback order, which selected Qwen3-14B, and invalidate S1, S2 and Figure 1
+— all measured on Qwen3-14B. S3 on a different base is not the third stage of
+that comparison. Re-measuring S1/S2 on the new base is possible (~$3, ~4h) but
+it rebuilds Figure 1 from scratch and discards the +7.5% pre-registered
+result.
+
+## Options, in order of scientific cost
+
+1. **Serve the downloaded checkpoints on a rented GPU** (vLLM, ~80GB card,
+   $1–2/hour). Preserves the base model, the pairing, Figure 1 and the
+   precommitted selection. Costs setup time.
+2. **Switch to Qwen2.5-7B-Instruct and re-measure S1/S2.** Everything on one
+   platform and one serving path, which is methodologically cleaner than the
+   current OpenRouter/Together split — but Figure 1 is rebuilt and the
+   precommitted selection is abandoned.
+3. **Report without S3.** The environment, the 2,160-row baseline, +7.5%
+   [+0.5, +14.5] on pre-registered unseen templates, four documented
+   instrument defects and 316 verified teacher traces all stand. The
+   three-stage claim goes unmade.

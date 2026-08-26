@@ -34,3 +34,4 @@ artifacts/charts/*
 !artifacts/model_comparison.json
 !artifacts/mcp_server.py
 dump.rdb
+artifacts/checkpoints/

@@ -494,3 +494,135 @@ observed write changed, and both scorings are reported side by side.
   comparisons are unaffected, but 32B rests on slightly fewer rows.
 - **Three trials per cell.** Intervals are wide; several conclusions are
   "not distinguishable from zero" rather than null.
+
+---
+
+# Week 2 — the harness effect on the evaluation set
+
+2,160 rows (40 evaluation templates × 3 firms × 2 harness variants × 3 models
+× 3 trials), $2.37 of the $12 `api_anchors` line. 111 rows (5.1%) ended in
+infrastructure error and are excluded from their denominators per SPEC §12.4.
+Raw rows in `evaluation_run.jsonl`, force-added. Run under harness v2, with
+the six scoring/objective/procedural hints removed.
+
+## Result
+
+| Model | S1 naive | S2 corrected | Harness gain | Violations | Gate |
+|---|---|---|---|---|---|
+| Qwen3-8B | 28.9% [24.4, 33.8] **in band** | 30.1% [25.5, 35.0] below | +1.2% [−5.5, +7.9] | 7.0% → 5.1% | does not clear |
+| **Qwen3-14B** | 18.9% [15.1, 23.3] **in band** | **39.6% [34.5, 45.0] in band** | **+20.7% [+13.9, +27.3]** | 10.0% → 7.3% | **CLEARS** |
+| Qwen3-32B | 27.9% [23.4, 33.0] **in band** | **46.3% [41.0, 51.7] in band** | **+18.4% [+11.0, +25.5]** | 13.8% → 15.0% | **CLEARS** |
+
+## Base model — Qwen3-14B, and this time by clearing rather than by fallback
+
+8B does not clear: S2 sits at 30.1% against a 35% floor. 14B clears both
+bands and is the first in the precommitted order to do so, so it is selected
+under the rule rather than as the fallback. 32B also clears, and scores
+higher on S2, but the order takes the first that clears and 14B did.
+
+This supersedes week 1's selection, which fell through the whole order to the
+largest model. The difference is the corpus, not the rule.
+
+## Go/no-go — **GO** on Qwen3-14B
+
++20.7 points against a +10 requirement, with violations falling 10.0% → 7.3%.
+Both the precommitted reading and the interval reading agree for 14B.
+
+They disagree for 32B, which is worth stating because 32B has the higher S2:
+its violations rose 13.8% → 15.0%, which fails the precommitted rule as
+written, while the interval on that change is [−4.2%, +6.6%] and spans zero.
+Under the rule 32B is NO-GO; read with uncertainty it is GO. 14B needs no
+such adjudication.
+
+**Week 1 exited NO-GO and week 2 exits GO.** Nothing about the harness
+changed between them. What changed is the corpus: 40 evaluation templates
+rather than 15 calibration ones, and a measurement with three times the rows.
+
+## Correction to the week-1 headline
+
+Week 1 reported a harness effect that **reversed sign with model scale**:
+−11.9% for 8B, +13.7% for 14B, +6.2% for 32B. **The negative pole does not
+replicate.**
+
+| Model | Calibration | Evaluation |
+|---|---|---|
+| 8B | −11.9% [−22.2, −1.1] | **+1.2% [−5.5, +7.9]** — null |
+| 14B | +13.7% [+3.4, +23.6] | +20.7% [+13.9, +27.3] |
+| 32B | +6.2% [−4.1, +16.4] | **+18.4% [+11.0, +25.5]** — now significant |
+
+The evaluation set has more than twice the rows per arm and finds no effect
+for 8B where the smaller calibration set found a significant negative one.
+The most economical reading is that the −11.9% was a chance finding at
+n=135. **The sign reversal should be retracted, not footnoted.**
+
+What survives, and is stronger for it: the harness effect is
+**capability-gated**. It is absent for 8B and large for both 14B and 32B, and
+the 8B interval does not overlap either. That is not a reversal but a
+threshold — below some capability the corrected primitives do not help, and
+above it they help a great deal.
+
+## Holdout buckets, reported separately (SPEC §10.10)
+
+| Bucket | 8B | 14B | 32B |
+|---|---|---|---|
+| template_holdout | −0.3% [−13, +13] | +8.0% [−6, +22] | +10.4% [−5, +25] |
+| instance_holdout | −1.9% [−19, +15] | +8.9% [−7, +25] | +3.2% [−15, +21] |
+| train_visible | −1.9% [−14, +10] | **+17.2% [+5, +29]** | **+19.2% [+6, +32]** |
+| firm_c | +6.5% [−6, +18] | **+37.1% [+25, +48]** | **+30.8% [+18, +42]** |
+
+**The generalization number does not reach significance for any model.** On
+template-level holdout — the templates the harness was never exercised
+against, and what SPEC §4 calls the real generalization number — every
+interval spans zero. The headline gains are carried by `train_visible` and by
+Firm C.
+
+This is the most important limitation in the week-2 result and it should not
+be buried: at n≈75 per arm the holdout is underpowered, so this is "not
+demonstrated" rather than "shown absent". But the honest statement is that
+the harness effect is established on templates the harness was developed
+alongside, and not yet on templates it was not.
+
+Firm C showing the **largest** gain is the opposite of what a contamination
+story would predict — C is frozen, blind, and has the strictest policy, so
+the corrected primitives help most exactly where the correct answer is most
+often to escalate or write nothing.
+
+## The 15 counterfactual pairs
+
+| Model | S1 | S2 | gain |
+|---|---|---|---|
+| 8B | 15.0% (n=133) | 25.4% (n=134) | +10.3% [+1, +20] |
+| 14B | 10.5% (n=133) | 26.9% (n=119) | +16.4% [+7, +26] |
+| 32B | 14.2% (n=120) | 33.1% (n=124) | +18.9% [+8, +29] |
+
+All three intervals exclude zero, **including 8B**, whose overall effect is
+null. The counterfactual set is where the corrected harness helps most
+consistently — these are the instances whose correct outcome differs by firm,
+and they are also the hardest: every model scores below its overall S1 here.
+
+## Robustness
+
+The corrected arm loses more rows to the wall-clock deadline than the naive
+arm (32 vs 11 on 14B, 34 vs 27 on 32B), and abandoned rows cluster on harder
+templates. Recomputing with **every abandoned row counted as a failure**:
+
+| Model | as reported | all abandons fail |
+|---|---|---|
+| 8B | +1.2% [−5.5, +7.9] | +1.1% [−5.5, +7.7] |
+| 14B | +20.7% [+13.9, +27.3] | +17.8% [+11.3, +24.0] |
+| 32B | +18.4% [+11.0, +25.5] | +16.1% [+9.2, +22.8] |
+
+No conclusion changes under the worst case. 14B's S2 stays in band (36.1%)
+and both gains keep intervals excluding zero.
+
+## Limitations
+
+- **Serving path uncontrolled.** OpenRouter load-balances across upstream
+  providers with differing quantizations. Noise across interleaved rows
+  rather than directional bias, but it widens every interval here. Pinning
+  now exists and should be used from row one in week 5.
+- **No prompt caching** for these models on OpenRouter, so
+  `cached_input_tokens` is zero throughout.
+- **Errors are not uniform**: 1.0% on 8B, 6.0% on 14B, 8.5% on 32B, and
+  higher in the corrected arm of each. Bounded above.
+- **Template-level holdout is underpowered** at n≈75 per arm.

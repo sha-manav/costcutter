@@ -930,6 +930,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--site", default=None,
                    help="ERPNext site this process owns; with --shard this is "
                         "how the pool is driven (one site per process)")
+    p.add_argument("--templates", default=None,
+                   help="comma-separated template ids to restrict to. Used to "
+                        "add power to a fixed, pre-registered subset without "
+                        "touching anything else.")
     p.add_argument("--bucket", default=None,
                    choices=("template_holdout", "instance_holdout",
                             "train_visible", "firm_c"),
@@ -965,6 +969,14 @@ def main(argv: list[str] | None = None) -> int:
     firm_ids = [f for f in args.firms.split(",") if f]
     variants = [h for h in args.harnesses.split(",") if h]
     jobs = build_jobs(models, firm_ids, variants, args.trials, args.split)
+    if args.templates:
+        wanted = {t.strip() for t in args.templates.split(",") if t.strip()}
+        known = {j.template.template_id for j in jobs}
+        unknown = wanted - known
+        if unknown:
+            print(f"unknown template ids: {sorted(unknown)}", file=sys.stderr)
+            return 1
+        jobs = [j for j in jobs if j.template.template_id in wanted]
     if args.bucket:
         jobs = [j for j in jobs
                 if split_of(j.template.template_id, j.firm.firm_id,

@@ -695,3 +695,73 @@ demonstration and should not be reported as one.
 ~12 (about $0.30, ~40 minutes) would distinguish "genuinely null" from "still
 underpowered". Worth doing before Round 0, since it is another measurement
 that cannot be taken honestly after training starts.
+
+---
+
+# Methods note: the merge that quietly rewrote a published baseline
+
+The third defect this project has caught in its own instrument, and the one
+that would have been hardest to notice from the outside.
+
+**What happened.** The pool driver runs `merge_gate_shards.py` automatically
+when the last shard exits. It was invoked with no `GATE_DEST`, so it defaulted
+to `evaluation_run.jsonl` — the published 2,160-row week-2 baseline. The
+strengthened-holdout run's shards were merged into it: **396 rows added, and
+156 existing rows silently replaced** by re-runs carrying the same `run_id`.
+
+**Why the existing guard missed it.** A guard had already been added after a
+near-identical incident, refusing to merge shards from more than one *split*.
+Both files here are the `evaluation` split. The guard was checking the wrong
+granularity: a split is not a run, and week 2's baseline and the holdout run
+are different runs of the same split.
+
+**Why it would not have been noticed.** Nothing errored. No test failed. The
+file grew, which reads as more data rather than as corruption. The row that
+would have exposed it — a week-2 result silently replaced by a re-run at a
+different trial count — is indistinguishable from a legitimate row unless you
+compare against git. It was found only because `git status` showed the file
+modified when it should not have been.
+
+**The fix.** A merge now refuses any destination whose contents the incoming
+shards would materially change, reporting how many rows would be added and
+overwritten and pointing at `GATE_DEST`. Materially means: incoming rows carry
+trial indices the destination has never seen, or additions exceed 5% of what
+is already there. The baseline was restored from git and verified byte-
+identical (sha256 `e011786d1c005a03`, 2,160 rows, 720 per model, 3 trials).
+
+**Why this belongs in the paper.** All three defects found so far share a
+shape: nothing crashed, no test failed, and the artifact simply stopped
+describing what it claimed to describe. A scoring hint in the corrected
+harness that voided 270 rows. A `provider: auto` path that would have written
+270 simulated rows as model numbers. A merge that rewrote a published
+baseline. Each was caught by an invariant rather than by an exception, and
+each is now guarded by a test that fails on the original defect. The measure
+of an instrument is not that it never breaks but whether it can tell you when
+it has.
+
+---
+
+# Methods note: the confound in the added holdout templates
+
+Ten templates were added to the template-level holdout after week 2 to raise
+power. They show a larger harness effect than the thirteen fixed beforehand:
++14.9% [+5, +24] against +6.9% [−3, +16].
+
+**A partial mechanism exists.** "Write nothing" is the correct answer in 55%
+of the added templates' firm-A/B instances against 42% of the fixed
+thirteen's. The corrected harness documents `abstain` and `escalate`; the
+naive harness does not. A corpus with more stop-cases therefore favours the
+corrected arm mechanically, without any bias in authoring.
+
+**That explanation is not established and should not be presented as one.**
+It is not separable from the simpler account — that templates authored by
+someone who had seen which arm was winning happen to suit that arm. Both
+predict the same observation. Offering the mechanism as *the* explanation
+would be choosing the comfortable reading over the supported one, and the
+supported statement is weaker: the added templates differ from the fixed ones
+in a way that could plausibly account for the gap, and the authorship concern
+cannot be ruled out.
+
+This is why the thirteen fixed templates are being powered separately, and
+why the combined estimate carries its qualifier wherever it appears —
+including in Figure 1's caption, not only in the appendix.

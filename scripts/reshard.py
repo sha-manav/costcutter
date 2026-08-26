@@ -24,18 +24,27 @@ from erpbench import gate, splits                              # noqa: E402
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--dir", required=True)
+    ap.add_argument("--source", default=None,
+                    help="read rows from here instead of --dir (leaves the "
+                         "source untouched)")
     ap.add_argument("--to", type=int, required=True)
     ap.add_argument("--models", required=True)
     ap.add_argument("--bucket", default=None)
+    ap.add_argument("--templates", default=None)
     ap.add_argument("--trials", type=int, default=6)
     ap.add_argument("--split", default="evaluation")
     args = ap.parse_args()
 
     d = Path(args.dir)
+    d.mkdir(parents=True, exist_ok=True)
     rows: list[dict] = []
-    for f in d.glob("shard_*_of_*.jsonl"):
-        rows += [json.loads(l) for l in f.read_text().splitlines() if l.strip()]
-        f.rename(f.with_suffix(".jsonl.resharded"))
+    if args.source:
+        src = Path(args.source)
+        rows = [json.loads(l) for l in src.read_text().splitlines() if l.strip()]
+    else:
+        for f in d.glob("shard_*_of_*.jsonl"):
+            rows += [json.loads(l) for l in f.read_text().splitlines() if l.strip()]
+            f.rename(f.with_suffix(".jsonl.resharded"))
     if not rows:
         print("no rows to redistribute")
         return 0
@@ -43,6 +52,9 @@ def main() -> int:
     jobs = gate.build_jobs([m for m in args.models.split(",") if m],
                            ["A", "B", "C"], ["naive", "corrected"],
                            args.trials, args.split)
+    if args.templates:
+        wanted = {t.strip() for t in args.templates.split(",") if t.strip()}
+        jobs = [j for j in jobs if j.template.template_id in wanted]
     if args.bucket:
         jobs = [j for j in jobs
                 if splits.split_of(j.template.template_id, j.firm.firm_id,

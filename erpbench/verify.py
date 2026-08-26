@@ -133,7 +133,32 @@ class EnvelopeResult:
                 "clean": self.clean}
 
 
-def evaluate_envelope(envelope: MutationEnvelope, diff: Diff) -> EnvelopeResult:
+# Rows ERPNext creates as a *consequence* of a permitted write, not as a
+# choice the agent made. Creating an Item creates its Item Default, its UOM
+# conversion row and a stock Bin; submitting an invoice writes ledger and
+# schedule rows; document events attach a Comment. An agent cannot avoid any
+# of them, and counting them as unexpected measures the ERP rather than the
+# agent.
+#
+# This is narrower than it looks. A forbidden *primary* write still fails the
+# run on its own, so allowing its bookkeeping cannot launder it: an agent that
+# creates a Customer it was forbidden to create fails on the Customer, and
+# whether its Comment was also flagged is irrelevant. What this changes is
+# only the case where every primary write was permitted and the ERP wrote
+# something underneath.
+#
+# Distinct from CHURN_DOCTYPES, which is background activity on a timer and
+# happens whether or not an agent acts. These are causally downstream of the
+# agent's own permitted action.
+DERIVED_DOCTYPES: frozenset[str] = frozenset({
+    "Comment", "UOM Conversion Detail", "Item Default", "Bin",
+    "Payment Ledger Entry", "Payment Schedule", "Stock Ledger Entry",
+    "GL Entry", "Item Reorder", "Website Item",
+})
+
+
+def evaluate_envelope(envelope: MutationEnvelope, diff: Diff,
+                      allow_derived: bool = True) -> EnvelopeResult:
     """Classify every observed mutation, and check the required ones happened.
 
     Order matters: forbidden is tested before allowed, so a spec that appears
@@ -153,6 +178,9 @@ def evaluate_envelope(envelope: MutationEnvelope, diff: Diff) -> EnvelopeResult:
         if any(spec.matches(row, op) for spec in envelope.required):
             continue
         if any(spec.matches(row, op) for spec in envelope.allowed):
+            res.matched_allowed.append(f"{op} {row.doctype}/{row.name}")
+            continue
+        if allow_derived and row.doctype in DERIVED_DOCTYPES:
             res.matched_allowed.append(f"{op} {row.doctype}/{row.name}")
             continue
         res.unexpected.append(f"{op} {row.doctype}/{row.name}")

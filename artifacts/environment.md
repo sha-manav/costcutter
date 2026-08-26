@@ -906,3 +906,59 @@ database contention that this deployment cannot escape.
 rather than shared, or an ERP whose reset is not a full logical restore.
 Neither is worth doing at this point in the schedule, and both are recorded
 here rather than attempted.
+
+---
+
+# Methods note: ERP bookkeeping was being scored as agent misbehaviour
+
+Found during Round 0, where it was rejecting the majority of otherwise-valid
+teacher traces.
+
+**What happened.** Mutation envelopes enumerate the doctypes an agent may
+write, but ERPNext writes more rows than the agent asks for. Creating an
+`Item` also creates its `Item Default`, a `UOM Conversion Detail` and a stock
+`Bin`. Submitting an invoice writes `Payment Ledger Entry` and
+`Payment Schedule`. Document events attach a `Comment`. None of these is a
+choice the agent made, and none can be avoided by an agent behaving
+correctly.
+
+SPEC §4 counts anything not enumerated as unexpected, and unexpected is
+failure. So a trace in which the model did exactly the right thing failed
+because the ERP kept its own books.
+
+**Why it surfaced now.** In the evaluation baseline it is nearly invisible:
+27 of 2,160 rows, 1.2%, have ERP bookkeeping as their only envelope problem.
+Those rollouts mostly failed or abstained, so few of them wrote anything at
+all. Round 0 is Sonnet on the permissive firm actually completing writes, and
+there it accounted for **71 of ~134 rejections** — the single largest cause,
+and it fell hardest on exactly the hard-recovery traces the round exists to
+produce, because recovering and then completing a write generates the most
+downstream rows.
+
+**The fix.** A fixed set of derived doctypes is treated as allowed. It is
+narrower than it appears: a forbidden *primary* write still fails the run on
+its own, so allowing its bookkeeping cannot launder it — an agent that
+creates a Customer it was forbidden to create fails on the Customer, and
+whether its Comment was also flagged is irrelevant. What changes is only the
+case where every primary write was permitted and the ERP wrote underneath.
+
+This is distinct from `CHURN_DOCTYPES`, which is background activity on a
+timer that happens whether or not an agent acts. These rows are causally
+downstream of the agent's own permitted action.
+
+**Effect on published results — negligible, and reported both ways:**
+
+| Model | gain as published | gain with derived allowed |
+|---|---|---|
+| Qwen3-8B | +1.2% | +1.2% |
+| Qwen3-14B | +20.7% | +20.5% |
+| Qwen3-32B | +18.4% | +18.1% |
+
+No conclusion changes. The week-2 baseline and the +8.8% pre-registered
+holdout figure both stand as reported.
+
+**Fourth instrument defect, same shape as the others.** Nothing errored, no
+test failed, and the scoring silently measured something other than what it
+claimed — here, the ERP's internal bookkeeping rather than the agent's
+choices. It was found only because Round 0 pushed the harness into a regime
+the evaluation runs never reached: an agent that mostly succeeds.

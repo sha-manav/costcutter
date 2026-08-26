@@ -1084,8 +1084,19 @@ def main(argv: list[str] | None = None) -> int:
 
     # --- preflight, before anything is reset or spent ----------------------
     if not args.skip_preflight:
+        # Which provider to check follows the models, not a constant. A run
+        # against a locally served checkpoint has no OpenRouter key and
+        # should not be refused for lacking one -- and conversely, an
+        # OpenRouter run must still be checked for it.
+        urls = {}
+        if any(m.startswith("openrouter/") for m in models):
+            urls.update(GATE_PROVIDER_URLS)
+        if any(m.startswith("openai/") for m in models):
+            base = os.environ.get("OPENAI_API_BASE", "").rstrip("/")
+            if base:
+                urls["openai"] = base.removesuffix("/v1") or base
         report = pf.run(line_item=args.line_item, projected_usd=0.0,
-                        models=models, provider_urls=GATE_PROVIDER_URLS,
+                        models=models, provider_urls=urls or GATE_PROVIDER_URLS,
                         sites=None, live_probe=not args.no_live_probe)
         print()
         print(report.render())

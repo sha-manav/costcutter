@@ -198,7 +198,9 @@ def run(line_item: str, projected_usd: float, models: list[str],
         report.add("firm_c_reservation", False,
                    "total spend would encroach on the locked Firm C reserve")
 
-    # 2. keys present
+    # 2. keys present. A self-hosted endpoint authenticates with a
+    # placeholder -- vLLM ignores the value, litellm insists one exists -- so
+    # presence is the whole check there and liveness below does the real work.
     for provider in provider_urls:
         env = f"{provider.upper()}_API_KEY"
         report.add(f"key:{provider}", bool(os.environ.get(env)),
@@ -282,9 +284,20 @@ def main(argv: list[str] | None = None) -> int:
             sites = None
             pool_error = f"{type(exc).__name__}: {exc}"
 
+    models = [m for m in args.models.split(",") if m]
+    # Follow the models rather than a constant: a run against a locally
+    # served checkpoint has no OpenRouter key and must not be refused for
+    # lacking one.
+    urls: dict[str, str] = {}
+    if any(m.startswith("openrouter/") for m in models):
+        urls.update(GATE_PROVIDER_URLS)
+    if any(m.startswith("openai/") for m in models):
+        base = os.environ.get("OPENAI_API_BASE", "").rstrip("/")
+        if base:
+            urls["openai"] = base[:-3] if base.endswith("/v1") else base
     report = run(line_item=args.line_item, projected_usd=args.projected_usd,
-                 models=[m for m in args.models.split(",") if m],
-                 provider_urls=GATE_PROVIDER_URLS, sites=sites)
+                 models=models, provider_urls=urls or GATE_PROVIDER_URLS,
+                 sites=sites)
     if args.sites and sites is None:
         report.add("sites", False,
                    f"0/{args.sites} healthy — pool unavailable ({pool_error})")

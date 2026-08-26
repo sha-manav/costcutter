@@ -305,7 +305,8 @@ def _is_fatal_provider_error(exc: Exception) -> str | None:
 def run_one(job: Job, adapter: SystemAdapter, client: Any, cfg: Any,
             max_steps: int = MAX_STEPS,
             row_deadline_s: float = ROW_DEADLINE_S,
-            instance: Instance | None = None) -> dict[str, Any]:
+            instance: Instance | None = None,
+            temperature: float = 0.0) -> dict[str, Any]:
     """Execute one instance end to end and return its result row.
 
     Raises GateHalt for anything that is the world breaking rather than the
@@ -374,7 +375,13 @@ def run_one(job: Job, adapter: SystemAdapter, client: Any, cfg: Any,
                      f"{len(trace.actions)} steps")
             break
         try:
-            resp = client.complete(messages, temperature=0.0, max_tokens=1200)
+            # Measurement runs use 0.0 so a rollout is reproducible from its
+            # seed. Some models reject it -- Claude Sonnet accepts only
+            # temperature=1 -- and teacher generation wants sampling anyway,
+            # since diversity is the point and rejection sampling handles
+            # quality. So it is a parameter rather than a constant.
+            resp = client.complete(messages, temperature=temperature,
+                                   max_tokens=1200)
         except RequestDeadlineExceeded as exc:
             # BaseException, so it is not caught by the generic handler below
             # and not by litellm's retry wrapper. A provider that stopped

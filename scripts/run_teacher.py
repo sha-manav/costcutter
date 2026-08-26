@@ -36,6 +36,11 @@ def main() -> int:
     ap.add_argument("--out", type=Path, default=teacher.TRACES)
     ap.add_argument("--line-item", default="teacher_traces")
     ap.add_argument("--max-steps", type=int, default=14)
+    ap.add_argument("--temperature", type=float, default=1.0,
+                    help="teacher generation samples rather than greedily "
+                         "decoding: diversity is the point, and rejection "
+                         "sampling enforces quality. Claude also accepts only "
+                         "temperature=1.")
     ap.add_argument("--resume", action="store_true")
     args = ap.parse_args()
 
@@ -71,7 +76,8 @@ def main() -> int:
         try:
             row = gate.run_one(job, adapter, client, cfg,
                                max_steps=args.max_steps,
-                               instance=instance)
+                               instance=instance,
+                               temperature=args.temperature)
         except gate.GateHalt as exc:
             print(f"HALTED: {exc}", file=sys.stderr)
             break

@@ -1037,3 +1037,31 @@ def test_a_provider_error_with_a_clean_diff_may_still_licence_a_skip():
                        get_config(), max_steps=3)
     assert row["status"] == RunStatus.ERROR.value
     assert gate._may_skip_reset(ad, "A") is True
+
+
+def test_temperature_is_a_parameter_not_a_constant():
+    """Measurement runs decode greedily so a rollout is reproducible from its
+    seed. Claude Sonnet accepts only temperature=1 and errored on all 20
+    pilot rollouts; teacher generation wants sampling regardless, because
+    diversity is the point and rejection sampling enforces quality."""
+    import inspect
+
+    src = inspect.getsource(gate.run_one)
+    assert "temperature=temperature" in src, "temperature is still hardcoded"
+    assert gate.run_one.__defaults__ is not None
+    captured = {}
+
+    class Recording(ScriptedClient):
+        def complete(self, messages, **kw):
+            captured.update(kw)
+            return super().complete(messages, **kw)
+
+    gate.run_one(a_job(), FakeAdapter(),
+                 Recording(['{"action": "done", "answer": "x"}']),
+                 get_config(), max_steps=2, temperature=1.0)
+    assert captured["temperature"] == 1.0
+
+    gate.run_one(a_job(), FakeAdapter(),
+                 Recording(['{"action": "done", "answer": "x"}']),
+                 get_config(), max_steps=2)
+    assert captured["temperature"] == 0.0, "measurement default must stay greedy"

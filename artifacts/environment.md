@@ -626,3 +626,72 @@ and both gains keep intervals excluding zero.
 - **Errors are not uniform**: 1.0% on 8B, 6.0% on 14B, 8.5% on 32B, and
   higher in the corrected arm of each. Bounded above.
 - **Template-level holdout is underpowered** at n≈75 per arm.
+
+---
+
+# Strengthened template-level holdout
+
+552 rows (23 held-out templates × 2 firms × 2 harness variants × **6 trials**),
+Qwen3-14B only, $0.52. Error rate 0.4%. Raw rows in
+`artifacts/holdout_strengthened.jsonl`.
+
+**Why this run exists.** Week 2 measured the template-level holdout — SPEC §4's
+real generalization number — at n≈78 per arm and every interval spanned zero.
+It is the one measurement that cannot be strengthened once training begins:
+after a model is trained there is no honest way to reinforce a pre-training
+baseline. Ten templates were added and trials raised from 3 to 6.
+
+Adding n is legitimate; selecting on outcome is not. The ten were authored,
+assigned to holdout unconditionally, and the splits re-frozen — all before any
+of them was run, so no result existed to select on. The category mix was
+derived arithmetically from the original 40 rather than chosen. What cannot be
+claimed is blindness: the author had seen the week-2 bucket results.
+
+## Result — the effect is now significant
+
+| | S1 naive | S2 corrected | gain |
+|---|---|---|---|
+| Week 2 (n≈78/arm) | 24.0% | 32.0% | +8.0% [−6, +22] — spans zero |
+| **Now (n=276/arm)** | 16.1% [12.2, 20.9] | 26.4% [21.6, 32.0] | **+10.4% [+3.6, +17.1]** |
+
+Worst case, every abandoned row counted a failure: **+10.4% [+3.7, +17.2]** —
+unchanged. The point estimate barely moved and the interval narrowed enough to
+exclude zero, which is what adding power to a real effect looks like rather
+than an effect appearing when more data arrives.
+
+**So the generalization claim can be made**: the corrected harness helps
+Qwen3-14B on templates it was never developed against.
+
+## The dependency that qualifies it
+
+| Template vintage | S1 | S2 | gain | n/arm |
+|---|---|---|---|---|
+| original 13 (hash-selected, pre-week-2) | 21.3% | 28.2% | +6.9% [−3, +16] — spans zero | 156 |
+| added 10 (authored post-week-2) | 9.2% | 24.2% | **+14.9% [+5, +24]** | 120 |
+
+**The significance is carried substantially by the templates authored after
+the week-2 results were known.** The original thirteen alone remain
+non-significant at n=156, consistent with week 2 rather than contradicting it.
+
+A partial mechanism exists that does not require bias: "write nothing" is the
+correct answer in 55% of the added templates' firm-A/B instances against 42%
+of the original thirteen's. The corrected harness documents `abstain` and
+`escalate` and the naive one does not, so a corpus with more stop-cases
+mechanically favours the corrected arm. The added ten match the full-40
+proportions by construction; the original thirteen were hash-selected and
+happen to be evidence- and abstention-heavy in a different way.
+
+That mechanism is also the problem. It cannot be cleanly separated from
+"templates authored by someone who knew which arm was winning". **The honest
+statement is: positive and significant on the combined holdout, driven by
+post-hoc authored templates, and not independently significant on the
+thirteen fixed before any of this was known.**
+
+That is a materially stronger position than week 2 — "not demonstrated"
+has become "demonstrated with a stated dependency" — but it is not a clean
+demonstration and should not be reported as one.
+
+**What would settle it:** raising trials on the original thirteen alone to
+~12 (about $0.30, ~40 minutes) would distinguish "genuinely null" from "still
+underpowered". Worth doing before Round 0, since it is another measurement
+that cannot be taken honestly after training starts.

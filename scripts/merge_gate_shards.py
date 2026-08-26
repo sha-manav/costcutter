@@ -30,6 +30,35 @@ DESTS = {"calibration": REPO / "artifacts" / "calibration_gate.jsonl",
              "GATE_DEST", REPO / "artifacts" / "evaluation_run.jsonl"))}
 
 
+# A split is not a run. Week 2's baseline and the strengthened-holdout run
+# are both "evaluation", so the split guard does not separate them -- and the
+# pool driver calls this automatically on completion, with no GATE_DEST set.
+# That merged 396 holdout rows into the published 2,160-row baseline and
+# silently replaced 156 of its rows with re-runs. Nothing errored; the file
+# simply stopped being the artifact the README cites.
+#
+# A destination is therefore refused rather than defaulted when the shards
+# do not match what is already there.
+def would_disturb(dest: Path, rows: list[dict]) -> str | None:
+    """Why writing these rows into `dest` would change what it already holds."""
+    if not dest.exists():
+        return None
+    existing = [json.loads(l) for l in dest.read_text().splitlines() if l.strip()]
+    if not existing:
+        return None
+    have = {r.get("run_id") for r in existing}
+    incoming = {r.get("run_id") for r in rows}
+    overwritten = len(have & incoming)
+    added = len(incoming - have)
+    ex_trials = {r.get("trial_idx") for r in existing}
+    in_trials = {r.get("trial_idx") for r in rows}
+    if in_trials - ex_trials or added > len(existing) * 0.05:
+        return (f"{dest.name} holds {len(existing)} rows; these shards would "
+                f"add {added} and overwrite {overwritten}. If this is a "
+                f"different run, set GATE_DEST to its own file.")
+    return None
+
+
 def split_of_rows(rows: list[dict]) -> str:
     """Which corpus these rows came from, or a refusal if they are mixed."""
     kinds = {"calibration" if str(r.get("template_id", "")).startswith("C")
@@ -57,6 +86,11 @@ def main() -> int:
 
     split = split_of_rows(shard_rows)
     dest = DESTS[split]
+
+    complaint = would_disturb(dest, shard_rows)
+    if complaint and not os.environ.get("GATE_MERGE_FORCE"):
+        print(f"refusing to merge: {complaint}", file=sys.stderr)
+        return 1
 
     by_id: dict[str, dict] = {}
     if dest.exists():                       # keep anything already measured

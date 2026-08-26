@@ -85,6 +85,28 @@ costs:
     input: 0.08
     cached_input: 0.08
     output: 0.28
+  # Locally served on a rented H100, so there is no invoice per token. SPEC
+  # §10.12 requires imputation and forbids zero: a self-hosted model that
+  # appears free would win every cost comparison by accounting rather than by
+  # efficiency. Imputed at the commercial rate for the same model on
+  # OpenRouter, which is the price a buyer would actually pay for equivalent
+  # service, and labelled as imputed wherever it is reported.
+  openai/erpbench-t3:
+    input: 0.12
+    cached_input: 0.12
+    output: 0.24
+  openai/qwen3-14b-base:
+    input: 0.12
+    cached_input: 0.12
+    output: 0.24
+  openai/erpbench-t1:
+    input: 0.12
+    cached_input: 0.12
+    output: 0.24
+  openai/erpbench-t2:
+    input: 0.12
+    cached_input: 0.12
+    output: 0.24
 
 segment:
   idle_gap_s: 8.0

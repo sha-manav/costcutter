@@ -15,7 +15,9 @@ for s, r in sorted(d["stages"].items()):
     if r.get("job") and r.get("model"):
         print(s, r["job"], r["model"])
 PY
-  out="artifacts/checkpoints/${stage,,}.tar.zst"
+  # macOS ships bash 3.2, where ${var,,} is a syntax error rather
+  # than a lowercase expansion. tr is portable.
+  out="artifacts/checkpoints/$(echo "$stage" | tr "A-Z" "a-z").tar.zst"
   if [ -s "$out" ]; then echo "  $stage already present"; continue; fi
   echo "  fetching $stage ($model)"
   curl -sL -o "$out" --max-time 1800 -H "Authorization: Bearer $TOGETHER_API_KEY" \

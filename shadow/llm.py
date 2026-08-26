@@ -279,6 +279,18 @@ class LiteLLMClient:
         # because nothing ever returns to report it. A request that has not
         # answered in this long is not going to; retries above make a timeout
         # recoverable rather than fatal.
+        # Qwen3 emits a <think> block by default. The harness parses JSON out
+        # of the reply either way, but leaving it on introduces an asymmetry
+        # between arms: the base model reasons at length, the trained one was
+        # fine-tuned on JSON-only targets and reasons less, so the base would
+        # hit the token ceiling more often and fail for a reason that is not
+        # about training. Disabled identically for both arms, which also
+        # matches the format the model was trained to emit.
+        if self.model.startswith("openai/"):
+            body = dict(kwargs.get("extra_body") or {})
+            body.setdefault("chat_template_kwargs", {"enable_thinking": False})
+            kwargs["extra_body"] = body
+
         order = provider_order_for(self.model)
         if order:
             body = dict(kwargs.get("extra_body") or {})

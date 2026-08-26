@@ -28,4 +28,17 @@ if [ -d /opt/homebrew/opt/mariadb/bin ]; then
   export PATH="/opt/homebrew/opt/mariadb/bin:$PATH"
 fi
 
+# A site is owned by exactly one worker. `erp01..erpNN` belong to the pool
+# driver whenever it is running; touching one from another shell resets a
+# database out from under a rollout mid-snapshot, which is the failure the
+# process-per-site design exists to prevent. It has happened once, by hand,
+# during a throughput measurement.
+#
+# For ad-hoc work while a pool run is in flight, use the scratch site:
+export ERPBENCH_SCRATCH_SITE="${ERPBENCH_SCRATCH_SITE:-frontend}"
+
 echo "erpbench env: site=$ERPBENCH_SITE url=$ERPBENCH_BASE_URL bench=$BENCH_ROOT"
+if pgrep -f "erpbench.gate --site erp" >/dev/null 2>&1; then
+  echo "  WARNING: a pool run is in flight. Do not touch erp01..erpNN;"
+  echo "           use ERPBENCH_SCRATCH_SITE=$ERPBENCH_SCRATCH_SITE for ad-hoc work."
+fi

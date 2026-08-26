@@ -1,0 +1,25 @@
+{
+  "replay_fraction": 0.2,
+  "stages": {
+    "T1": {
+      "own": 116,
+      "replay": 0,
+      "written": 116,
+      "turns_median": 21
+    },
+    "T2": {
+      "own": 129,
+      "replay": 23,
+      "written": 152,
+      "turns_median": 7
+    },
+    "T3": {
+      "own": 71,
+      "replay": 49,
+      "written": 120,
+      "turns_median": 7
+    }
+  },
+  "source": "artifacts/teacher_traces.jsonl",
+  "verified_traces": 316
+}

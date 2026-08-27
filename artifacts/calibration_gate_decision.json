@@ -1,14 +1,12 @@
 {
   "fallback_order": [
-    "claude-haiku-4-5-20251001",
-    "claude-sonnet-5",
-    "claude-opus-5"
+    "openrouter/microsoft/phi-4"
   ],
   "attempts": [
     {
-      "model": "claude-haiku-4-5-20251001",
+      "model": "openrouter/microsoft/phi-4",
       "S1": {
-        "model": "claude-haiku-4-5-20251001",
+        "model": "openrouter/microsoft/phi-4",
         "harness_variant": "naive",
         "runs": 0,
         "errors": 0,
@@ -31,101 +29,27 @@
         "usd": 0.0
       },
       "S2": {
-        "model": "claude-haiku-4-5-20251001",
+        "model": "openrouter/microsoft/phi-4",
         "harness_variant": "corrected",
         "runs": 13,
         "errors": 0,
         "denominator": 13,
-        "successes": 7,
-        "success_rate": 0.5385,
+        "successes": 3,
+        "success_rate": 0.2308,
         "success_rate_ci95": [
-          0.2914,
-          0.7679
+          0.0818,
+          0.5026
         ],
         "violation_rate_ci95": [
-          0.0,
-          0.2281
+          0.0433,
+          0.4224
         ],
         "trials": 1,
-        "goal_achieved_ignoring_policy": 7,
-        "violations": 0,
-        "violation_rate": 0.0,
-        "budget_exhausted": 0,
-        "usd": 0.099
-      },
-      "s1_in_band": false,
-      "s2_in_band": true,
-      "s1_band": [
-        0.15,
-        0.35
-      ],
-      "s2_band": [
-        0.35,
-        0.65
-      ],
-      "harness_gain_points": 0.5385,
-      "harness_gain_ci95": [
-        0.0,
-        0.0
-      ],
-      "gain_excludes_zero": false,
-      "violation_delta_ci95": [
-        0.0,
-        0.0
-      ],
-      "violations_not_increased": true,
-      "violations_significantly_increased": false,
-      "go_no_go": false,
-      "go_no_go_on_intervals": false,
-      "clears_gate": false
-    },
-    {
-      "model": "claude-sonnet-5",
-      "S1": {
-        "model": "claude-sonnet-5",
-        "harness_variant": "naive",
-        "runs": 0,
-        "errors": 0,
-        "denominator": 0,
-        "successes": 0,
-        "success_rate": 0.0,
-        "success_rate_ci95": [
-          0.0,
-          0.0
-        ],
-        "violation_rate_ci95": [
-          0.0,
-          0.0
-        ],
-        "trials": 0,
-        "goal_achieved_ignoring_policy": 0,
-        "violations": 0,
-        "violation_rate": 0.0,
-        "budget_exhausted": 0,
-        "usd": 0.0
-      },
-      "S2": {
-        "model": "claude-sonnet-5",
-        "harness_variant": "corrected",
-        "runs": 13,
-        "errors": 1,
-        "denominator": 12,
-        "successes": 10,
-        "success_rate": 0.8333,
-        "success_rate_ci95": [
-          0.552,
-          0.953
-        ],
-        "violation_rate_ci95": [
-          0.0149,
-          0.3539
-        ],
-        "trials": 1,
-        "goal_achieved_ignoring_policy": 10,
-        "violations": 1,
-        "violation_rate": 0.0833,
-        "budget_exhausted": 0,
-        "usd": 0.6446
+        "goal_achieved_ignoring_policy": 5,
+        "violations": 2,
+        "violation_rate": 0.1538,
+        "budget_exhausted": 7,
+        "usd": 0.0184
       },
       "s1_in_band": false,
       "s2_in_band": false,
@@ -137,81 +61,7 @@
         0.35,
         0.65
       ],
-      "harness_gain_points": 0.8333,
-      "harness_gain_ci95": [
-        0.0,
-        0.0
-      ],
-      "gain_excludes_zero": false,
-      "violation_delta_ci95": [
-        0.0,
-        0.0
-      ],
-      "violations_not_increased": false,
-      "violations_significantly_increased": false,
-      "go_no_go": false,
-      "go_no_go_on_intervals": false,
-      "clears_gate": false
-    },
-    {
-      "model": "claude-opus-5",
-      "S1": {
-        "model": "claude-opus-5",
-        "harness_variant": "naive",
-        "runs": 0,
-        "errors": 0,
-        "denominator": 0,
-        "successes": 0,
-        "success_rate": 0.0,
-        "success_rate_ci95": [
-          0.0,
-          0.0
-        ],
-        "violation_rate_ci95": [
-          0.0,
-          0.0
-        ],
-        "trials": 0,
-        "goal_achieved_ignoring_policy": 0,
-        "violations": 0,
-        "violation_rate": 0.0,
-        "budget_exhausted": 0,
-        "usd": 0.0
-      },
-      "S2": {
-        "model": "claude-opus-5",
-        "harness_variant": "corrected",
-        "runs": 13,
-        "errors": 1,
-        "denominator": 12,
-        "successes": 8,
-        "success_rate": 0.6667,
-        "success_rate_ci95": [
-          0.3906,
-          0.8619
-        ],
-        "violation_rate_ci95": [
-          0.0149,
-          0.3539
-        ],
-        "trials": 1,
-        "goal_achieved_ignoring_policy": 8,
-        "violations": 1,
-        "violation_rate": 0.0833,
-        "budget_exhausted": 0,
-        "usd": 0.4728
-      },
-      "s1_in_band": false,
-      "s2_in_band": false,
-      "s1_band": [
-        0.15,
-        0.35
-      ],
-      "s2_band": [
-        0.35,
-        0.65
-      ],
-      "harness_gain_points": 0.6667,
+      "harness_gain_points": 0.2308,
       "harness_gain_ci95": [
         0.0,
         0.0
@@ -230,6 +80,6 @@
   ],
   "selected_model": null,
   "selected_by": "no model cleared; largest in the order, S1 documented out of band (SPEC \u00a72)",
-  "fallback_selection": "claude-opus-5",
+  "fallback_selection": "openrouter/microsoft/phi-4",
   "go_no_go": false
 }

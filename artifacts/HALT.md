@@ -1,28 +1,15 @@
-# RESOLVED — no active halt (2026-08-27)
-
-The halt recorded below was cleared: Anthropic credit was topped up and the
-write-drive resumed with `--resume`, so the $2.97 already spent was not spent
-again. **338 rollouts completed, 146 accepted at 43%**, $12.94 of the $16
-line. The corpus and the single-stage training run that consumed it are in
-`artifacts/environment.md` under "Phase 1".
-
-This file is kept rather than deleted because a halt record that vanishes on
-resolution is a halt record nobody can audit. The original follows verbatim.
-
----
-
 # HALT
 
-**Reason.** claude-sonnet-5 returned 3 empty completions in a row; the provider has stopped producing output
+**Reason.** soft ceiling on 'api_anchors', $2.59 left
 
 | | |
 |---|---|
 | Line item | `api_anchors` |
-| Reserved | $10.00 |
-| Spent | $5.39 |
-| Remaining | $4.61 |
-| Rows completed | 16 |
-| Rows remaining | 23 |
+| Reserved | $18.00 |
+| Spent | $15.41 |
+| Remaining | $2.59 |
+| Rows completed | 55 |
+| Rows remaining | -42 |
 
 ## Resume
 

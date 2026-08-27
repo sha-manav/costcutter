@@ -1,4 +1,4 @@
-# Appendix: six instrument defects — five in the environment, one in the ruler
+# Appendix: eight instrument defects — six in the environment, two in the ruler
 
 Every defect below shares one shape. **Nothing crashed. No test failed. The
 artifact simply stopped describing what it claimed to describe.** Each was
@@ -118,7 +118,7 @@ atomic-or-raise, which is precisely the property that had just failed.
 
 ## #6 — in the diagnostic layer: a search that could not match, reporting zero
 
-The five above are defects in the *environment* — the harness, the provider
+The five preceding entries are defects in the *environment* — the harness, the provider
 path, the merge, the scorer, the database. This one is different in kind and
 is numbered separately for that reason: **the tooling written to investigate a
 defect was itself defective, and it sent the investigation the wrong way for
@@ -172,6 +172,80 @@ in the diagnostic layer.** The second category has no tests, no fingerprints
 and no review, and this project has now been misled further by one instance
 of it than by any single instance of the first.
 
+## #7 — a freeze that did not cover what its own document claimed
+
+`FIRM_C_FROZEN.md` stated that the fingerprint covers "the policy text **and**
+the seeded world". It does not. `_fingerprint()` hashes the policy text, the
+entity set, the threshold, the autonomy level and the evidence rule — all read
+from the *manifest*. The SQL image is not in it.
+
+And the image had changed: **8,297,696 → 7,856,385 bytes**, when the project
+moved from a bare-metal ERPNext to a containerised one. `zstd`-level identity
+was never checked and nothing failed.
+
+**What the change actually was, stated precisely because it bears on whether
+the blind pass is valid:** the `policy_sha` is identical across it
+(`d426ca469419dc10`), the entity set is identical, and all three firms were
+rebuilt from the same base dump on the same day. It is a change of *substrate*,
+not of firm, and it predates any model being trained or run against C. The
+narrower property the blind-pass claim needs — that C's policy and world are
+what were frozen — does hold.
+
+That is a real defect anyway, and the reason is the shape shared with every
+other entry here: **it passed silently.** A freeze whose verification covers
+less than its documentation claims is a freeze that can drift in the
+uncovered region indefinitely, and the only reason this instance is benign is
+luck about which region drifted. The test now pins `firm_C.sql` to the byte
+count its own manifest records, so the next rebuild has to be acknowledged.
+
+The same document also said Firm C is "evaluated **once** in week 5". It is
+not, and a reader checking the artifacts would find 2,694 Firm C rows. Those
+are all untrained base models — Qwen3 8B, 14B, 32B — from the week-2 baseline
+and the calibration gate, and they exist **by design**: transfer to C is
+measured against a base-model baseline on C, which has to exist to subtract
+from. The property the transfer claim rests on is narrower and does hold: no
+trained checkpoint had ever been evaluated on C, no C data appears in any
+training corpus, and no C data informed method selection. The document now
+says that instead, and a test enforces the first clause by scanning every
+result file.
+
+## #8 — in the diagnostic layer: a field with no mechanism behind it
+
+Second entry in the diagnostic category, and the same shape as #6.
+
+`adaptation_level` was in the row schema, in SPEC §12.5's `run_id` definition,
+and in the results of every run ever recorded. It always read `"none"`,
+because **nothing ever set it** — there was no adaptation mechanism at all.
+The field described a dimension of the experiment that did not exist, and
+three months of result files carry it.
+
+Worse, `Job.rid` hard-coded the slot:
+
+```python
+return run_id(..., self.harness_variant, "none", self.trial_idx)
+```
+
+So the same task at 0, 1, 3 and 8 corrections produces **one** `run_id`. Had
+the sweep been run against this, `--resume` would have written the first level
+and then skipped the other three as already done, and the adaptation curve
+would have been one measurement plotted four times — flat, at whatever the
+first level happened to score, with nothing in the output indicating it.
+
+This is diagnostic-layer rather than environment: no published number was
+wrong, because the dimension was never exercised. What it would have corrupted
+is the *next* measurement, and it would have corrupted it into a shape that
+looks like a result — "adaptation has no effect" is a publishable sentence.
+
+The distinction from #1–#5 and #7 is worth keeping. Those are defects in the
+instrument: they silently changed what a number meant. #6 and #8 are defects
+in the apparatus used to *investigate and extend* the instrument — a search
+that could not match, and a field with no mechanism. That category has no
+fingerprints, no invariants and no review, and both instances were found by
+looking at something else.
+
+**Running tally: six defects in the environment (#1-#5, #7), two in the
+diagnostic layer (#6, #8).**
+
 ### Adjacent, unnumbered: truncated checkpoint downloads reported as success
 
 Found while preparing the stage-ladder runs and recorded here because the
@@ -190,7 +264,7 @@ it was caught before use.
 
 ## What the set implies for methodology
 
-Six defects, and **not one announced itself**. Four of them would have
+Eight defects, and **not one announced itself**. Four of them would have
 produced a publishable number: a harness comparison with the answer leaked
 into one arm, 270 simulated rows presented as model output, a baseline quietly
 overwritten by a later run, and an agent penalised for its ERP's internal

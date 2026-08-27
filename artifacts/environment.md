@@ -1283,10 +1283,77 @@ Two things this pins down that the T3 numbers alone could not:
   a task requiring a write goes 6 → 6 → 0 → 0. A reader shown only the
   success column would conclude the curriculum worked at every stage.
 
-The proximate cause inside the T2 fine-tune -- learning rate, epochs on 152
-examples, or the `from_checkpoint` chaining step itself -- is not identified,
-and identifying it needs the training configuration rather than more
-evaluation. What is established is where to look.
+### Diagnosed: `restage()` routed correct refusals into the execution stage
+
+**Retraction, the third today.** Earlier in this section I reported that the
+SFT sets "contain zero examples containing `abstain` or `escalate` at all --
+t1 0/116, t2 0/152, t3 0/120". That is false and the check that produced it
+was broken: it searched for the literal `"abstain"` inside `json.dumps(row)`,
+where the quotes around the action name are backslash-escaped, so the pattern
+could never match anything. It returned zero for every stage and I read the
+zero as a result. Parsing the assistant turns instead:
+
+| Stage | n | ends `done` | ends `escalate` | ends `abstain` | contains a write | mean turns |
+|---|---|---|---|---|---|---|
+| T1 | 116 | **116 (100%)** | 0 | 0 | **116 (100%)** | 9.81 |
+| T2 | 152 | 59 (39%) | 71 (47%) | 22 (14%) | 52 (34%) | 4.03 |
+| T3 | 120 | 45 (38%) | 57 (48%) | 18 (15%) | 43 (36%) | 4.53 |
+
+T1 is pure completed execution: every example ends in `done`, every example
+contains a write, and trajectories are nearly ten turns long. **T2 -- the
+stage whose declared purpose is ordinary execution -- is 61% refusal and only
+34% of its examples contain a write at all.** That is the whole ladder: the
+stage that preserves write ability is the one trained on completed writes,
+and the stage that destroys it is the one trained mostly on stopping.
+
+The mechanism is `teacher.restage()`:
+
+```python
+if is_hard_recovery(row): return "T1"
+if planned == "T1":       return "T2"      # <- here
+return planned
+```
+
+Hard-recovery instances are drawn deliberately with `entity=MISSING`,
+`evidence=STALE` or `entity=AMBIGUOUS` so that the first plausible action
+fails. When the model recovers, the trace is real T1 data. When it does not
+recover, the correct outcome on those very parameter draws is almost always
+to escalate or abstain -- and such a trace passes rejection sampling cleanly,
+because declining an impossible task *is* a full success. `restage` then
+demotes it to T2 on the grounds that it is "not recovery", which silently
+equates *did not recover* with *ordinary execution*.
+
+Tracing the accepted pool confirms it. Of T2's 129 own examples, **84 are
+demoted hard-recovery traces** and only 45 are planned execution:
+
+```
+T1 (n=59):   22 policy   19 hard_recovery   18 execution
+T2 (n=129):  84 hard_recovery              45 execution
+T3 (n=71):   43 abstention                 28 policy
+```
+
+The 84 outnumber the 23 replayed T1 examples by 3.6 to 1.
+
+**This is a data defect, not catastrophic forgetting.** The other three
+candidates were checked and are clean:
+
+- **Sequence truncation.** Longest example at any stage is ~1,400 tokens,
+  far under any plausible training maximum; T1's ten-turn trajectories fit
+  with room to spare. Nothing was cut off.
+- **Loss masking.** All three stages went through the same Together API call
+  with the same defaults (`lora=True`, `n_epochs=3`); T1 is the control, and
+  it came through that path with its behaviour intact. A masking defect would
+  have damaged T1 identically.
+- **Replay.** Applied as specified: `round(116 * 0.2) = 23` T1 examples
+  carried into T2. Worth noting the spec's "~20% replay" is implemented as
+  20% *of the prior pool*, which is 15% of the resulting batch -- a
+  reasonable reading, but not the only one, and at this ratio it was never
+  going to outweigh 84 counter-examples.
+
+The fix is in `restage`, not in the training configuration: a planned-T1 trace
+that did not recover should be routed by *what it actually did* -- a trace
+terminating in `escalate` or `abstain` is policy data and belongs in T3 -- and
+the execution stage should be assembled from traces that complete a write.
 
 **A separate defect found while preparing that run:** both local checkpoint
 archives are corrupt. `zstd -t` reports "premature end" on `t1.tar.zst` and

@@ -1,0 +1,9 @@
+{
+ "total": 422,
+ "ends_in_completed_write": 380,
+ "ends_in_refusal": 42,
+ "of_the_writes_recovery": 265,
+ "of_the_writes_clean": 115,
+ "target_was": "70/20/10 write/recovery/policy",
+ "actual": "90/10 write-ending/refusal; recovery is a subset of the writes, not a disjoint third"
+}

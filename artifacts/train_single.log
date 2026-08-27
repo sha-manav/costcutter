@@ -1,0 +1,39 @@
+Validating file: 0 lines [00:00, ? lines/s]Validating file: 422 lines [00:00, 108150.82 lines/s]
+Uploading file single.jsonl:   0%|          | 0.00/1.88M [00:00<?, ?B/s]Uploading file single.jsonl: 100%|██████████| 1.88M/1.88M [00:00<00:00, 4.62MB/s]
+uploaded single.jsonl -> file-cbd08706-0e16-49ff-891e-d475d30071b5
+message="train_on_inputs is not set for SFT training, it will be set to 'auto'"
+message="train_on_inputs is not set for SFT training, it will be set to 'auto'"
+job ft-1d5b95b8-9ce4 from Qwen/Qwen3-14B
+  [single] pending  (0s)
+  [single] queued  (30s)
+  [single] queued  (60s)
+  [single] queued  (90s)
+  [single] queued  (120s)
+  [single] running  (151s)
+  [single] running  (181s)
+  [single] running  (211s)
+  [single] running  (241s)
+  [single] running  (271s)
+  [single] running  (301s)
+  [single] running  (331s)
+  [single] running  (361s)
+  [single] running  (391s)
+  [single] running  (421s)
+  [single] running  (452s)
+  [single] running  (482s)
+  [single] running  (512s)
+  [single] uploading  (542s)
+  [single] compressing  (572s)
+  [single] uploading  (602s)
+  [single] uploading  (632s)
+  [single] completed  (662s)
+Traceback (most recent call last):
+  File "/Users/manavshah/costcutter/costcutter/scripts/train_single.py", line 39, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/Users/manavshah/costcutter/costcutter/scripts/train_single.py", line 34, in main
+    {"job": job.id, "model": j.output_name, "examples": sum(1 for _ in path.open())}, indent=1))
+                             ^^^^^^^^^^^^^
+  File "/Users/manavshah/costcutter/costcutter/.venv/lib/python3.11/site-packages/pydantic/main.py", line 1042, in __getattr__
+    raise AttributeError(f'{type(self).__name__!r} object has no attribute {item!r}')
+AttributeError: 'FinetuneResponse' object has no attribute 'output_name'

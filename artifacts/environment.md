@@ -1472,3 +1472,72 @@ destroyed anything; the top-up produced something strictly better.
 The Firm C blind pass has not been run. It is one-shot and unrecoverable, its
 reserve is untouched, and the checkpoint it should run against changed as a
 result of these numbers, so it waits for an explicit decision.
+
+
+---
+
+# Phase 1 — training against the refusal prior. It failed, informatively.
+
+**Attempt 1: single-stage SFT, no curriculum, 422 examples, 90% ending in a
+completed write. must-write went to 0/175.**
+
+| Arm | must-write | 95% CI | Success | Steps | Refuses first |
+|---|---|---|---|---|---|
+| Base Qwen3-14B | 6/175 = 3.4% | [1.6, 7.3] | 21.5% | 2.12 | 67% |
+| T1 | 6/175 = 3.4% | [1.6, 7.3] | 23.7% | 2.09 | 71% |
+| **T2 corrected** | **9/175 = 5.1%** | [2.7, 9.5] | 30.8% | 1.47 | 79% |
+| T3 corrected | 0/175 | [0.0, 2.1] | 24.0% | 1.04 | 88% |
+| Single-stage | **0/175** | [0.0, 2.1] | 21.5% | 1.08 | 88% |
+
+single-stage − base on must-write: **−3.4% [−7.3, −0.6]**, excluding zero.
+The training made it significantly worse than the model it started from.
+
+## What this eliminates
+
+The single-stage run was designed to remove the chain-depth confound that
+survived the T3 diagnosis, and it removes it conclusively. This model had:
+
+- **no curriculum and no chaining** — one fine-tune, directly from base
+- **90% of its examples ending in a completed write**, 10% in a refusal
+- **mean 7.5 turns per example**, against the 1.08 steps it produces
+- 422 examples, more than the 136 that produced the best checkpoint
+
+and it collapsed to the same profile as every other trained arm: one action,
+88% of them a refusal, zero policy reads, zero completed writes. Curriculum
+position, chain depth and stage composition are now all excluded. **Something
+about supervised fine-tuning on this corpus reliably destroys write ability,
+and it is not the curriculum.**
+
+## The teacher has the prior too
+
+Recorded during generation and pointed at the same conclusion: on 338 draws
+where the entity exists, the evidence is present, the amount is under every
+threshold and the information is complete — nothing to escalate about and
+nothing to clarify — **Sonnet refused on 21%** (72 of 338: 56 escalate, 16
+abstain). Overall acceptance under the strict write-completion criterion was
+43%.
+
+That bounds the whole approach. A corpus distilled from a teacher that
+declines a fifth of the unobstructed cases is not a clean signal for "do the
+work", and rejection sampling only removes those traces — it cannot remove
+whatever disposition produced them from the traces it keeps.
+
+## Attempt 2 was skipped, per the pre-agreed rule
+
+The rule was: run attempt 2 only if must-write *moved but landed short*, and
+skip it if the first attempt produced no movement, because that means the
+signal is absent rather than weak. must-write did not move toward the target;
+it went to zero and the difference from base excludes zero in the wrong
+direction. Doubling the corpus tests the dose of something that has no
+demonstrated effect.
+
+## Standing result
+
+**Four training attempts. Two collapse mechanisms identified — one a data
+defect in stage assignment, now fixed and confirmed fixed; one unexplained and
+robust to every structural fix tried. A 14B that refuses on 67% of its first
+actions untrained, and that every one of those attempts made refuse more, not
+less: 67% → 71% → 79% → 88% → 88%.**
+
+The shipped checkpoint remains **T2 corrected**, at 9/175 must-write and 30.8%
+success — the only arm that beats the untrained base on the primary metric.

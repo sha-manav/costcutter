@@ -1,0 +1,6 @@
+{
+ "job": "ft-1d5b95b8-9ce4",
+ "model": "manavs@stanford.edu/Qwen3-14B-erpbench-single-f2937eee",
+ "examples": 422,
+ "note": "single stage from Qwen/Qwen3-14B, no curriculum"
+}

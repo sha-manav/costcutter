@@ -1,0 +1,13 @@
+PHASE 1 ATTEMPT 1 — single-stage SFT, 422 examples, 90% write-ending.
+Primary metric is must-write. Success is secondary and untrustworthy by
+our own masking finding.
+
+  arm                MUST-WRITE          95% CI   success  steps  refuse 1st
+  base Qwen3-14B      6/175 = 3.4%  [ 1.6,  7.3]     21.5%   2.12         67%
+  T1                  6/175 = 3.4%  [ 1.6,  7.3]     23.7%   2.09         71%
+  T2 corrected        9/175 = 5.1%  [ 2.7,  9.5]     30.8%   1.47         79%
+  T3 corrected        0/175 = 0.0%  [ 0.0,  2.1]     24.0%   1.04         88%
+  single-stage        0/175 = 0.0%  [ 0.0,  2.1]     21.5%   1.08         88%
+
+  single-stage - base on must-write: -3.4%  [-7.3, -0.6]
+  single-stage - T2 corrected:       -5.1%  [-9.5, -1.9]

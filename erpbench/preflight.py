@@ -31,14 +31,18 @@ LEDGER = ARTIFACTS / "spend_ledger.jsonl"
 # `firm_c_blind` is unchanged and remains locked: the blind pass is one-shot
 # and unrepeatable, so its reserve may not be borrowed against.
 BUDGET_LINES: dict[str, float] = {
-    "calibration_gate": 2.0,       # done, $1.01
+    "calibration_gate": 1.1,       # done, $1.01
     "api_anchors": 10.0,           # $3.92; the rest funds the Pareto anchors
-    "teacher_traces": 22.0,        # Round 0, done at $21.54
-    "write_drive": 10.0,           # phase 1: the corpus aimed at refusal
-    "adaptation_sweep": 5.0,
+    "teacher_traces": 21.6,        # Round 0, done at $21.54
+    "write_drive": 16.0,           # phase 1: the corpus aimed at refusal
+    # Both of these run a local checkpoint on rented hardware, so their real
+    # cost is the imputed commercial rate on a few hundred rows -- cents, not
+    # dollars. They were sized when the plan was to buy the rollouts. The
+    # money is better spent on the corpus that is actually short.
+    "adaptation_sweep": 2.0,
     "firm_c_blind": 15.0,          # locked; may not be borrowed against
-    "final_pareto": 4.0,
-    "contingency": 17.0,           # $16.22 spent on the top-up and re-runs
+    "final_pareto": 2.0,
+    "contingency": 17.0,           # $16.31 spent on the top-up and re-runs
 }
 LOCKED_LINES = frozenset({"firm_c_blind"})
 

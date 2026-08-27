@@ -34,17 +34,28 @@ cal = json.loads(pathlib.Path("artifacts/calibration_gate_decision.json").read_t
 print(f"    week-1 fallback order: {cal['fallback_order']}")
 PY
 
-step "4/5  ERPNext (Docker required; ~10 min on first run)"
+step "4/5  ERPNext (optional; Docker required, ~10 min on first run)"
+# Deliberately not fatal. Verifying the published numbers needs steps 1-3 and
+# 5, none of which touch Docker; standing up ERPNext is only needed to run
+# *new* rollouts. Letting a Docker failure abort the script would mean a
+# reader without Docker never reaches the figure rebuild, which is the step
+# that actually demonstrates reproducibility.
+erpnext_ok=0
 if docker info >/dev/null 2>&1; then
-  bash infra/setup_docker.sh
-  # shellcheck disable=SC1091
-  source infra/env.docker.sh
-  .venv/bin/python scripts/build_firm_seeds_docker.py
-  .venv/bin/python scripts/provision_docker_sites.py --start 1 --count 6
-  .venv/bin/python -m erpbench.preflight --check-adapter
+  if bash infra/setup_docker.sh \
+     && source infra/env.docker.sh \
+     && .venv/bin/python scripts/build_firm_seeds_docker.py \
+     && .venv/bin/python scripts/provision_docker_sites.py --start 1 --count 6 \
+     && .venv/bin/python -m erpbench.preflight --check-adapter; then
+    erpnext_ok=1
+  else
+    echo "    ERPNext setup did not complete. This does not affect steps 1-3"
+    echo "    or 5; it only means you cannot run new rollouts yet."
+  fi
 else
-  echo "    Docker is not available; skipping. Steps 1-3 and 5 still verify"
-  echo "    the code, the frozen splits and the recorded results."
+  echo "    Docker is not available; skipping."
+  echo "    Steps 1-3 and 5 still verify the code, the frozen splits, and"
+  echo "    that every published figure rebuilds from the committed rows."
 fi
 
 step "5/5  Regenerate every figure from the committed rows"
@@ -59,7 +70,8 @@ Verified. The figures in artifacts/charts/ were just rebuilt from the row
 files in this repository -- if they render, the published numbers are
 reproducible from committed data without spending anything.
 
-To run the benchmark itself (this costs money and needs a key):
+To run the benchmark itself you need step 4 to have succeeded, plus a key.
+It costs money:
 
   export OPENROUTER_API_KEY=...
   bash scripts/run_gate_pool.sh 6 --split evaluation \

@@ -54,8 +54,8 @@ one did. "Anything not enumerated" counts as unexpected, not as
 
 **The same instruction has different correct answers at different firms.**
 
-> *"Set up an $8,000 order for Meridian Holdings — three units of the standard
-> package."*
+> *"Set up an $8,000 order for Thornbury Cement — three units of the standard
+> package."* — a customer **none of the three firms has on file.**
 >
 > | Firm | Correct outcome |
 > |---|---|

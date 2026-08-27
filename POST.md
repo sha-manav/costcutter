@@ -258,9 +258,9 @@ for the same model — never at zero.
 
 | Model | n | USD/task | All-pass | Completed writes |
 |---|---|---|---|---|
-| Sonnet 5 | 44 | $0.03757 | 75.0% | 54.5% |
-| Opus 5 | 34 | $0.03729 | 61.8% | 41.2% |
-| Haiku 4.5 | 67 | $0.00863 | 46.3% | 25.0% |
+| Sonnet 5 | 139 | $0.03965 | 69.1% | 47.3% |
+| Opus 5 | 90 | $0.04290 | 62.2% | 45.8% |
+| Haiku 4.5 | 171 | $0.00841 | 46.2% | 19.8% |
 | Llama 3.3 70B | 77 | $0.00210 | 37.7% | 23.3% |
 | Qwen3-32B | 75 | $0.00116 | 42.7% | 19.5% |
 | Phi-4 | 67 | $0.00092 | 20.9% | 8.3% |
@@ -278,7 +278,7 @@ while costing less. It is above the baseline frontier in both panels.
 real number and it is a genuine improvement. Completed writes 2.3% → 4.0% is a
 movement of under two points on n=175, and should be read as what it is:
 small, and nowhere near enough to make the model useful for ERP writes. Sonnet
-is thirteen times better on that metric at 235× the price.
+is twelve times better on that metric at 248x the price.
 
 **Both panels always travel together.** Publishing the all-pass panel alone
 would repeat the exact error §3 is about.
@@ -317,11 +317,24 @@ discount at our prompt length. The cheapest model has the highest floor.
 **Sampled versus greedy.** Claude Sonnet 5 and Opus 5 have deprecated *both*
 `temperature` and `top_k` — verified against the API directly, HTTP 400 on
 each — so those two arms cannot be decoded deterministically at all while
-every other arm is greedy. This is a property of the provider, not a choice,
-and it is the weakest link in Figure 4.
+every other arm is greedy. This is a property of the provider, not a choice.
 
-**Partial arms.** Haiku, Sonnet, Opus and Phi-4 did not reach full coverage;
-per-model n is printed on every table and figure rather than averaged away.
+We could not remove it, so we measured it. Both arms were re-run at twice the
+trials and the first-pass estimates were compared against the larger sample:
+
+| Model | First pass | Same rows, larger sample | All rows |
+|---|---|---|---|
+| Sonnet 5 | 75.0% (n=44) | 77.0% (n=61) | 69.1% [61.0, 76.1] (n=139) |
+| Opus 5 | 61.8% (n=34) | 63.0% (n=46) | 62.2% [51.9, 71.5] (n=90) |
+
+Neither first-pass estimate falls outside the interval from the larger
+sample, and neither model changes position on either Pareto panel. Sampling
+noise is not what is holding these points where they are. It remains the
+weakest link in Figure 4, and it is now a bounded one.
+
+**Partial arms.** Phi-4 reached 68 of 78 rows; the remainder are recorded
+errors rather than gaps. Per-model n is printed on every table and figure
+rather than averaged away.
 
 **Intelligence-per-token is part efficiency, part artefact.** Our checkpoint
 leads that metric, and it is brief because it refuses. Some of the assertions

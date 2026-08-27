@@ -63,30 +63,30 @@
   "serving": "OpenRouter"
  },
  "claude-haiku-4-5-20251001": {
-  "n": 67,
-  "all_pass": 0.4626865671641791,
-  "must_write": 0.25,
-  "must_write_n": 36,
-  "usd_per_task": 0.008632044776119405,
-  "assertions_per_100k": 12.321365864477297,
+  "n": 171,
+  "all_pass": 0.4619883040935672,
+  "must_write": 0.1978021978021978,
+  "must_write_n": 91,
+  "usd_per_task": 0.008412099415204686,
+  "assertions_per_100k": 12.46564723539187,
   "serving": "Anthropic direct"
  },
  "claude-sonnet-5": {
-  "n": 44,
-  "all_pass": 0.75,
-  "must_write": 0.5454545454545454,
-  "must_write_n": 22,
-  "usd_per_task": 0.03757015909090908,
-  "assertions_per_100k": 15.356683748913268,
+  "n": 139,
+  "all_pass": 0.6906474820143885,
+  "must_write": 0.47297297297297297,
+  "must_write_n": 74,
+  "usd_per_task": 0.039647093525179866,
+  "assertions_per_100k": 13.465283458695605,
   "serving": "Anthropic direct"
  },
  "claude-opus-5": {
-  "n": 34,
-  "all_pass": 0.6176470588235294,
-  "must_write": 0.4117647058823529,
-  "must_write_n": 17,
-  "usd_per_task": 0.037290647058823526,
-  "assertions_per_100k": 32.514509599908955,
+  "n": 90,
+  "all_pass": 0.6222222222222222,
+  "must_write": 0.4583333333333333,
+  "must_write_n": 48,
+  "usd_per_task": 0.042904455555555554,
+  "assertions_per_100k": 29.715685489184782,
   "serving": "Anthropic direct"
  }
 }

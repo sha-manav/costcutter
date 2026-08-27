@@ -374,6 +374,21 @@ def _is_fatal_provider_error(exc: Exception) -> str | None:
     return None
 
 
+# Models that refuse greedy decoding. Measurement wants temperature=0 so a
+# rollout is reproducible from its seed; these accept only 1.0, so rows they
+# produce are sampled and say so in `temperature`. Mixing the two in one
+# figure is a real limitation and is disclosed rather than hidden -- silently
+# sampling one arm of a comparison is how a Pareto acquires a point that
+# cannot be reproduced.
+# Determined by what each provider actually rejected, not by family: Haiku 4.5
+# completed 64 rows at temperature=0 before Sonnet 5 refused it.
+SAMPLING_ONLY = ("claude-sonnet-5", "claude-opus-5")
+
+
+def temperature_for(model: str, requested: float) -> float:
+    return 1.0 if any(m in model for m in SAMPLING_ONLY) else requested
+
+
 def run_one(job: Job, adapter: SystemAdapter, client: Any, cfg: Any,
             max_steps: int = MAX_STEPS,
             row_deadline_s: float = ROW_DEADLINE_S,
@@ -460,7 +475,9 @@ def run_one(job: Job, adapter: SystemAdapter, client: Any, cfg: Any,
             # temperature=1 -- and teacher generation wants sampling anyway,
             # since diversity is the point and rejection sampling handles
             # quality. So it is a parameter rather than a constant.
-            resp = client.complete(messages, temperature=temperature,
+            resp = client.complete(messages,
+                                   temperature=temperature_for(job.model,
+                                                               temperature),
                                    max_tokens=1200)
         except RequestDeadlineExceeded as exc:
             # BaseException, so it is not caught by the generic handler below

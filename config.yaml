@@ -73,6 +73,26 @@ costs:
   # and a cheaper cached rate here would bank a discount that does not exist
   # -- the reverse of the INSTRUCTIONS §4 caching finding, and just as wrong.
   # Re-check before the run; OpenRouter reprices without notice.
+  openrouter/meta-llama/llama-3.3-70b-instruct:
+    input: 0.710
+    cached_input: 0.710
+    output: 0.710
+  openrouter/mistralai/mistral-small-24b-instruct-2501:
+    input: 0.050
+    cached_input: 0.050
+    output: 0.080
+  openrouter/google/gemma-3-27b-it:
+    input: 0.080
+    cached_input: 0.080
+    output: 0.450
+  openrouter/deepseek/deepseek-chat:
+    input: 0.257
+    cached_input: 0.257
+    output: 1.029
+  openrouter/microsoft/phi-4:
+    input: 0.070
+    cached_input: 0.070
+    output: 0.140
   openrouter/qwen/qwen3-8b:
     input: 0.117
     cached_input: 0.117

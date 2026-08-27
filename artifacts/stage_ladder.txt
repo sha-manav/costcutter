@@ -1,0 +1,11 @@
+CURRICULUM STAGE LADDER — corrected harness, pre-registered thirteen,
+firms A+B, 12 trials, one vLLM on one H100. n=312 per stage.
+
+  stage                  success         95% CI   must-write  steps  refuse 1st  reads policy
+  base Qwen3-14B     67/312 = 21.5%  [17.3, 26.4]       6/175    2.12         67%            1%
+  T1                 74/312 = 23.7%  [19.3, 28.7]       6/175    2.09         71%            6%
+  T2                 83/312 = 26.6%  [22.0, 31.8]       0/175    1.04         88%            0%
+  T3                 88/312 = 28.2%  [23.5, 33.4]       0/175    1.04         88%            0%
+
+  'must-write' = instances whose envelope requires a database write.
+  'refuse 1st' = escalate or abstain as the first action.

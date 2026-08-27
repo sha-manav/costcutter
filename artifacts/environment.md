@@ -1243,12 +1243,50 @@ schema-valid refusal token sequence and stops -- a low-entropy degenerate
 output, which is the ordinary signature of overfitting a small corpus, except
 that the specific output it collapsed onto never appears in that corpus.
 
-Pending, and the right next experiment: evaluate the T1 and T2 checkpoints on
-the same 312 rows. If refusal appears already at T1 and deepens, the fault is
-in the training configuration and is visible at the first stage; if T1 and T2
-behave and only T3 collapses, it is the chaining. That is a diagnosis of the
-pipeline, and until it is run, no claim should be made in either direction
-about whether curriculum fine-tuning helps here.
+### The stage ladder locates it: the model stops acting at T2
+
+T1 and T2 were re-downloaded and evaluated on the same 312 rows, same vLLM,
+same box. This was the experiment that was pending above; it has now run.
+
+| Stage | Success | 95% CI | Tasks needing a write | Steps | Refuses first | Reads policy first |
+|---|---|---|---|---|---|---|
+| Base Qwen3-14B | 67/312 = 21.5% | [17.3, 26.4] | 6/175 | 2.12 | 67% | 1% |
+| T1 | 74/312 = 23.7% | [19.3, 28.7] | 6/175 | 2.09 | 71% | 6% |
+| T2 | 83/312 = 26.6% | [22.0, 31.8] | **0/175** | **1.04** | 88% | 0% |
+| T3 | 88/312 = 28.2% | [23.5, 33.4] | 0/175 | 1.04 | 88% | 0% |
+
+**T1 is intact. The collapse is entirely between T1 and T2, and T3 adds
+nothing behavioural to it.** T1 holds the base model's must-write rate
+exactly (6/175) and its trajectory length (2.09 vs 2.12), and is the only
+stage that moves policy-reading in the intended direction, 1% → 6%. At T2
+trajectory length halves to a single action, policy-reading goes to zero, and
+must-write success goes to zero and stays there.
+
+So this is not chained degradation accumulating over three fine-tunes. One
+stage transition destroys the behaviour, and the stage that does it is the
+one whose data is `execution` -- ordinary CRUD, child tables, document
+linkage, the 152 examples with median 7 turns. T3, the policy stage, inherits
+a model that has already stopped acting and merely scores higher on a split
+where not acting is often correct.
+
+Two things this pins down that the T3 numbers alone could not:
+
+- **Refusal is not injected by training.** The untrained base model already
+  opens with `escalate` or `abstain` 67% of the time. Fine-tuning amplified a
+  prior the base model arrived with -- 67% → 71% → 88% -- rather than
+  teaching a behaviour absent from the corpus. That is a materially different
+  claim from the one made earlier in this section, and it is the one the
+  ladder supports.
+- **Every headline number improves while the model gets worse.** Success
+  climbs monotonically 21.5 → 23.7 → 26.6 → 28.2, and the interval for
+  T3 − base excludes zero. On the same rows, the model's ability to complete
+  a task requiring a write goes 6 → 6 → 0 → 0. A reader shown only the
+  success column would conclude the curriculum worked at every stage.
+
+The proximate cause inside the T2 fine-tune -- learning rate, epochs on 152
+examples, or the `from_checkpoint` chaining step itself -- is not identified,
+and identifying it needs the training configuration rather than more
+evaluation. What is established is where to look.
 
 **A separate defect found while preparing that run:** both local checkpoint
 archives are corrupt. `zstd -t` reports "premature end" on `t1.tar.zst` and

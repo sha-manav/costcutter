@@ -1637,3 +1637,69 @@ Both in `FIRM_C_FROZEN.md`, both corrected in place:
   ever been evaluated on C, no C data is in any training corpus, no C data
   informed method selection — and a test now enforces the first clause by
   scanning every result file.
+
+
+---
+
+# Phase 3 — the quality/cost frontier (2026-08-27)
+
+Ten models, pre-registered thirteen templates, firms A+B, corrected harness,
+serving path recorded per model. Local serving priced by imputation at the
+commercial rate for the same model, never at zero.
+
+| Model | n | USD/task | All-pass | must-write | Serving |
+|---|---|---|---|---|---|
+| Sonnet 5 | 44 | $0.03757 | 75.0% | 54.5% | Anthropic direct |
+| Opus 5 | 34 | $0.03729 | 61.8% | 41.2% | Anthropic direct |
+| Haiku 4.5 | 67 | $0.00863 | 46.3% | 25.0% | Anthropic direct |
+| Llama 3.3 70B | 77 | $0.00210 | 37.7% | 23.3% | OpenRouter |
+| Qwen3-32B | 75 | $0.00116 | 42.7% | 19.5% | OpenRouter |
+| Phi-4 | 67 | $0.00092 | 20.9% | 8.3% | OpenRouter |
+| Gemma 3 27B | 73 | $0.00047 | 28.8% | 7.1% | OpenRouter |
+| Mistral Small 24B | 77 | $0.00027 | 26.0% | 2.3% | OpenRouter |
+| Qwen3-14B base | 312 | $0.00024 | 21.5% | 2.3% | local vLLM (imputed) |
+| **ours (T2-corrected)** | 312 | **$0.00016** | 30.8% | 4.0% | local vLLM (imputed) |
+
+## The headline, stated as narrowly as it deserves
+
+**The shipped checkpoint is above the baseline frontier in both panels.** It
+is the cheapest arm measured, and at that price nothing else offers more —
+it beats Mistral Small on all-pass (30.8% vs 26.0%) and on must-write (4.0%
+vs 2.3%) while costing less. No accuracy claim is needed or made: Sonnet is
+more than twice as good on all-pass and thirteen times better on must-write,
+at 235× the price.
+
+**And the right-hand panel is why the left one cannot be shown alone.** On
+all-pass our checkpoint reads as a competent cheap model. On must-write it
+sits at 4.0% against Sonnet's 54.5%, in the bottom corner beside the
+untrained base. Both panels are emitted as a single image for that reason.
+
+The same caution applies to intelligence-per-token, where our checkpoint
+leads at 60.2 assertions per 100k tokens against Llama 70B's 44.4. That
+metric rewards brevity, and this checkpoint is brief because it refuses —
+1.47 actions per task against base's 2.12 — so part of the lead is efficiency
+and part is the refusal artefact. The figure says so on its face.
+
+## Cache floors, reproducing the carried-forward finding
+
+`cached_input_tokens` came back **zero for Haiku and Sonnet** and the reason
+is INSTRUCTIONS §4, not a measurement fault. Our system prefix is 2,443
+characters — roughly 610 tokens. The floors are Opus 512, Sonnet 1024, Haiku
+4096. So at this prompt length **only Opus can receive a cache discount**, and
+the two cheaper Claude models are structurally excluded from it. Exactly the
+shape the finding predicts: the cheapest model has the highest floor, so part
+of a large model's apparent cost advantage is a discount the small model
+cannot get. The cost axis above is cache-aware and reflects this.
+
+## What is partial, said plainly
+
+- **Anthropic anchors are incomplete**: Haiku 67/78, Sonnet 48/78, Opus
+  39/78, against a $10 line that reached $8.09. Sonnet also halted twice on
+  three consecutive empty completions.
+- **Phi-4 is 68/78**; one shard wedged and was stopped rather than waited out.
+- **Sonnet 5 and Opus 5 are sampled, everything else is greedy.** Both reject
+  `temperature=0`, which halted four shards before it was handled. Putting a
+  sampled arm and a greedy arm on one axis is a real limitation of this
+  figure and is disclosed rather than absorbed.
+- Firms A and B only. Firm C is reported separately and is not on this
+  figure.

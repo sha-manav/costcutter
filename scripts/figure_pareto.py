@@ -115,28 +115,44 @@ def arms() -> dict[str, dict]:
     return out
 
 
-def _frontier(ax, pts):
-    """Upper-left staircase through the baseline points only.
+def _nondominated(pts):
+    """Points no other point beats on both axes: cheaper *and* better.
 
-    Ours and base are not in it: the frontier is what the field already
-    offers, and the whole question is which side of it we land on.
+    Computed over the baselines only. The frontier is what the field already
+    offers at each price, and the question the figure exists to answer is
+    which side of it our checkpoint lands on -- so including our own points
+    in the frontier would beg it.
     """
-    pts = sorted(pts, key=lambda p: p[0])
-    best, xs, ys = -1.0, [], []
-    for x, y in reversed(pts):            # cheapest last
-        if y > best:
-            best = y
-            xs.append(x)
-            ys.append(y)
-    if len(xs) >= 2:
-        ax.step(xs, ys, where="post", color="0.6", lw=1.0, zorder=1,
+    keep = []
+    for x, y in pts:
+        if not any(a <= x and b >= y and (a, b) != (x, y) for a, b in pts):
+            keep.append((x, y))
+    return sorted(keep, key=lambda p: p[0])
+
+
+def _frontier(ax, pts):
+    front = _nondominated(pts)
+    if len(front) >= 2:
+        ax.plot([p[0] for p in front], [p[1] for p in front],
+                color="0.6", lw=1.1, ls="-", zorder=1, marker="",
                 label="frontier (baselines)")
+    return front
 
 
 def panel(ax, data, key, title, ylabel):
     baselines = [(v["usd_per_task"], v[key]) for m, v in data.items()
                  if m not in (OURS, BASE)]
-    _frontier(ax, baselines)
+    front = _frontier(ax, baselines)
+    # Does our point sit above the line the baselines trace? Reported in the
+    # figure rather than asserted in prose.
+    if OURS in data:
+        x, y = data[OURS]["usd_per_task"], data[OURS][key]
+        dominated = any(a <= x and b >= y for a, b in baselines)
+        ax.annotate("above the frontier" if not dominated
+                    else "below the frontier",
+                    (0.30, 0.06), xycoords="axes fraction", fontsize=8.5,
+                    style="italic", ha="left",
+                    color="black" if not dominated else "0.45")
     for model, v in data.items():
         x, y = v["usd_per_task"], v[key]
         if model == OURS:
@@ -164,7 +180,7 @@ def panel(ax, data, key, title, ylabel):
     ax.set_ylabel(ylabel)
     ax.set_title(title, fontsize=10, loc="left")
     ax.grid(alpha=0.25, lw=0.5)
-    ax.set_ylim(bottom=0)
+    ax.set_ylim(bottom=0, top=max(v[key] for v in data.values()) * 1.22)
 
 
 def main() -> int:

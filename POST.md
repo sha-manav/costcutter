@@ -345,9 +345,9 @@ not at Firm A. We report both.
 
 ---
 
-## 7. Appendix: eight instrument defects
+## 7. Appendix: nine instrument defects
 
-Six in the environment, two in the diagnostic layer. Every one shares a shape:
+Seven in the environment, two in the diagnostic layer. Every one shares a shape:
 **nothing crashed, no test failed, and the artifact simply stopped describing
 what it claimed to describe.** Four would have produced a publishable number.
 
@@ -363,8 +363,9 @@ Full accounts in [`artifacts/appendix_instrument_defects.md`](artifacts/appendix
 | 6 | **diagnostic** | A substring search against escaped JSON that could never match, returning zero for all three stages |
 | 7 | environment | The Firm C freeze verified less than its document claimed |
 | 8 | **diagnostic** | `adaptation_level` — a field with no mechanism, hard-coded in `run_id` |
+| 9 | environment | The gate decision file, overwritten by every later run |
 
-The environment/diagnostic distinction is worth keeping. Defects 1–5 and 7
+The environment/diagnostic distinction is worth keeping. Defects 1-5, 7 and 9
 silently changed what a number meant. Defects 6 and 8 were in the apparatus
 used to *investigate* the instrument — and that category has no fingerprints,
 no invariants and no review. **This project was misled further by one instance

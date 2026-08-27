@@ -1318,8 +1318,25 @@ def main(argv: list[str] | None = None) -> int:
     commit_rows(args.out, len(rows), "halted" if halt_reason else "complete")
     rows = latest_rows(rows)
     decision = decide(rows, models)
-    (ARTIFACTS / "calibration_gate_decision.json").write_text(
-        json.dumps(decision, indent=2) + "\n")
+    # Named after the run rather than written to one canonical path. Every
+    # invocation of this module wrote `calibration_gate_decision.json`, so the
+    # week-1 gate decision -- the artifact recording which base model the
+    # precommitted fallback order selected -- was silently replaced first by a
+    # Pareto anchor run and then by a phi-4 completion. Nothing errored and the
+    # file still parsed; it simply stopped being the decision it was named for.
+    # Same shape as instrument defect #3, which was a merge overwriting a
+    # published baseline, and the fix is the same: archive, never overwrite.
+    stem = ("calibration_gate_decision"
+            if args.split == "calibration" else
+            f"gate_decision_{args.split}_{args.line_item}")
+    dest = ARTIFACTS / f"{stem}.json"
+    if dest.exists() and json.loads(dest.read_text()).get("fallback_order") \
+            != decision.get("fallback_order"):
+        n = 1
+        while (alt := ARTIFACTS / f"{stem}_{n}.json").exists():
+            n += 1
+        dest = alt
+    dest.write_text(json.dumps(decision, indent=2) + "\n")
 
     abandoned = [r for r in rows
                  if "deadline" in (r.get("error") or "")]

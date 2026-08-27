@@ -1,4 +1,4 @@
-# Appendix: eight instrument defects — six in the environment, two in the ruler
+# Appendix: nine instrument defects — seven in the environment, two in the ruler
 
 Every defect below shares one shape. **Nothing crashed. No test failed. The
 artifact simply stopped describing what it claimed to describe.** Each was
@@ -243,8 +243,40 @@ that could not match, and a field with no mechanism. That category has no
 fingerprints, no invariants and no review, and both instances were found by
 looking at something else.
 
-**Running tally: six defects in the environment (#1-#5, #7), two in the
-diagnostic layer (#6, #8).**
+**Running tally: seven defects in the environment (#1-#5, #7, #9), two in
+the diagnostic layer (#6, #8).**
+
+## #9 — the gate decision file, overwritten by every later run
+
+Found during the final push, by reading a `git diff` that showed 184 deleted
+lines in a file nothing should have touched.
+
+`gate.py` wrote its decision to one fixed path, `calibration_gate_decision.json`,
+on **every** invocation. That path holds the week-1 artifact recording which
+base model the precommitted fallback order selected — the answer to "why
+Qwen3-14B and not 8B", which SPEC §8 says is impossible to reconstruct later.
+
+It had been overwritten twice: first by a Pareto anchor run, whose
+`fallback_order` was `[haiku, sonnet, opus]`, and then by a phi-4 completion,
+whose order was `[phi-4]` and whose verdict was "no model cleared". Both are
+valid decision records for the run that produced them. Neither is the
+calibration gate, and the file is named for the calibration gate.
+
+Nothing errored. The file still parsed, still validated, still had the right
+shape — it had simply stopped being the decision it was named for, and the
+only reason it was caught is that `artifacts/` is force-added to git, so an
+unexpected modification showed up in a diff.
+
+**Same shape as #3**, which was a merge overwriting a published baseline, and
+the same fix: decision files are now named after the run that produced them,
+and a write that would change an existing file's `fallback_order` takes a
+numbered suffix instead. The week-1 decision was restored from history, and
+both overwriting versions are kept alongside it rather than discarded.
+
+This is the second time a published artifact in this project was silently
+replaced by a later run of the same tool. Once is a bug; twice is a category,
+and the category is **tools that write to a fixed path regardless of what they
+were asked to do.**
 
 ### Adjacent, unnumbered: truncated checkpoint downloads reported as success
 
@@ -264,7 +296,7 @@ it was caught before use.
 
 ## What the set implies for methodology
 
-Eight defects, and **not one announced itself**. Four of them would have
+Nine defects, and **not one announced itself**. Four of them would have
 produced a publishable number: a harness comparison with the answer leaked
 into one arm, 270 simulated rows presented as model output, a baseline quietly
 overwritten by a later run, and an agent penalised for its ERP's internal

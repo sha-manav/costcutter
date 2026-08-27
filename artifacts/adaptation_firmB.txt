@@ -1,0 +1,8 @@
+FIRM B ADAPTATION SWEEP — shipped checkpoint (T2 corrected),
+pre-registered thirteen, Firm B, 3 trials, corrected harness.
+
+   corrections      success          95% CI  must-write  steps  refuse 1st
+             0   15/39 = 38.5%  [24.9, 54.1]      3/17    1.31         85%
+             1   15/39 = 38.5%  [24.9, 54.1]      1/17    1.26         87%
+             3   13/39 = 33.3%  [20.6, 49.0]      0/17    1.77         72%
+             8   19/39 = 48.7%  [33.9, 63.8]      0/17    2.36         26%

@@ -1541,3 +1541,99 @@ less: 67% → 71% → 79% → 88% → 88%.**
 
 The shipped checkpoint remains **T2 corrected**, at 9/175 must-write and 30.8%
 success — the only arm that beats the untrained base on the primary metric.
+
+
+---
+
+# Phase 2 — adaptation, and the Firm C blind pass (2026-08-27)
+
+Shipped checkpoint: **T2 corrected**. Corrections are derived from the firm
+record by one construction that runs for every firm, in a fixed order, and
+levels nest as prefixes so 3 is 1 plus two more. They were not authored per
+firm after watching a model fail, which would make the curve a measure of how
+well they were written.
+
+## Firm B — corrections move the refusal prior. Training never did.
+
+Thirteen pre-registered templates, Firm B, 3 trials, n=39 per level.
+
+| Corrections | Success | 95% CI | must-write | Steps | Refuses first |
+|---|---|---|---|---|---|
+| 0 | 38.5% | [24.9, 54.1] | 3/17 | 1.31 | **85%** |
+| 1 | 38.5% | [24.9, 54.1] | 1/17 | 1.26 | 87% |
+| 3 | 33.3% | [20.6, 49.0] | 0/17 | 1.77 | 72% |
+| 8 | 48.7% | [33.9, 63.8] | 0/17 | 2.36 | **26%** |
+
+**Eight sentences in the prompt cut first-action refusal from 85% to 26% and
+nearly doubled trajectory length.** Four training runs and roughly a thousand
+corrective examples moved that number the wrong way at every step — 67% → 71%
+→ 79% → 88% → 88%. In-context instruction moved it further in one prompt than
+fine-tuning moved it in four attempts.
+
+The model acts more; it does not act correctly. must-write does not improve
+and is 0/17 at the levels where refusal collapses. So corrections buy
+*engagement*, not competence, on n=17 — the model stops declining and starts
+attempting, and the attempts are wrong.
+
+## Firm C — the blind pass
+
+Frozen, fingerprint verified, first and only contact for a trained
+checkpoint. n=39 per level, $0.02 of the $15 reserve.
+
+| Corrections | Success | 95% CI | Unsafe writes | Steps | Refuses first |
+|---|---|---|---|---|---|
+| 0 | 64.1% | [48.4, 77.3] | 0.0% | 1.38 | 67% |
+| 1 | 76.9% | [61.7, 87.4] | 5.1% | 1.36 | 77% |
+| 3 | **79.5%** | [64.5, 89.2] | 0.0% | 1.13 | 92% |
+| 8 | 74.4% | [58.9, 85.4] | 0.0% | 1.97 | 49% |
+
+**Zero successful submits across all 156 rows**, at a firm that forbids
+submitting under any circumstance. Unsafe writes at or near zero throughout.
+
+Read naively this is the best result in the project: transfer to an unseen
+firm at 80% success with no policy violations. **It is not, and our own
+masking finding is what says so.**
+
+| Corrections | Tasks needing a write | Tasks needing none |
+|---|---|---|
+| 0 | **0/3** | 25/36 = 69.4% |
+| 1 | **0/3** | 30/36 = 83.3% |
+| 3 | **0/3** | 31/36 = 86.1% |
+| 8 | **0/3** | 29/36 = 80.6% |
+
+**36 of 39 Firm C instances have "write nothing" as the correct outcome**, and
+the model completes 0 of the 3 that do not, at every adaptation level. Firm C
+is the strictest firm by construction — draft-only, a $1,000 threshold,
+abstain on a missing record — which is exactly the firm where a model that
+refuses everything scores well.
+
+So the honest statement of the blind result is: **a checkpoint whose dominant
+behaviour is refusal was evaluated on the firm where refusal is most often
+correct, and scored 64–80%.** The zero unsafe writes and zero submits are
+real and worth reporting, but they are properties of a model that barely
+writes, not evidence that it learned Firm C's policy. This is the
+success-masking finding reproducing on the blind set, which is the strongest
+demonstration of it we have: had we run only Firm C and reported only
+success, we would have published 80% transfer to an unseen firm for a model
+that cannot complete a single Firm C task requiring a write.
+
+## Two defects found while verifying the freeze
+
+Both in `FIRM_C_FROZEN.md`, both corrected in place:
+
+- The document claimed its fingerprint covers "the policy text **and** the
+  seeded world". It covers the policy and the entity set, not the SQL image —
+  and the image had been rebuilt once, 8,297,696 → 7,856,385 bytes, during the
+  move to containerised ERPNext. Policy sha and entity set are identical
+  across that change and all three firms moved together, so it is a change of
+  substrate rather than of firm, and it predates any model touching C. It
+  passed silently, which is the part that mattered; the test now pins the
+  image to the byte count its own manifest records.
+- The document said C is "evaluated **once** in week 5". It is not: C carries
+  2,694 rows, all of them untrained base models from the week-2 baseline and
+  the calibration gate, and that is deliberate because transfer to C is
+  measured *against* a base-model baseline on C. The property the transfer
+  claim actually needs is narrower and does hold — no trained checkpoint had
+  ever been evaluated on C, no C data is in any training corpus, no C data
+  informed method selection — and a test now enforces the first clause by
+  scanning every result file.

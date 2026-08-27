@@ -107,6 +107,10 @@ costs:
     input: 0.12
     cached_input: 0.12
     output: 0.24
+  openai/erpbench-ship:
+    input: 0.12
+    cached_input: 0.12
+    output: 0.24
   openai/erpbench-single:
     input: 0.12
     cached_input: 0.12

@@ -7,16 +7,10 @@
       "model": "manavs@stanford.edu/Qwen3-14B-erpbench-t1-96a1c66b"
     },
     "T2": {
-      "file": "file-8ed29ade-34ee-48fb-85e6-de94e030fdd1",
+      "file": "file-00c52ed5-0d63-4b76-a3dd-bcfea4b0f204",
       "from": "manavs@stanford.edu/Qwen3-14B-erpbench-t1-96a1c66b",
-      "job": "ft-02bad720-878c",
-      "model": "manavs@stanford.edu/Qwen3-14B-erpbench-t2-2ed0073d"
+      "job": "ft-1b6cb831-79eb"
     },
-    "T3": {
-      "file": "file-30cfbfb4-c780-4580-b729-727f0d020172",
-      "from": "manavs@stanford.edu/Qwen3-14B-erpbench-t2-2ed0073d",
-      "job": "ft-702b8c3a-cf48",
-      "model": "manavs@stanford.edu/Qwen3-14B-erpbench-t3-5281e5da"
-    }
+    "T3": {}
   }
 }

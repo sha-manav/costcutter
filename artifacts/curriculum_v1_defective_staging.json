@@ -1,0 +1,22 @@
+{
+  "stages": {
+    "T1": {
+      "file": "file-0912208d-3c3a-4c73-bf82-5cd87ae283bc",
+      "from": "Qwen/Qwen3-14B",
+      "job": "ft-0cede64d-af24",
+      "model": "manavs@stanford.edu/Qwen3-14B-erpbench-t1-96a1c66b"
+    },
+    "T2": {
+      "file": "file-8ed29ade-34ee-48fb-85e6-de94e030fdd1",
+      "from": "manavs@stanford.edu/Qwen3-14B-erpbench-t1-96a1c66b",
+      "job": "ft-02bad720-878c",
+      "model": "manavs@stanford.edu/Qwen3-14B-erpbench-t2-2ed0073d"
+    },
+    "T3": {
+      "file": "file-30cfbfb4-c780-4580-b729-727f0d020172",
+      "from": "manavs@stanford.edu/Qwen3-14B-erpbench-t2-2ed0073d",
+      "job": "ft-702b8c3a-cf48",
+      "model": "manavs@stanford.edu/Qwen3-14B-erpbench-t3-5281e5da"
+    }
+  }
+}

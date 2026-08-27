@@ -61,3 +61,56 @@ def test_firm_c_is_fully_specified():
     assert FIRM_C.over_threshold == "abstain"
     assert FIRM_C.missing_entity == "abstain"
     assert FIRM_C.evidence_required == "Delivery Note"
+
+
+def test_firm_c_seed_image_matches_its_manifest():
+    """The database, not just the entity names.
+
+    The content fingerprint above covers the policy and the entity set. It
+    does not cover the SQL image, and FIRM_C_FROZEN.md claimed it did. The
+    image was in fact rebuilt once -- 8,297,696 to 7,856,385 bytes -- when the
+    project moved to a containerised ERPNext, and nothing failed. Semantics
+    were unchanged and all three firms moved together, so it was a change of
+    substrate; but it passed silently, which is the part worth fixing.
+    """
+    manifest = json.loads((FIRM_SEEDS / "firm_C.json").read_text())
+    image = FIRM_SEEDS / "firm_C.sql"
+    if not image.exists():          # not built on this machine
+        return
+    assert image.stat().st_size == manifest["seed_bytes"], (
+        f"firm_C.sql is {image.stat().st_size} bytes but its manifest records "
+        f"{manifest['seed_bytes']}. Rebuilding the seed is a change to the "
+        "blind set: acknowledge it in FIRM_C_FROZEN.md rather than letting the "
+        "manifest and the image drift apart.")
+
+
+def test_no_trained_checkpoint_has_seen_firm_c():
+    """The property the transfer claim actually rests on.
+
+    Firm C carries base-model rows on purpose -- transfer is measured against
+    a baseline on C. What must never happen is a *trained* checkpoint touching
+    it before the single blind pass.
+    """
+    import glob
+    import pathlib
+
+    root = pathlib.Path(__file__).resolve().parent.parent / "artifacts"
+    offenders = set()
+    for path in glob.glob(str(root / "**" / "*.jsonl"), recursive=True):
+        if "quarantine" in path or "firm_c_blind" in path:
+            continue
+        try:
+            with open(path) as fh:
+                for line in fh:
+                    if not line.strip():
+                        continue
+                    row = json.loads(line)
+                    if row.get("firm_id") == "C":
+                        model = str(row.get("model") or "")
+                        if "erpbench" in model:
+                            offenders.add((model, path))
+        except (ValueError, OSError):
+            continue
+    assert not offenders, (
+        f"trained checkpoints have Firm C rows outside the blind pass: "
+        f"{sorted(offenders)[:3]}")

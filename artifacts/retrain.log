@@ -1,0 +1,31 @@
+[T1] already trained -> manavs@stanford.edu/Qwen3-14B-erpbench-t1-96a1c66b
+Validating file: 0 lines [00:00, ? lines/s]Validating file: 136 lines [00:00, 113517.48 lines/s]
+Uploading file t2.jsonl:   0%|          | 0.00/582k [00:00<?, ?B/s]Uploading file t2.jsonl: 100%|██████████| 582k/582k [00:00<00:00, 2.28MB/s]
+[T2] uploaded t2.jsonl -> file-00c52ed5-0d63-4b76-a3dd-bcfea4b0f204
+message="train_on_inputs is not set for SFT training, it will be set to 'auto'"
+message="train_on_inputs is not set for SFT training, it will be set to 'auto'"
+[T2] job ft-1b6cb831-79eb from manavs@stanford.edu/Qwen3-14B-erpbench-t1-96a1c66b
+  [T2] pending  (0s)
+  [T2] queued  (33s)
+  [T2] running  (370s)
+  [T2] uploading  (400s)
+  [T2] compressing  (430s)
+  [T2] uploading  (460s)
+  [T2] completed  (520s)
+[T2] done -> manavs@stanford.edu/Qwen3-14B-erpbench-t2-4872e819
+Validating file: 0 lines [00:00, ? lines/s]Validating file: 462 lines [00:00, 57699.16 lines/s]
+Uploading file t3.jsonl:   0%|          | 0.00/1.94M [00:00<?, ?B/s]Uploading file t3.jsonl: 100%|██████████| 1.94M/1.94M [00:00<00:00, 6.70MB/s]
+[T3] uploaded t3.jsonl -> file-c56adf27-6f7b-4284-ba6f-11eeaf7e0476
+[T3] job ft-c75ed095-468b from manavs@stanford.edu/Qwen3-14B-erpbench-t2-4872e819
+  [T3] pending  (0s)
+  [T3] queued  (30s)
+  [T3] running  (90s)
+  [T3] compressing  (573s)
+  [T3] uploading  (604s)
+  [T3] completed  (694s)
+[T3] done -> manavs@stanford.edu/Qwen3-14B-erpbench-t3-a2f47419
+
+curriculum complete
+  T1: manavs@stanford.edu/Qwen3-14B-erpbench-t1-96a1c66b
+  T2: manavs@stanford.edu/Qwen3-14B-erpbench-t2-4872e819
+  T3: manavs@stanford.edu/Qwen3-14B-erpbench-t3-a2f47419

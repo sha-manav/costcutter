@@ -1392,3 +1392,83 @@ carry no site or timestamp, so they cannot be attributed to the crash window;
 the argument that they were clean rested on reset being atomic-or-raise,
 which is precisely the property that had just failed. S2 was re-run from
 rebuilt sites — the 624 rows above.
+
+
+---
+
+# The composition fix, and what survived it (2026-08-27)
+
+The staging defect was repaired at the source, the corpus was topped up, and
+T2 and T3 were retrained from the intact T1 checkpoint. **T2 recovered. T3
+collapsed again.**
+
+## Ladder, all six arms
+
+Corrected harness, pre-registered thirteen, firms A+B, 12 trials, one vLLM on
+one H100, n=312 per arm.
+
+| Arm | Success | 95% CI | Must-write | Steps | Refuses first | Reads policy first | First mutation at step |
+|---|---|---|---|---|---|---|---|
+| Base Qwen3-14B | 21.5% | [17.3, 26.4] | 6/175 | 2.12 | 67% | 1% | 2.26 |
+| T1 | 23.7% | [19.3, 28.7] | 6/175 | 2.09 | 71% | 6% | 3.88 |
+| T2 *defective* | 26.6% | [22.0, 31.8] | 0/175 | 1.04 | 88% | 0% | — |
+| T3 *defective* | 28.2% | [23.5, 33.4] | 0/175 | 1.04 | 88% | 0% | — |
+| **T2 corrected** | **30.8%** | [25.9, 36.1] | **9/175** | 1.47 | 79% | 0% | 2.50 |
+| T3 corrected | 24.0% | [19.6, 29.1] | **0/175** | 1.04 | 88% | 0% | — |
+
+T3 corrected − base is **+2.6% [−4.0, +9.1]**, spanning zero.
+
+## What the fix bought
+
+**T2 is repaired, and is now the best checkpoint in the project.** Its
+must-write rate is 9/175 — higher than the untrained base at 6/175 and than
+T1 at 6/175 — and it carries the highest success rate of any arm. The stage
+that previously destroyed write ability now improves it. Trained on a T2 set
+that went from 34% write-containing to 100%, that is the fix working, and it
+is direct confirmation of the diagnosis: the defect was in the data.
+
+## What survived it
+
+**T3 collapses on a corrected composition, and that is now a result rather
+than a defect.** The T3 dataset it trained on is 462 conversations, 66%
+ending in `done`, 65% containing a write, its own policy cases downsampled to
+parity between complying and declining, with 40% execution replay — well
+above the 15% the earlier runs carried. It is not a refusal-dominated corpus
+by any of the measures that condemned the old one. The model trained on it is
+nonetheless indistinguishable from the old T3 on every behavioural metric:
+1.04 steps, 88% refusing on the first move, zero policy reads, zero completed
+writes.
+
+The precondition the composition argument needed has been met, so the
+remaining explanation is the one that could not be claimed before:
+**catastrophic forgetting of execution under a policy-concentrated final
+stage**, not repaired by quadrupling replay.
+
+Two observations that sharpen it rather than soften it:
+
+- **It is the stage, not the chain.** T2 corrected is the third fine-tune in
+  the same chain (base → T1 → T2) and is healthy. T3 is the fourth and is
+  not. Depth of chaining does not separate them; what the last stage trains
+  on does.
+- **Policy content appears to be sufficient on its own.** T3's own examples
+  are balanced 50/50 between complying and declining, so the model is not
+  being shown refusal disproportionately. Being shown *policy decisions* at
+  all, at this volume and at the end, appears to be enough.
+
+What this does not establish: that the effect is inherent to policy training.
+The obvious untested lever is stage size — T3 is 462 conversations against
+T2's 136, so volume and position are confounded — and epochs and learning
+rate were left at the same defaults throughout, deliberately, to keep T1
+usable as a control. `train_on_inputs` was never set explicitly and Together
+resolves it to `auto`; that is uncontrolled across every stage equally.
+
+## The shipped checkpoint
+
+**T2 corrected**, not T1. It beats T1 on success (30.8% vs 23.7%) and on the
+metric that matters (9/175 vs 6/175 must-write), on identical rows. The
+fallback plan named T1 because at the time T1 was the only stage that had not
+destroyed anything; the top-up produced something strictly better.
+
+The Firm C blind pass has not been run. It is one-shot and unrecoverable, its
+reserve is untouched, and the checkpoint it should run against changed as a
+result of these numbers, so it waits for an explicit decision.

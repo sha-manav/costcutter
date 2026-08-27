@@ -107,6 +107,14 @@ costs:
     input: 0.12
     cached_input: 0.12
     output: 0.24
+  openai/erpbench-t2b:
+    input: 0.12
+    cached_input: 0.12
+    output: 0.24
+  openai/erpbench-t3b:
+    input: 0.12
+    cached_input: 0.12
+    output: 0.24
 
 segment:
   idle_gap_s: 8.0

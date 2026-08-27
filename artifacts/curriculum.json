@@ -9,8 +9,14 @@
     "T2": {
       "file": "file-00c52ed5-0d63-4b76-a3dd-bcfea4b0f204",
       "from": "manavs@stanford.edu/Qwen3-14B-erpbench-t1-96a1c66b",
-      "job": "ft-1b6cb831-79eb"
+      "job": "ft-1b6cb831-79eb",
+      "model": "manavs@stanford.edu/Qwen3-14B-erpbench-t2-4872e819"
     },
-    "T3": {}
+    "T3": {
+      "file": "file-c56adf27-6f7b-4284-ba6f-11eeaf7e0476",
+      "from": "manavs@stanford.edu/Qwen3-14B-erpbench-t2-4872e819",
+      "job": "ft-c75ed095-468b",
+      "model": "manavs@stanford.edu/Qwen3-14B-erpbench-t3-a2f47419"
+    }
   }
 }

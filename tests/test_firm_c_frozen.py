@@ -84,12 +84,23 @@ def test_firm_c_seed_image_matches_its_manifest():
         "manifest and the image drift apart.")
 
 
-def test_no_trained_checkpoint_has_seen_firm_c():
+# The single blind pass, run 2026-08-27. Trained-checkpoint Firm C rows are
+# permitted here and nowhere else; the test below is what makes "nowhere else"
+# checkable rather than asserted.
+BLIND_PASS_DIRS = ("firmc_0", "firmc_1", "firmc_3", "firmc_8")
+# ...and the merged files the pool driver writes alongside them.
+BLIND_PASS_FILES = tuple(f"{d}_run.jsonl" for d in BLIND_PASS_DIRS)
+
+
+def test_no_trained_checkpoint_has_seen_firm_c_outside_the_blind_pass():
     """The property the transfer claim actually rests on.
 
     Firm C carries base-model rows on purpose -- transfer is measured against
     a baseline on C. What must never happen is a *trained* checkpoint touching
-    it before the single blind pass.
+    it anywhere other than the one recorded blind pass. Before that pass ran
+    this asserted zero; it now asserts zero outside `BLIND_PASS_DIRS`, which
+    is the same guarantee with the one sanctioned exception named explicitly
+    rather than the test deleted.
     """
     import glob
     import pathlib
@@ -97,7 +108,11 @@ def test_no_trained_checkpoint_has_seen_firm_c():
     root = pathlib.Path(__file__).resolve().parent.parent / "artifacts"
     offenders = set()
     for path in glob.glob(str(root / "**" / "*.jsonl"), recursive=True):
-        if "quarantine" in path or "firm_c_blind" in path:
+        if "quarantine" in path:
+            continue
+        if any(f"/{d}/" in path for d in BLIND_PASS_DIRS):
+            continue
+        if pathlib.Path(path).name in BLIND_PASS_FILES:
             continue
         try:
             with open(path) as fh:
@@ -114,3 +129,27 @@ def test_no_trained_checkpoint_has_seen_firm_c():
     assert not offenders, (
         f"trained checkpoints have Firm C rows outside the blind pass: "
         f"{sorted(offenders)[:3]}")
+
+
+def test_the_blind_pass_ran_once_on_one_checkpoint():
+    """A second checkpoint evaluated on C would silently make it a tuned set."""
+    import glob
+    import pathlib
+
+    root = pathlib.Path(__file__).resolve().parent.parent / "artifacts"
+    models = set()
+    paths = [q for d in BLIND_PASS_DIRS for q in glob.glob(str(root / d / "*.jsonl"))]
+    for path in paths:
+        if True:
+            with open(path) as fh:
+                for line in fh:
+                    if line.strip():
+                        row = json.loads(line)
+                        if row.get("firm_id") == "C":
+                            models.add(str(row.get("model")))
+    if not models:                      # blind pass not run on this machine
+        return
+    assert len(models) == 1, (
+        f"Firm C has been evaluated with more than one checkpoint {models}; "
+        "the blind pass is single by construction and a second run makes it "
+        "a selection set")

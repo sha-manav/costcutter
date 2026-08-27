@@ -42,6 +42,13 @@ def main() -> int:
                          "sampling enforces quality. Claude also accepts only "
                          "temperature=1.")
     ap.add_argument("--resume", action="store_true")
+    ap.add_argument("--write-drive", type=int, metavar="N",
+                    help="draw N instances where completing the write is the "
+                         "correct outcome (entity present, evidence present, "
+                         "under threshold, information complete) and keep only "
+                         "traces that actually complete one. Aimed at the "
+                         "refusal prior, which every trained arm so far has "
+                         "made worse rather than better.")
     ap.add_argument("--topup", nargs=2, type=int, metavar=("N_EXEC", "N_POLICY"),
                     help="run the top-up plan instead of the Round 0 plan: "
                          "N_EXEC execution draws and N_POLICY policy draws, "
@@ -53,8 +60,14 @@ def main() -> int:
 
     resolve_model_provider(args.model, "litellm")     # refuses without a key
 
-    specs = (teacher.plan_topup(*args.topup) if args.topup
-             else teacher.plan(args.total))
+    if args.write_drive:
+        specs = teacher.plan_write_drive(args.write_drive)
+    elif args.topup:
+        specs = teacher.plan_topup(*args.topup)
+    else:
+        specs = teacher.plan(args.total)
+    accepts = (teacher.accept_write_completion if args.write_drive
+               else teacher.accept)
     if args.shard:
         i, n = (int(x) for x in args.shard.split("/"))
         specs = [s for k, s in enumerate(specs) if k % n == i - 1]
@@ -90,7 +103,7 @@ def main() -> int:
             print(f"HALTED: {exc}", file=sys.stderr)
             break
 
-        ok, why = teacher.accept(row)
+        ok, why = accepts(row)
         # From the draw, never from what the rollout did. The rule this
         # replaced sent every planned-T1 trace that did not recover into the
         # execution stage, which is what destroyed the trained model.

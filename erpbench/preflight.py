@@ -20,14 +20,25 @@ ARTIFACTS = Path(__file__).resolve().parent.parent / "artifacts"
 LEDGER = ARTIFACTS / "spend_ledger.jsonl"
 
 # SPEC §12.1. Allocated in advance, not spent down to.
+#
+# Reallocated 2026-08-27 when the ceiling was raised from $70 to $85. The
+# lines below sum to exactly $85; the earlier set summed to $100 against a $70
+# ceiling, so every line was individually satisfiable while the total was not,
+# and the only thing actually stopping an overspend was the aggregate check in
+# `refuse_if_over_budget`. Lines that are done are cut back to what they spent,
+# and the freed money is allocated to the work that remains.
+#
+# `firm_c_blind` is unchanged and remains locked: the blind pass is one-shot
+# and unrepeatable, so its reserve may not be borrowed against.
 BUDGET_LINES: dict[str, float] = {
-    "calibration_gate": 8.0,
-    "api_anchors": 12.0,
-    "teacher_traces": 25.0,
-    "adaptation_sweep": 10.0,
+    "calibration_gate": 2.0,       # done, $1.01
+    "api_anchors": 10.0,           # $3.92; the rest funds the Pareto anchors
+    "teacher_traces": 22.0,        # Round 0, done at $21.54
+    "write_drive": 10.0,           # phase 1: the corpus aimed at refusal
+    "adaptation_sweep": 5.0,
     "firm_c_blind": 15.0,          # locked; may not be borrowed against
-    "final_pareto": 12.0,
-    "contingency": 18.0,
+    "final_pareto": 4.0,
+    "contingency": 17.0,           # $16.22 spent on the top-up and re-runs
 }
 LOCKED_LINES = frozenset({"firm_c_blind"})
 

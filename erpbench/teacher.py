@@ -199,6 +199,69 @@ def plan_topup(n_execution: int, n_policy_write: int,
     return specs
 
 
+def plan_write_drive(total: int, rng_seed: int = 11) -> list[TraceSpec]:
+    """One shape only: draws where completing the write is the right answer.
+
+    Every arm trained so far has *increased* the base model's tendency to
+    refuse on its first action -- 67% untrained, 71% after T1, 79% after the
+    corrected T2, 88% after either T3. The corpus has never contained enough
+    of the opposite to push back on that prior; even after the top-up, the
+    best checkpoint completes 9 of 175 tasks that require a write.
+
+    So this draws for the prior directly: entity present, evidence present,
+    amount under every threshold, information complete. There is nothing to
+    escalate about and nothing to clarify. A model that refuses here is simply
+    wrong, and a trace that refuses here is not kept -- see
+    `accept_write_completion`, which is stricter than `accept` on purpose.
+    """
+    import erpbench.evaluation            # noqa: F401
+    import erpbench.evaluation_extra      # noqa: F401
+
+    from erpbench.templates import Information
+
+    rng = random.Random(rng_seed)
+    pool = _by_tag("write", "child_table", "update", "entity")
+    if not pool:
+        pool = list(REGISTRY.evaluation)
+    unobstructed = {"entity": EntityPresence.EXISTS,
+                    "amount_band": AmountBand.BELOW,
+                    "evidence": Evidence.PRESENT,
+                    "information": Information.COMPLETE}
+    specs = [TraceSpec(category="write_drive", stage="T2",
+                       template=pool[i % len(pool)],
+                       params_override=dict(unobstructed),
+                       seed=seeds_for(pool[i % len(pool)].template_id, "A", 1,
+                                      salt=f"writedrive{i}")[0])
+             for i in range(total)]
+    rng.shuffle(specs)
+    return specs
+
+
+def accept_write_completion(row: dict[str, Any]) -> tuple[bool, str]:
+    """Full success *and* a completed write. Stricter than `accept`.
+
+    `accept` keeps a correct refusal, which is right for a benchmark where
+    declining is sometimes the answer and wrong for a corpus whose entire
+    purpose is to demonstrate doing the work. This is the same distinction
+    that produced the staging defect -- correct and demonstrates-the-lesson
+    are different properties -- applied deliberately this time.
+    """
+    ok, why = accept(row)
+    if not ok:
+        return False, why
+    terminal = terminal_action(row)
+    if terminal in ("escalate", "abstain"):
+        return False, f"refused ({terminal})"
+    writes = {"create", "update", "submit", "save", "grid", "field",
+              "link", "select_field"}
+    for a in row.get("actions") or []:
+        v = a.get("action")
+        v = v.get("action") if isinstance(v, dict) else v
+        if v in writes and a.get("outcome") == "success":
+            return True, "ok"
+    return False, "no completed write"
+
+
 def instantiate(spec: TraceSpec):
     """Build the instance, honouring the category's parameter override."""
     firm = get_firm("A")
@@ -209,7 +272,8 @@ def instantiate(spec: TraceSpec):
                                                          base.amount_band),
                     evidence=spec.params_override.get("evidence", base.evidence),
                     side_effect=base.side_effect,
-                    information=base.information,
+                    information=spec.params_override.get("information",
+                                                         base.information),
                     scale=base.scale,
                     values=base.values)
     from erpbench.templates import Instance

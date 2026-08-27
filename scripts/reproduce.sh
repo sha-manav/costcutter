@@ -22,9 +22,11 @@ step "2/5  Test suite (no Docker, no network, no keys)"
 step "3/5  Frozen artifacts still match the code"
 .venv/bin/python - <<'PY'
 import json, pathlib
-from erpbench.splits import split_fingerprint
+import erpbench.evaluation           # noqa: F401  populates the registry
+import erpbench.evaluation_extra     # noqa: F401
+from erpbench.splits import fingerprint
 frozen = json.loads(pathlib.Path("artifacts/splits_frozen.json").read_text())
-here = split_fingerprint()
+here = fingerprint()
 assert here == frozen["fingerprint"], (
     f"split fingerprint {here} != frozen {frozen['fingerprint']}")
 print(f"    split fingerprint {here} matches")

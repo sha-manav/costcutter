@@ -118,8 +118,31 @@ def manifest() -> dict[str, Any]:
     }
 
 
+# The number of evaluation templates the frozen split covers. A fingerprint
+# computed over fewer is a fingerprint of a different assignment.
+EXPECTED_TEMPLATES = 50
+
+
 def fingerprint() -> str:
-    """Identity of the whole split assignment."""
+    """Identity of the whole split assignment.
+
+    Refuses on a partially-loaded registry. `manifest()` reads
+    `REGISTRY.evaluation`, which is populated by importing the template
+    modules -- so calling this before those imports produced a *different
+    sixteen-character hex string* rather than an error, and the difference
+    looks exactly like drift. That is what it looked like: a clean-clone
+    reproduction reported the frozen fingerprint had changed, when the real
+    fault was that the checking script had not imported the templates.
+
+    A fingerprint whose value depends on import order is not an identity.
+    """
+    count = len(REGISTRY.evaluation)
+    if count < EXPECTED_TEMPLATES:
+        raise RuntimeError(
+            f"the template registry holds {count} of {EXPECTED_TEMPLATES} "
+            "evaluation templates, so this fingerprint would identify a "
+            "different split than the frozen one. Import erpbench.evaluation "
+            "and erpbench.evaluation_extra before calling fingerprint().")
     raw = json.dumps(manifest(), sort_keys=True).encode()
     return hashlib.sha256(raw).hexdigest()[:16]
 

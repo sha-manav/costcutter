@@ -1,15 +1,15 @@
 # HALT
 
-**Reason.** 5 consecutive rows ended in an infrastructure error; last was 'APIError: litellm.APIError: APIError: OpenrouterException - [Errno 8] nodename nor servname provided, or not known'. Individual errors are expected and excluded from the denominator, but a streak means something systemic and the remaining rows would measure nothing
+**Reason.** adapter failed during 83e62d63c68456e342d9: login to http://localhost:8080 failed: 500
 
 | | |
 |---|---|
-| Line item | `api_anchors` |
-| Reserved | $12.00 |
-| Spent | $2.52 |
-| Remaining | $9.48 |
-| Rows completed | 9 |
-| Rows remaining | 14 |
+| Line item | `contingency` |
+| Reserved | $18.00 |
+| Spent | $0.09 |
+| Remaining | $17.91 |
+| Rows completed | 38 |
+| Rows remaining | 66 |
 
 ## Resume
 

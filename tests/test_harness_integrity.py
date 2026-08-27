@@ -332,3 +332,52 @@ def test_the_harness_reports_a_refusal_as_a_typed_error():
                               "name": "NW-VALVE-99"})
     assert res.outcome is Outcome.TYPED_ERROR
     assert "404" in res.detail and "NW-VALVE-99" in res.detail
+
+
+# --- adaptation corrections ------------------------------------------------
+
+def test_corrections_state_policy_never_scoring():
+    """The same rule the corrected schema is held to.
+
+    Adaptation corrections are operator instructions about the firm. They may
+    say what the firm requires; they may never say what counts as success. A
+    correction reading 'abstaining when policy requires it counts as success'
+    would be the defect that voided 270 rows, reintroduced through a different
+    door and applied to only one arm of the adaptation curve.
+    """
+    from erpbench.firms import FIRMS
+    from erpbench.gate import corrections_for
+
+    banned = ("counts as success", "scored", "score", "graded", "correct answer",
+              "you will be judged", "counts as correct", "marked")
+    for fid in FIRMS:
+        for text in corrections_for(FIRMS[fid], 8):
+            low = text.lower()
+            for phrase in banned:
+                assert phrase not in low, (
+                    f"firm {fid} correction states scoring, not policy: {text!r}")
+
+
+def test_corrections_are_a_prefix_so_levels_nest():
+    """n=3 must be n=1 plus two more, or the curve is not a dose-response."""
+    from erpbench.firms import FIRMS
+    from erpbench.gate import corrections_for
+
+    for fid in FIRMS:
+        full = corrections_for(FIRMS[fid], 8)
+        for n in (0, 1, 3, 8):
+            assert corrections_for(FIRMS[fid], n) == full[:n]
+
+
+def test_adaptation_level_is_part_of_run_id():
+    """Otherwise --resume skips three quarters of a sweep as already done."""
+    from erpbench.firms import get_firm
+    from erpbench.gate import Job
+    from erpbench.templates import REGISTRY
+
+    import erpbench.evaluation  # noqa: F401
+
+    t = REGISTRY.evaluation[0]
+    ids = {Job(t, get_firm("A"), "corrected", "m", 0, 1, adaptation=n).rid
+           for n in (0, 1, 3, 8)}
+    assert len(ids) == 4, "adaptation levels collide on run_id"

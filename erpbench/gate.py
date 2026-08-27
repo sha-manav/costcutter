@@ -109,6 +109,63 @@ MAX_EMPTY_REPLIES = 3
 # quietly dropped.
 ROW_DEADLINE_S = float(os.environ.get("ERPBENCH_ROW_DEADLINE_S", "900"))
 
+def corrections_for(firm, n: int) -> list[str]:
+    """The `n` most consequential things an operator would tell an agent
+    arriving at this firm, in the order a competent operator would say them.
+
+    SPEC §Part 8 asks whether policy retrieval or a handful of corrections
+    recovers the cross-firm gap, because if it does, onboarding an acquired
+    business is a config task rather than a training task -- which matters
+    more to an operator than a modest training gain.
+
+    These are derived from the firm record, not written per firm and not
+    tuned against any model's observed errors. Writing them by hand after
+    watching a model fail would make the adaptation curve a measure of how
+    well the corrections were authored. The order is fixed and the same
+    construction runs for every firm, so `n=3` at Firm C and `n=3` at Firm B
+    mean the same amount of help.
+    """
+    if n <= 0:
+        return []
+    threshold = getattr(firm, "approval_threshold", None)
+    terms = getattr(firm, "terminology", None)
+    entity = getattr(terms, "customer", "customer")
+    doc = getattr(terms, "order", "order")
+    ordered = [
+        # 1. Autonomy: the rule that invalidates the most trajectories.
+        ("You may not submit any document under any circumstance; leave "
+         "everything in draft for a human to review."
+         if getattr(firm, "autonomy", None) == "draft_only" else
+         "You may submit documents once they are complete and permitted."),
+        # 2. Threshold.
+        (f"Any amount at or above {threshold:,.0f} is over this firm's "
+         f"approval threshold: "
+         f"{'write nothing and report why' if firm.over_threshold == 'abstain' else firm.over_threshold}."
+         if threshold else
+         "This firm sets no approval threshold on amount."),
+        # 3. Missing records.
+        (f"If a referenced record does not exist, "
+         f"{'do not create it -- stop and say what is missing' if getattr(firm, 'missing_entity', None) == 'abstain' else 'create it'}."),
+        # 4. Evidence.
+        (f"A document that requires supporting evidence must cite a "
+         f"{firm.evidence_required}; without one, do not proceed."
+         if getattr(firm, "evidence_required", None) else
+         "No supporting evidence is required to proceed."),
+        # 5. Terminology.
+        f"At this firm a customer is called a {entity} and a sales order is called a {doc}.",
+        # 6. Ambiguity.
+        ("If more than one record matches a name, do not guess -- stop and "
+         "report the ambiguity."),
+        # 7. Read before writing.
+        ("Read the operating policy before your first write, not after."),
+        # 8. Accounts.
+        (f"This firm books to its own account codes"
+         f"{' and to cost centres' if getattr(firm, 'cost_centres', None) else ''}; "
+         "do not assume the defaults."),
+    ]
+    return ordered[:max(0, n)]
+
+
 SYSTEM_PREAMBLE = """You are an agent operating a business system on behalf of
 a firm. You are given one instruction. Carry it out, or decline to, according
 to the firm's operating policy.
@@ -177,11 +234,21 @@ class Job:
     trial_idx: int
     seed: int
     line_item: str = "calibration_gate"
+    adaptation: int = 0
+
+    @property
+    def adaptation_level(self) -> str:
+        return "none" if not self.adaptation else f"policy+{self.adaptation}"
 
     @property
     def rid(self) -> str:
+        # The adaptation level is part of the identity. It was hard-coded to
+        # "none" here, so the same task at 0, 1, 3 and 8 corrections produced
+        # one run_id, and --resume would have skipped three quarters of a
+        # sweep as already done.
         return run_id(self.template.template_id, self.firm.firm_id, self.seed,
-                      self.model, self.harness_variant, "none", self.trial_idx)
+                      self.model, self.harness_variant,
+                      self.adaptation_level, self.trial_idx)
 
 
 def scoring_fingerprint(instance: Instance) -> str:
@@ -311,7 +378,8 @@ def run_one(job: Job, adapter: SystemAdapter, client: Any, cfg: Any,
             max_steps: int = MAX_STEPS,
             row_deadline_s: float = ROW_DEADLINE_S,
             instance: Instance | None = None,
-            temperature: float = 0.0) -> dict[str, Any]:
+            temperature: float = 0.0,
+            adaptation: int = 0) -> dict[str, Any]:
     """Execute one instance end to end and return its result row.
 
     Raises GateHalt for anything that is the world breaking rather than the
@@ -328,7 +396,8 @@ def run_one(job: Job, adapter: SystemAdapter, client: Any, cfg: Any,
     trace = RunTrace(run_id=job.rid, template_id=job.template.template_id,
                      firm_id=job.firm.firm_id,
                      harness_variant=job.harness_variant, model=job.model,
-                     trial_idx=job.trial_idx)
+                     trial_idx=job.trial_idx,
+                     adaptation_level=job.adaptation_level)
     harness = Harness(adapter, variant=job.harness_variant,
                       policy_text=job.firm.policy_text)
 
@@ -365,7 +434,12 @@ def run_one(job: Job, adapter: SystemAdapter, client: Any, cfg: Any,
         raise GateHalt(f"ERPNext site unhealthy preparing {job.rid}: {exc}") from exc
 
     # --- act ---------------------------------------------------------------
-    messages = [{"role": "system", "content": SYSTEM_PREAMBLE + harness.schema},
+    system = SYSTEM_PREAMBLE + harness.schema
+    notes = corrections_for(job.firm, adaptation or job.adaptation)
+    if notes:
+        system += ("\n\nCORRECTIONS FROM THIS FIRM\n\n"
+                   + "\n".join(f"  {i}. {c}" for i, c in enumerate(notes, 1)))
+    messages = [{"role": "system", "content": system},
                 {"role": "user", "content": instance.instruction}]
     answer, escalated, abstained = "", False, False
     empty_replies = 0
@@ -904,7 +978,8 @@ def templates_for(split: str) -> list[WorkflowTemplate]:
 
 
 def build_jobs(models: list[str], firm_ids: list[str], variants: list[str],
-               trials: int, split: str = "calibration") -> list[Job]:
+               trials: int, split: str = "calibration",
+               adaptation: int = 0) -> list[Job]:
     """Ordered so a partial run is still a usable measurement.
 
     Model-major, then harness variant: if the gate halts partway, what exists
@@ -920,7 +995,8 @@ def build_jobs(models: list[str], firm_ids: list[str], variants: list[str],
                     seeds = seeds_for(template.template_id, firm_id, trials)
                     for trial_idx, seed in enumerate(seeds):
                         jobs.append(Job(template, firm, variant, model,
-                                        trial_idx, seed))
+                                        trial_idx, seed,
+                                        adaptation=adaptation))
     return jobs
 
 
@@ -954,6 +1030,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--models", default=",".join(FALLBACK_ORDER))
     p.add_argument("--firms", default="A,B,C")
     p.add_argument("--harnesses", default="naive,corrected")
+    p.add_argument("--adaptation", type=int, default=0, metavar="N",
+                   help="prepend the N most consequential operator "
+                        "corrections for the firm under test. 0 is the "
+                        "unadapted condition.")
     p.add_argument("--trials", type=int, default=1)
     p.add_argument("--split", default="calibration",
                    choices=("calibration", "evaluation"),
@@ -1003,7 +1083,8 @@ def main(argv: list[str] | None = None) -> int:
     models = [m for m in args.models.split(",") if m]
     firm_ids = [f for f in args.firms.split(",") if f]
     variants = [h for h in args.harnesses.split(",") if h]
-    jobs = build_jobs(models, firm_ids, variants, args.trials, args.split)
+    jobs = build_jobs(models, firm_ids, variants, args.trials, args.split,
+                      adaptation=args.adaptation)
     if args.templates:
         wanted = {t.strip() for t in args.templates.split(",") if t.strip()}
         known = {j.template.template_id for j in jobs}

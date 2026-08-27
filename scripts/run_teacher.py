@@ -42,11 +42,19 @@ def main() -> int:
                          "sampling enforces quality. Claude also accepts only "
                          "temperature=1.")
     ap.add_argument("--resume", action="store_true")
+    ap.add_argument("--topup", nargs=2, type=int, metavar=("N_EXEC", "N_POLICY"),
+                    help="run the top-up plan instead of the Round 0 plan: "
+                         "N_EXEC execution draws and N_POLICY policy draws, "
+                         "both drawn where the correct outcome is a completed "
+                         "write. Round 0 allocated by category and let the "
+                         "parameter draw fall where it would, which produced "
+                         "a corpus that is overwhelmingly refusal-terminating.")
     args = ap.parse_args()
 
     resolve_model_provider(args.model, "litellm")     # refuses without a key
 
-    specs = teacher.plan(args.total)
+    specs = (teacher.plan_topup(*args.topup) if args.topup
+             else teacher.plan(args.total))
     if args.shard:
         i, n = (int(x) for x in args.shard.split("/"))
         specs = [s for k, s in enumerate(specs) if k % n == i - 1]
@@ -83,7 +91,10 @@ def main() -> int:
             break
 
         ok, why = teacher.accept(row)
-        stage = teacher.restage(row, spec.stage)
+        # From the draw, never from what the rollout did. The rule this
+        # replaced sent every planned-T1 trace that did not recover into the
+        # execution stage, which is what destroyed the trained model.
+        stage = teacher.stage_for_params(row) if row.get("axes") else spec.stage
         row.update({"category": spec.category, "planned_stage": spec.stage,
                     "stage": stage, "training": ok, "rejected_because": None if ok else why,
                     "recovered": teacher.is_hard_recovery(row)})

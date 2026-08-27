@@ -232,26 +232,81 @@ def _trace(actions, recovery=0):
             "behaviour": {"recovery_events": recovery}}
 
 
-def test_a_refusal_is_never_staged_as_execution():
-    """Stage by what the trace demonstrates, not by what it failed to show.
+def test_stage_is_assigned_from_the_draw_not_the_trajectory():
+    """Two rollouts on the same instance must land in the same stage.
 
-    The rule, not the instance: any accepted trace whose terminal action is a
-    refusal is policy data, wherever it was planned. Execution data must
-    demonstrate execution.
+    The defect was a staging rule that read the trajectory's terminal state,
+    so the same drawn instance landed in the execution stage or the policy
+    stage depending on what the model happened to do. Stage is a property of
+    the task, not of the attempt.
     """
-    from erpbench.teacher import restage
+    import json
 
-    for planned in ("T1", "T2", "T3"):
-        for refusal in ("escalate", "abstain"):
-            got = restage(_trace(["read_policy", "query", refusal]), planned)
-            assert got == "T3", (
-                f"a trace ending in {refusal!r} planned {planned} was staged "
-                f"{got}; refusals are policy data, never execution")
+    from erpbench.teacher import accept, stage_for_params
+
+    rows = [json.loads(l) for l in
+            open("artifacts/teacher_traces.jsonl") if l.strip()]
+    seen: dict[tuple, set] = {}
+    for r in rows:
+        if not r.get("axes"):
+            continue
+        key = (r["template_id"], r["firm_id"], r["params_seed"])
+        seen.setdefault(key, set()).add(stage_for_params(r))
+    disagreed = {k: v for k, v in seen.items() if len(v) > 1}
+    assert not disagreed, (
+        f"{len(disagreed)} instances were staged inconsistently across "
+        f"rollouts, so stage still depends on the attempt: "
+        f"{list(disagreed.items())[:3]}")
 
 
-def test_completed_execution_still_reaches_t2():
-    from erpbench.teacher import restage
+def test_no_stage_is_dominated_by_traces_that_contradict_its_purpose():
+    """The invariant the curriculum lost, stated directly.
 
-    assert restage(_trace(["read_policy", "query", "create", "done"]), "T2") == "T2"
-    # Recovery still wins over everything else.
-    assert restage(_trace(["query", "create", "done"], recovery=1), "T2") == "T1"
+    T1 and T2 exist to teach the model to *do* things; a majority of examples
+    that end without a write means the stage teaches the opposite of its
+    name. This is what went wrong: T2 shipped 61% refusal-terminating and 34%
+    write-containing, and the model trained on it stopped writing entirely.
+
+    T3 teaches policy, which legitimately includes declining -- but a T3 that
+    is *only* refusals is a stage that teaches only stopping, which is the
+    same failure one step later. It is held to a band, not a floor.
+    """
+    import json
+
+    from erpbench.teacher import accept, stage_for_params
+
+    WRITES = {"create", "update", "submit", "save", "grid", "field",
+              "link", "select_field", "cancel", "delete"}
+
+    def has_write(row):
+        for a in row.get("actions") or []:
+            v = a.get("action")
+            v = v.get("action") if isinstance(v, dict) else v
+            if v in WRITES:
+                return True
+        return False
+
+    rows = [json.loads(l) for l in
+            open("artifacts/teacher_traces.jsonl") if l.strip()]
+    staged: dict[str, list] = {}
+    for r in rows:
+        if accept(r)[0] and r.get("axes"):
+            staged.setdefault(stage_for_params(r), []).append(r)
+
+    for stage, floor in (("T1", 0.80), ("T2", 0.80)):
+        batch = staged.get(stage) or []
+        if not batch:
+            continue
+        frac = sum(has_write(r) for r in batch) / len(batch)
+        assert frac >= floor, (
+            f"{stage} is {100 * frac:.0f}% write-completing, below the "
+            f"{100 * floor:.0f}% floor; a stage that teaches doing must be "
+            "made of traces that did something")
+
+    policy = staged.get("T3") or []
+    if policy:
+        frac = sum(has_write(r) for r in policy) / len(policy)
+        assert 0.25 <= frac <= 0.75, (
+            f"T3 is {100 * frac:.0f}% write-completing, outside the 25-75% "
+            "band; policy means choosing between complying and declining, so "
+            "a T3 made almost entirely of one or the other teaches a reflex")

@@ -1,4 +1,4 @@
-# Appendix: five instrument defects, and what they have in common
+# Appendix: six instrument defects — five in the environment, one in the ruler
 
 Every defect below shares one shape. **Nothing crashed. No test failed. The
 artifact simply stopped describing what it claimed to describe.** Each was
@@ -114,7 +114,65 @@ defended.** Rows carry no site or timestamp, so they cannot be attributed to
 the crash window; the argument that they were clean rested on `reset` being
 atomic-or-raise, which is precisely the property that had just failed.
 
-### A sixth, adjacent: truncated checkpoint downloads reported as success
+---
+
+## #6 — in the diagnostic layer: a search that could not match, reporting zero
+
+The five above are defects in the *environment* — the harness, the provider
+path, the merge, the scorer, the database. This one is different in kind and
+is numbered separately for that reason: **the tooling written to investigate a
+defect was itself defective, and it sent the investigation the wrong way for
+two rounds.**
+
+Asked whether the training corpus was teaching refusal, the check was:
+
+```python
+n_ab = sum(1 for r in rows if '"abstain"' in json.dumps(r))
+```
+
+`json.dumps` of a row whose message content is the string `{"action":
+"abstain"}` escapes the inner quotes, so the serialized text contains
+`{\"action\": \"abstain\"}`. The pattern `'"abstain"'` cannot occur in it.
+The check returned **0 for all three stages**, and zero read as a finding.
+
+On the strength of that zero I published, in order: that the corpus contained
+no refusal examples at all; that the trained model therefore "does the reverse
+of its training set"; and that the cause must lie in the serving path rather
+than the data. The first was false, the second followed from it, and the third
+sent an afternoon into verifying checkpoints, chat templates and prompt
+fingerprints — all of which came back clean, because nothing was wrong with
+them. The actual answer was in the file the whole time: T2 is **61%
+refusal-terminating and 34% write-containing**.
+
+What makes it worth its own entry rather than a footnote:
+
+- **A zero from a broken filter is indistinguishable from a real zero.** A
+  crash would have been better. The check "worked" on every stage and agreed
+  with itself three times, and that consistency read as corroboration when it
+  was just the same bug running three times.
+- **It inverted the conclusion rather than blurring it.** Not a
+  wrong-by-a-margin measurement — the corpus was reported as containing the
+  exact opposite of what it contains, and the retraction had to be published
+  twice because the first correction inherited the bad premise.
+- **The environment's own safeguards could not have caught it.** Fingerprints,
+  refusal-on-ceiling, force-added artifacts, the 269-test suite — none of them
+  cover a one-off analysis script. Every practice this project relies on
+  protects the instrument, and this was a defect in the ruler used to inspect
+  the instrument.
+
+The lesson is narrow and practical: **a diagnostic that returns "none" should
+be made to return "some" on a case known to contain some, before its zero is
+believed.** The corrected check parses the assistant turns and reports the
+terminal action distribution, which cannot silently return zero — an empty
+distribution is visibly empty, and a parse failure shows up as
+`<unparseable>` rather than as absence.
+
+Counting the two families separately: **five defects in the environment, one
+in the diagnostic layer.** The second category has no tests, no fingerprints
+and no review, and this project has now been misled further by one instance
+of it than by any single instance of the first.
+
+### Adjacent, unnumbered: truncated checkpoint downloads reported as success
 
 Found while preparing the stage-ladder runs and recorded here because the
 shape is identical. Both local checkpoint archives were corrupt — `zstd -t`
@@ -132,7 +190,7 @@ it was caught before use.
 
 ## What the set implies for methodology
 
-Five defects, and **not one announced itself**. Four of them would have
+Six defects, and **not one announced itself**. Four of them would have
 produced a publishable number: a harness comparison with the answer leaked
 into one arm, 270 simulated rows presented as model output, a baseline quietly
 overwritten by a later run, and an agent penalised for its ERP's internal

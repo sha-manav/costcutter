@@ -16,6 +16,23 @@ from erpbench.firms import FIRMS
 from erpbench.templates import REGISTRY, seeds_for
 
 
+def _core_evaluation():
+    """The 40 templates defined in `evaluation.py`.
+
+    `REGISTRY` is process-global and grows when `evaluation_extra` is
+    imported. This module deliberately imports only `evaluation`, but another
+    test module importing the extras first would leave 50 templates in the
+    registry and turn these assertions into a count of whatever happened to
+    be loaded. Subtracting the declared holdout ids makes them independent of
+    import order instead of dependent on this file running first.
+    """
+    import erpbench.evaluation_extra as extra
+
+    holdout = set(extra.HOLDOUT_TEMPLATE_IDS)
+    return [t for t in REGISTRY.evaluation
+            if t.template_id.split("_")[0] not in holdout]
+
+
 def _instances(template, trials: int = 3):
     for fid, firm in FIRMS.items():
         for seed in seeds_for(template.template_id, fid, trials):
@@ -23,7 +40,7 @@ def _instances(template, trials: int = 3):
 
 
 def test_there_are_forty_evaluation_templates():
-    assert len(REGISTRY.evaluation) == 40
+    assert len(_core_evaluation()) == 40
 
 
 def test_every_template_instantiates_for_every_firm():
@@ -59,7 +76,7 @@ def _disposition(inst):
 
 def _genuine_counterfactuals():
     out = []
-    for t in REGISTRY.evaluation:
+    for t in _core_evaluation():
         seed = seeds_for(t.template_id, "A", 1)[0]
         d = {fid: _disposition(t.instantiate(seed, f)) for fid, f in FIRMS.items()}
         for a in FIRMS:

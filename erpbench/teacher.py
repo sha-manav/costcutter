@@ -191,15 +191,46 @@ def accept(row: dict[str, Any]) -> tuple[bool, str]:
     return True, "ok"
 
 
+def terminal_action(row: dict[str, Any]) -> str:
+    """The last action the rollout actually took."""
+    actions = row.get("actions") or []
+    if not actions:
+        return "none"
+    last = actions[-1].get("action")
+    if isinstance(last, dict):
+        last = last.get("action")
+    return last if isinstance(last, str) else "none"
+
+
 def restage(row: dict[str, Any], planned: str) -> str:
     """Final curriculum stage, corrected against what the rollout did.
 
     A rollout planned for T1 that never failed is T2 data. A rollout planned
     for T2 that recovered from a real error is T1 data, and is worth more
     there than the plan is worth.
+
+    The refusal clause is not a refinement; it repairs a defect that destroyed
+    the trained model. Hard-recovery instances are drawn deliberately with
+    `entity=MISSING`, `evidence=STALE` or `entity=AMBIGUOUS` so the first
+    plausible action fails. When the model does not recover from those draws,
+    the correct outcome is usually to escalate or abstain -- and such a trace
+    passes rejection sampling cleanly, because declining an impossible task is
+    a full success. The old rule sent every one of them to T2 on the grounds
+    that it was "not recovery", silently equating *did not recover* with
+    *ordinary execution*. 84 of T2's 129 examples arrived that way, leaving
+    the execution stage 61% refusal-terminating and only 34% containing a
+    write, against T1 at 100% and 100%. The model trained on it stopped
+    writing at all: 0/175 on tasks requiring a write, down from 6/175
+    untrained.
+
+    So stage is assigned by what the trace demonstrates, not by what it
+    failed to demonstrate. A trace that ends in a refusal is policy data
+    wherever it was planned.
     """
     if is_hard_recovery(row):
         return "T1"
+    if terminal_action(row) in ("escalate", "abstain"):
+        return "T3"
     if planned == "T1":
         return "T2"
     return planned

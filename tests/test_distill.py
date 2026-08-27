@@ -217,3 +217,41 @@ def test_enum_requires_a_saturated_value_set():
 ])
 def test_type_inference(values, expected):
     assert infer_type(values) == expected
+
+
+# --- curriculum staging ----------------------------------------------------
+# 2026-08-27: restage() sent every planned-T1 trace that did not recover into
+# T2, the execution stage. Hard-recovery instances are drawn with MISSING /
+# STALE / AMBIGUOUS parameters where the correct outcome is usually a refusal,
+# and a refusal passes rejection sampling because declining an impossible task
+# is a full success. 84 of T2's 129 examples arrived that way; the model
+# trained on it stopped writing entirely (0/175 on tasks requiring a write).
+
+def _trace(actions, recovery=0):
+    return {"actions": [{"action": a} for a in actions],
+            "behaviour": {"recovery_events": recovery}}
+
+
+def test_a_refusal_is_never_staged_as_execution():
+    """Stage by what the trace demonstrates, not by what it failed to show.
+
+    The rule, not the instance: any accepted trace whose terminal action is a
+    refusal is policy data, wherever it was planned. Execution data must
+    demonstrate execution.
+    """
+    from erpbench.teacher import restage
+
+    for planned in ("T1", "T2", "T3"):
+        for refusal in ("escalate", "abstain"):
+            got = restage(_trace(["read_policy", "query", refusal]), planned)
+            assert got == "T3", (
+                f"a trace ending in {refusal!r} planned {planned} was staged "
+                f"{got}; refusals are policy data, never execution")
+
+
+def test_completed_execution_still_reaches_t2():
+    from erpbench.teacher import restage
+
+    assert restage(_trace(["read_policy", "query", "create", "done"]), "T2") == "T2"
+    # Recovery still wins over everything else.
+    assert restage(_trace(["query", "create", "done"], recovery=1), "T2") == "T1"

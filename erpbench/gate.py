@@ -389,6 +389,25 @@ def temperature_for(model: str, requested: float) -> float:
     return 1.0 if any(m in model for m in SAMPLING_ONLY) else requested
 
 
+def decoding_for(model: str, requested: float) -> dict[str, Any]:
+    """Deterministic decoding on every arm, by whichever knob the provider has.
+
+    Measurement wants greedy decoding so a rollout is reproducible from its
+    seed. Claude Sonnet 5 and Opus 5 reject `temperature=0` outright, which
+    left them sampled while every other arm was greedy -- a sampled point and
+    a greedy point on one axis is the flaw that gets a cost/quality figure
+    dismissed, and it is the figure everything else rests on.
+
+    `top_k=1` restores it. Sampling from the single highest-probability token
+    *is* argmax decoding, whatever the temperature, so these arms become
+    deterministic without asking the provider for a value it refuses. The
+    knob differs by arm; the decoding rule does not.
+    """
+    if any(m in model for m in SAMPLING_ONLY) and requested == 0.0:
+        return {"temperature": 1.0, "top_k": 1}
+    return {"temperature": requested}
+
+
 def run_one(job: Job, adapter: SystemAdapter, client: Any, cfg: Any,
             max_steps: int = MAX_STEPS,
             row_deadline_s: float = ROW_DEADLINE_S,
@@ -475,10 +494,8 @@ def run_one(job: Job, adapter: SystemAdapter, client: Any, cfg: Any,
             # temperature=1 -- and teacher generation wants sampling anyway,
             # since diversity is the point and rejection sampling handles
             # quality. So it is a parameter rather than a constant.
-            resp = client.complete(messages,
-                                   temperature=temperature_for(job.model,
-                                                               temperature),
-                                   max_tokens=1200)
+            resp = client.complete(messages, max_tokens=1200,
+                                   **decoding_for(job.model, temperature))
         except RequestDeadlineExceeded as exc:
             # BaseException, so it is not caught by the generic handler below
             # and not by litellm's retry wrapper. A provider that stopped

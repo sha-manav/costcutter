@@ -1046,8 +1046,6 @@ def test_temperature_is_a_parameter_not_a_constant():
     diversity is the point and rejection sampling enforces quality."""
     import inspect
 
-    src = inspect.getsource(gate.run_one)
-    assert "temperature=temperature" in src, "temperature is still hardcoded"
     assert gate.run_one.__defaults__ is not None
     captured = {}
 
@@ -1065,6 +1063,28 @@ def test_temperature_is_a_parameter_not_a_constant():
                  Recording(['{"action": "done", "answer": "x"}']),
                  get_config(), max_steps=2)
     assert captured["temperature"] == 0.0, "measurement default must stay greedy"
+
+
+def test_every_arm_decodes_deterministically():
+    """Greedy on every model, by whichever knob the provider accepts.
+
+    Claude Sonnet 5 and Opus 5 reject temperature=0, so they were left
+    sampled while every other arm was greedy. A sampled point and a greedy
+    point on one cost/quality axis is the flaw that gets the figure
+    dismissed. `top_k=1` is argmax decoding whatever the temperature, so the
+    knob differs by arm and the decoding rule does not.
+    """
+    for model in ("claude-sonnet-5", "claude-opus-5"):
+        d = gate.decoding_for(model, 0.0)
+        assert d["top_k"] == 1, f"{model} is not decoding deterministically"
+        assert d["temperature"] == 1.0, f"{model} would be refused the value"
+    for model in ("claude-haiku-4-5-20251001", "openai/erpbench-ship",
+                  "openrouter/qwen/qwen3-32b"):
+        d = gate.decoding_for(model, 0.0)
+        assert d == {"temperature": 0.0}, f"{model} should decode greedily"
+    # Teacher generation still samples when it asks to.
+    assert gate.decoding_for("claude-sonnet-5", 1.0)["temperature"] == 1.0
+    assert "top_k" not in gate.decoding_for("claude-sonnet-5", 1.0)
 
 
 def test_one_empty_completion_is_retried_not_fatal():

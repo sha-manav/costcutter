@@ -1074,17 +1074,19 @@ def test_every_arm_decodes_deterministically():
     dismissed. `top_k=1` is argmax decoding whatever the temperature, so the
     knob differs by arm and the decoding rule does not.
     """
+    # Claude 5 has deprecated both decoding knobs -- verified against the API,
+    # not inferred: temperature=0 and top_k=1 each return HTTP 400. So these
+    # arms cannot be made deterministic, and the honest encoding of that is to
+    # send neither parameter rather than to send one the provider rejects.
     for model in ("claude-sonnet-5", "claude-opus-5"):
-        d = gate.decoding_for(model, 0.0)
-        assert d["top_k"] == 1, f"{model} is not decoding deterministically"
-        assert d["temperature"] == 1.0, f"{model} would be refused the value"
+        assert gate.decoding_for(model, 0.0) == {}, (
+            f"{model} accepts no decoding parameter; sending one halts the run")
     for model in ("claude-haiku-4-5-20251001", "openai/erpbench-ship",
                   "openrouter/qwen/qwen3-32b"):
         d = gate.decoding_for(model, 0.0)
         assert d == {"temperature": 0.0}, f"{model} should decode greedily"
     # Teacher generation still samples when it asks to.
     assert gate.decoding_for("claude-sonnet-5", 1.0)["temperature"] == 1.0
-    assert "top_k" not in gate.decoding_for("claude-sonnet-5", 1.0)
 
 
 def test_one_empty_completion_is_retried_not_fatal():

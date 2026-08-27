@@ -404,7 +404,15 @@ def decoding_for(model: str, requested: float) -> dict[str, Any]:
     knob differs by arm; the decoding rule does not.
     """
     if any(m in model for m in SAMPLING_ONLY) and requested == 0.0:
-        return {"temperature": 1.0, "top_k": 1}
+        # Nothing to set. Verified against the Anthropic API directly rather
+        # than inferred from a wrapper's parameter table:
+        #   temperature=1, top_k=1  -> 400  "`top_k` is deprecated for this model."
+        #   temperature=0           -> 400  "`temperature` is deprecated for this model."
+        # Both decoding knobs are gone, so these arms cannot be made
+        # deterministic at all and are sampled at the provider's default. That
+        # is a property of the provider, not a defect here, and it is
+        # disclosed wherever these arms appear rather than papered over.
+        return {}
     return {"temperature": requested}
 
 

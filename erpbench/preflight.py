@@ -28,11 +28,11 @@ LEDGER = ARTIFACTS / "spend_ledger.jsonl"
 # `refuse_if_over_budget`. Lines that are done are cut back to what they spent,
 # and the freed money is allocated to the work that remains.
 #
-# `firm_c_blind` is unchanged and remains locked: the blind pass is one-shot
-# and unrepeatable, so its reserve may not be borrowed against.
+# `firm_c_blind` stayed locked and untouched until the blind pass ran on
+# 2026-08-27; see the note on that line for why its balance is now released.
 BUDGET_LINES: dict[str, float] = {
     "calibration_gate": 1.1,       # done, $1.01
-    "api_anchors": 10.0,           # $3.92; the rest funds the Pareto anchors
+    "api_anchors": 18.0,           # raised for the greedy Sonnet/Opus re-run
     "teacher_traces": 21.6,        # Round 0, done at $21.54
     "write_drive": 16.0,           # phase 1: the corpus aimed at refusal
     # Both of these run a local checkpoint on rented hardware, so their real
@@ -40,7 +40,12 @@ BUDGET_LINES: dict[str, float] = {
     # dollars. They were sized when the plan was to buy the rollouts. The
     # money is better spent on the corpus that is actually short.
     "adaptation_sweep": 2.0,
-    "firm_c_blind": 15.0,          # locked; may not be borrowed against
+    # The blind pass RAN, on 2026-08-27, and cost $0.02 -- local serving at
+    # imputed rates. The reserve existed so the one unrepeatable measurement
+    # could never be crowded out by anything else; that risk is now discharged
+    # and the balance is released. This is not borrowing against a locked
+    # line, which remains forbidden: it is closing a line whose work is done.
+    "firm_c_blind": 1.0,
     "final_pareto": 2.0,
     "contingency": 17.0,           # $16.31 spent on the top-up and re-runs
 }

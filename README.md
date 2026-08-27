@@ -6,12 +6,17 @@ not by asking a model to judge the agent's text.
 
 Fifty task templates that *generate* their own assertions and mutation
 envelopes, three synthetic firms with genuinely conflicting operating
-policies, two harness variants, and a 2,160-row baseline across three model
-scales. **No trained model is involved.** The environment stands on its own.
+policies, two harness variants, and a frozen blind firm opened exactly once.
+
+**The headline result is a warning about the metric.** Across four
+checkpoints of one model, success rate rose 21.5% → 28.2% while the number of
+tasks requiring a database write that the model completed went **6 → 6 → 0 →
+0**. The effect reproduced on the blind firm: 80% "transfer", zero completed
+writes. Read [`POST.md`](POST.md) first.
 
 ```
 50 templates · 3 firms · 2 harness variants · 15 counterfactual pairs
-2,160 baseline rows · 11.4M tokens · $2.39 · MIT
+harness effect +8.8% [+2.9, +14.7] · 8 instrument defects, disclosed · MIT
 ```
 
 ---
@@ -120,41 +125,50 @@ exact string.
 
 ---
 
-## The baseline
+## Results
 
-2,160 rows: 40 templates × 3 firms × 2 harnesses × 3 models × 3 trials, in
-`artifacts/evaluation_run.jsonl`. Every row carries its full action log,
-database diff, assertion outcomes, behavioural metrics, token usage, and four
-fingerprints (scoring, harness, serving, split).
+Full write-up in [`POST.md`](POST.md); figures in `artifacts/charts/`; the
+per-defect account in
+[`artifacts/appendix_instrument_defects.md`](artifacts/appendix_instrument_defects.md).
 
-| Model | S1 naive | S2 corrected | Harness gain |
+**Harness design**, model held fixed, on templates pre-registered before the
+harness was written:
+
+| n per arm | corrected - naive |
+|---|---|
+| 78 | +6.9% [-3.0, +16.0] - spans zero |
+| 156 | +8.8% [+1.8, +15.7] |
+| 312 | **+8.8% [+2.9, +14.7]** |
+
+Point estimate stable to a tenth of a point while the interval narrows by two
+thirds. That progression is the credibility argument.
+
+**Success masks capability** - the result the project is really about:
+
+| Stage | Success | Tasks needing a write | Actions/task |
 |---|---|---|---|
-| Qwen3-8B | 28.9% | 30.1% | +1.2% [−5.5, +7.9] |
-| Qwen3-14B | 19.8% | 40.2% | **+20.5% [+13.6, +27.1]** |
-| Qwen3-32B | 29.1% | 47.2% | **+18.1% [+10.7, +25.2]** |
+| Base Qwen3-14B | 21.5% | 6/175 | 2.12 |
+| T1 | 23.7% | 6/175 | 2.09 |
+| T2 | 26.6% | **0/175** | 1.04 |
+| T3 | 28.2% | **0/175** | 1.04 |
 
-On templates fixed in advance and never used to develop the harness
-(Qwen3-14B, n=312 per arm): **+7.5% [+0.5, +14.5]**.
+It reproduced on Firm C, frozen in week 1 and opened once: 64-80% success,
+**0 of 3** tasks requiring a write, and 36 of its 39 instances correctly
+answered by writing nothing.
 
-These include a correction applied after publication: ERPNext writes rows of
-its own as a consequence of a permitted action — creating an `Item` also
-creates its default row and a UOM conversion — and those were being scored as
-unexpected mutations, i.e. as agent misbehaviour. Excusing them by provenance
-moves the full-baseline gains by 0.2–0.3 points and the pre-registered
-holdout figure from +8.8% to +7.5%, still excluding zero. See
-[`artifacts/environment.md`](artifacts/environment.md) for the full account.
+**Context beat fine-tuning.** Eight sentences of operator corrections cut
+first-action refusal 85% -> 26%. Four training runs moved it the other way at
+every stage: 67 -> 71 -> 79 -> 88 -> 88. Completed writes stayed at 0-3/17
+throughout - corrections buy engagement, not competence.
 
-95% intervals throughout (Wilson; Newcombe for differences). The harness
-effect is **capability-gated** — absent at 8B, large at 14B and 32B, with
-8B's interval overlapping neither.
+**Cost.** The shipped checkpoint is the cheapest arm measured ($0.00016/task)
+and non-dominated in both Pareto panels. It also completes 4.0% of tasks
+requiring a write against Sonnet 5's 54.5% at 235x the price, so the cost
+claim is non-dominance, not accuracy. Both panels always travel together.
 
-**Read the limitations before citing any of this**, particularly that the
-template-level holdout — the real generalization number — did not reach
-significance for any model at n≈78 per arm. Full results, limitations and a
-retraction of an earlier headline are in
-[`artifacts/environment.md`](artifacts/environment.md).
-
----
+**The demo.** [`artifacts/demo/three_firms.html`](artifacts/demo/three_firms.html)
+- three counterfactual goals x three firms, nine panes, each rendered from a
+logged rollout with its `run_id`.
 
 ## Reproducing
 
@@ -178,17 +192,30 @@ changed how any already-reported row is scored.
 
 ## Limitations
 
-- One ERP, three synthetic firms, environment authored by the people
-  reporting results.
-- Local inference, where used, is priced by imputation — never at zero.
-- The serving path was uncontrolled in the published baseline: OpenRouter
-  load-balances across upstream providers with differing quantizations.
-  Noise rather than directional bias, but it widens every interval. Pinning
-  exists (`SHADOW_OPENROUTER_PROVIDER_ORDER`) and is recorded per row.
-- No prompt caching is available for these models on OpenRouter, so
-  `cached_input_tokens` is zero throughout the baseline.
+Stated in full in [`POST.md`](POST.md#6-limitations). The ones that most
+change how the results should be read:
+
+- **The shipped model cannot reliably perform ERP writes** - 4.0% on tasks
+  that require one. Its cost-efficiency is efficiency at a task it mostly
+  fails.
+- **The training programme failed four times.** One collapse mechanism was
+  found and fixed; a second is unexplained and survived every structural fix,
+  including a single-stage run on data that was 90% write-completing.
+- **The teacher shares the failure mode**: Sonnet refused on 21% of draws
+  where nothing was obstructed.
+- One ERP, three synthetic firms, one teacher vendor, environment authored by
+  the person reporting the results.
+- Local inference is priced by imputation, never at zero, and labelled as
+  imputed wherever it appears.
+- **Claude Sonnet 5 and Opus 5 cannot be decoded deterministically** - both
+  `temperature` and `top_k` are deprecated for them, verified against the API
+  - so those two arms are sampled while every other arm is greedy.
+- Prompt-cache floors are model-dependent: our 610-token prefix clears Opus's
+  512 but sits below Sonnet's 1,024 and Haiku's 4,096, so only Opus can be
+  cached at this prompt length.
 - Infrastructure errors are excluded from success denominators and are not
-  uniformly distributed: 1.0% on 8B, 6.0% on 14B, 8.5% on 32B.
+  uniformly distributed.
+- Per-model n is printed on every table; several API arms are partial.
 
 ## License
 

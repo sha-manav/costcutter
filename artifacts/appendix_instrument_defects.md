@@ -1,4 +1,4 @@
-# Appendix: nine instrument defects — seven in the environment, two in the ruler
+# Appendix: ten instrument defects — seven in the environment, three in the ruler
 
 Every defect below shares one shape. **Nothing crashed. No test failed. The
 artifact simply stopped describing what it claimed to describe.** Each was
@@ -243,8 +243,8 @@ that could not match, and a field with no mechanism. That category has no
 fingerprints, no invariants and no review, and both instances were found by
 looking at something else.
 
-**Running tally: seven defects in the environment (#1-#5, #7, #9), two in
-the diagnostic layer (#6, #8).**
+**Running tally: seven defects in the environment (#1-#5, #7, #9), three in
+the diagnostic layer (#6, #8, #10).**
 
 ## #9 — the gate decision file, overwritten by every later run
 
@@ -278,6 +278,62 @@ replaced by a later run of the same tool. Once is a bug; twice is a category,
 and the category is **tools that write to a fixed path regardless of what they
 were asked to do.**
 
+## #10 — in the diagnostic layer: the documented defect, reintroduced by its documenter
+
+`figure_masking.py` computes what fraction of tasks *requiring a write* each
+checkpoint completed. It derived the set of write-requiring instances
+**per arm**, from that arm's own rows.
+
+That set is built from envelope evidence — `missing_required` and
+`matched_allowed`. A checkpoint that never writes produces no
+`matched_allowed`, so **its own must-write set comes out smaller, and its rate
+is computed against a friendlier task set than its neighbour's.** Precisely
+backwards: the worse a model behaves, the easier its denominator gets.
+
+The uncomfortable part is the provenance. `figure_pareto.py`, written by the
+same author four hours earlier, carries this comment above the equivalent
+block:
+
+> *Which instances require a write. Taken across every arm so the denominator
+> is a property of the task set, not of who happened to attempt one.*
+
+Knowing the failure, having written it down, and having implemented the
+correct version once did not prevent implementing the incorrect version next.
+
+It was caught because the ladder printed `0/169` where the published figure
+says `6/175` — a number wrong enough to notice, in a table that had been
+looked at a dozen times. Had the per-arm denominator produced something
+plausible instead, the figure would have shipped.
+
+The fix takes the set across all arms at once, restoring 6/6/9/0.
+
+---
+
+## The class both #3 and #9 belong to
+
+Two entries here are the same defect twice: **a tool that writes to a fixed
+path regardless of what it was asked to do.**
+
+- **#3** — `merge_gate_shards.py` defaulted to `evaluation_run.jsonl` and
+  merged a holdout run into the published baseline: 396 rows added, 156
+  silently replaced.
+- **#9** — `gate.py` wrote `calibration_gate_decision.json` on every
+  invocation, so the week-1 record of which base model the precommitted
+  fallback order selected was replaced first by a Pareto anchor run and then
+  by a phi-4 completion.
+
+Both files still parsed. Both still validated. Both had the right shape and
+the wrong contents, and in both cases the only thing that surfaced it was
+`git` reporting a modification to a file nothing should have touched — which
+works **only because `artifacts/` is force-added despite being gitignored.**
+That habit, adopted for a different reason, is what makes this class
+detectable at all.
+
+The general form: a tool whose output path is a constant rather than a
+function of its input will eventually be run with different input. The
+remedy in both cases was the same — derive the path from the run, and refuse
+to overwrite a file whose identifying content differs.
+
 ### Adjacent, unnumbered: truncated checkpoint downloads reported as success
 
 Found while preparing the stage-ladder runs and recorded here because the
@@ -296,7 +352,7 @@ it was caught before use.
 
 ## What the set implies for methodology
 
-Nine defects, and **not one announced itself**. Four of them would have
+Ten defects, and **not one announced itself**. Four of them would have
 produced a publishable number: a harness comparison with the answer leaked
 into one arm, 270 simulated rows presented as model output, a baseline quietly
 overwritten by a later run, and an agent penalised for its ERP's internal

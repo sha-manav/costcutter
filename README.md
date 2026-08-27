@@ -16,7 +16,7 @@ writes. Read [`POST.md`](POST.md) first.
 
 ```
 50 templates · 3 firms · 2 harness variants · 15 counterfactual pairs
-harness effect +8.8% [+2.9, +14.7] · 9 instrument defects, disclosed · MIT
+harness effect +8.8% [+2.9, +14.7] · 10 instrument defects, disclosed · MIT
 ```
 
 ---

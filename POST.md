@@ -32,10 +32,11 @@ Three results, in descending order of how much we trust them.
    examples could not** — first-action refusal 85% → 26% — and bought no
    competence: completed writes stayed at 0–3 of 17.
 
-The shipped checkpoint is Pareto-optimal on cost: the cheapest arm we
-measured, with nothing at or below its price offering more. It also cannot
-reliably perform ERP writes. Both statements are true and the second is the
-more important one.
+The shipped checkpoint is non-dominated on cost — the cheapest arm we
+measured, with nothing at or below its price offering more. It also completes
+**4.0%** of the tasks that require a database write, against Sonnet 5's 47.3%.
+Both statements are true; the second is the more important one, and this post
+tries never to state the first without it.
 
 ---
 
@@ -278,12 +279,31 @@ while costing less. It is above the baseline frontier in both panels.
 real number and it is a genuine improvement. Completed writes 2.3% → 4.0% is a
 movement of under two points on n=175, and should be read as what it is:
 small, and nowhere near enough to make the model useful for ERP writes. Sonnet
-is twelve times better on that metric at 248x the price.
+is 11.7x better on that metric at 245x the price.
 
 **Both panels always travel together.** Publishing the all-pass panel alone
 would repeat the exact error §3 is about.
 
-*→ Figure 4: `fig4_pareto.png` (two panels) · Figure 6: `fig6_intelligence.png`*
+*→ **Figure 4** (`fig4_pareto.png`): quality against USD per task, log x,
+cheaper to the right. Ours filled, base hollow, baselines grey, frontier
+through the baselines only. **Panel (a) is all-pass; panel (b) is tasks
+requiring a write. They are one image and are never shown apart** — (a) alone
+is the error §3 documents.*
+
+*Caption, and a limitation that belongs here rather than in an appendix:*
+**Sonnet 5 and Opus 5 are sampled; every other arm is greedy.** Both have
+deprecated `temperature` **and** `top_k` — verified against the Anthropic API
+directly, HTTP 400 on each — so deterministic decoding is unavailable for
+them, not declined. The confound could not be removed, so it was bounded:
+both arms were re-run at double the trials and the first-pass estimates
+compared against the larger sample (Sonnet 75.0% n=44 → 69.1% [61.0, 76.1]
+n=139; Opus 61.8% n=34 → 62.2% [51.9, 71.5] n=90). Neither first-pass
+estimate falls outside the larger interval and neither model moves position
+on either panel. Sampling noise is not what holds these points where they are.
+
+*→ **Figure 6** (`fig6_intelligence.png`): assertions passed per 100k
+inference tokens. Read with the same caution as panel (a) — the metric
+rewards brevity, and our checkpoint is brief because it refuses.*
 
 ---
 
@@ -345,9 +365,9 @@ not at Firm A. We report both.
 
 ---
 
-## 7. Appendix: nine instrument defects
+## 7. Appendix: ten instrument defects
 
-Seven in the environment, two in the diagnostic layer. Every one shares a shape:
+Seven in the environment, three in the diagnostic layer. Every one shares a shape:
 **nothing crashed, no test failed, and the artifact simply stopped describing
 what it claimed to describe.** Four would have produced a publishable number.
 
@@ -364,15 +384,33 @@ Full accounts in [`artifacts/appendix_instrument_defects.md`](artifacts/appendix
 | 7 | environment | The Firm C freeze verified less than its document claimed |
 | 8 | **diagnostic** | `adaptation_level` — a field with no mechanism, hard-coded in `run_id` |
 | 9 | environment | The gate decision file, overwritten by every later run |
+| 10 | **diagnostic** | The must-write denominator derived per-arm — the exact error this project had documented against, reintroduced by its documenter |
 
-The environment/diagnostic distinction is worth keeping. Defects 1-5, 7 and 9
-silently changed what a number meant. Defects 6 and 8 were in the apparatus
-used to *investigate* the instrument — and that category has no fingerprints,
-no invariants and no review. **This project was misled further by one instance
-of the second kind than by any single instance of the first**: a broken filter
-returned zero, the zero read as a finding, and two published explanations were
-built on it before the data was parsed properly. Both retractions are recorded
-in place rather than edited away.
+The environment/diagnostic distinction is worth keeping. Defects 1–5, 7 and 9
+silently changed what a number meant. Defects 6, 8 and 10 were in the
+apparatus used to *investigate* the instrument — a category with no
+fingerprints, no invariants and no review. **This project was misled further
+by one instance of the second kind than by any single instance of the
+first**: a broken filter returned zero, the zero read as a finding, and two
+published explanations were built on it before the data was parsed properly.
+Both retractions are recorded in place rather than edited away.
+
+Two of these are one defect twice — **a tool that writes to a fixed path
+regardless of what it was asked to do.** #3 merged a holdout run into the
+published baseline; #9 replaced the week-1 record of which base model the
+precommitted order selected. Both files still parsed and still validated;
+both had the right shape and the wrong contents. In both cases the only thing
+that surfaced it was `git` reporting a modification to a file nothing should
+have touched — which works only because `artifacts/` is force-added despite
+being gitignored, a habit adopted for an unrelated reason.
+
+And #10 is worth more than its size. `figure_pareto.py` carries a comment
+warning against exactly the mistake `figure_masking.py` then made, written by
+the same author four hours earlier. Knowing a failure mode, documenting it,
+and implementing the correct version once did not prevent implementing the
+wrong version next. **The defect class is real enough that knowing about it
+does not prevent it** — which is the argument for invariants that fail loudly
+rather than for care.
 
 ### Security note
 

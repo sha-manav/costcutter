@@ -74,10 +74,16 @@ def firm_seeds_exist(tmp_path_factory, monkeypatch):
     real = pathlib.Path(__file__).resolve().parent.parent / "artifacts" / "firm_seeds"
     if all((real / f"firm_{f}.sql").exists() for f in ("A", "B", "C")):
         return                                  # a built checkout; use the real ones
-    stand_in = tmp_path_factory.mktemp("firm_seeds")
+    root = tmp_path_factory.mktemp("artifacts")
+    seeds = root / "firm_seeds"
+    seeds.mkdir()
     for f in ("A", "B", "C"):
-        (stand_in / f"firm_{f}.sql").write_text(
+        (seeds / f"firm_{f}.sql").write_text(
             f"-- stand-in seed for firm {f}; see conftest.firm_seeds_exist\n")
-    monkeypatch.setattr(gate, "ARTIFACTS", stand_in.parent)
-    monkeypatch.setattr(gate, "firm_seed",
-                        lambda fid: stand_in / f"firm_{fid}.sql")
+    # Only the root is redirected. `firm_seed` itself is left alone so its
+    # real resolution logic still runs, and so the test asserting that a
+    # *missing* seed halts can still point ARTIFACTS somewhere empty and get
+    # the halt it is checking for. Patching the function instead would have
+    # disabled that guard, which is the one protecting against every firm
+    # silently sharing one world.
+    monkeypatch.setattr(gate, "ARTIFACTS", root)

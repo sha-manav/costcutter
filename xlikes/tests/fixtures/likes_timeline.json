@@ -1,0 +1,199 @@
+{
+  "data": {
+    "user": {
+      "result": {
+        "__typename": "User",
+        "timeline_v2": {
+          "timeline": {
+            "instructions": [
+              {
+                "type": "TimelineAddEntries",
+                "entries": [
+                  {
+                    "entryId": "tweet-1900000000000000001",
+                    "sortIndex": "1799999999999999999",
+                    "content": {
+                      "entryType": "TimelineTimelineItem",
+                      "itemContent": {
+                        "itemType": "TimelineTweet",
+                        "tweet_results": {
+                          "result": {
+                            "__typename": "Tweet",
+                            "rest_id": "1900000000000000001",
+                            "core": {
+                              "user_results": {
+                                "result": {
+                                  "__typename": "User",
+                                  "rest_id": "44196397",
+                                  "core": { "screen_name": "patio11", "name": "Patrick McKenzie" }
+                                }
+                              }
+                            },
+                            "legacy": {
+                              "created_at": "Tue Aug 12 09:15:00 +0000 2025",
+                              "id_str": "1900000000000000001",
+                              "full_text": "This article is really good. Careful, patient work on a problem most people wave away. https://t.co/abc",
+                              "lang": "en",
+                              "is_quote_status": true,
+                              "quoted_status_id_str": "1899000000000000002",
+                              "favorite_count": 412,
+                              "retweet_count": 58,
+                              "reply_count": 12,
+                              "quote_count": 4,
+                              "entities": {
+                                "urls": [
+                                  {
+                                    "url": "https://t.co/abc",
+                                    "expanded_url": "https://x.com/gwern/status/1899000000000000002",
+                                    "display_url": "x.com/gwern/status/1…"
+                                  }
+                                ]
+                              }
+                            },
+                            "quoted_status_result": {
+                              "result": {
+                                "__typename": "Tweet",
+                                "rest_id": "1899000000000000002",
+                                "core": {
+                                  "user_results": {
+                                    "result": {
+                                      "rest_id": "123456",
+                                      "legacy": { "screen_name": "gwern", "name": "Gwern Branwen" }
+                                    }
+                                  }
+                                },
+                                "article": {
+                                  "article_results": {
+                                    "result": {
+                                      "title": "The Scaling Hypothesis, Revisited",
+                                      "preview_text": "Six years on, what held up."
+                                    }
+                                  }
+                                },
+                                "legacy": {
+                                  "created_at": "Mon Aug 11 18:02:11 +0000 2025",
+                                  "id_str": "1899000000000000002",
+                                  "full_text": "New article: The Scaling Hypothesis, Revisited.",
+                                  "lang": "en"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "entryId": "tweet-1900000000000000003",
+                    "sortIndex": "1799999999999999998",
+                    "content": {
+                      "entryType": "TimelineTimelineItem",
+                      "itemContent": {
+                        "itemType": "TimelineTweet",
+                        "tweet_results": {
+                          "result": {
+                            "__typename": "TweetWithVisibilityResults",
+                            "tweet": {
+                              "__typename": "Tweet",
+                              "rest_id": "1900000000000000003",
+                              "core": {
+                                "user_results": {
+                                  "result": {
+                                    "rest_id": "777",
+                                    "legacy": { "screen_name": "simonw", "name": "Simon Willison" }
+                                  }
+                                }
+                              },
+                              "note_tweet": {
+                                "note_tweet_results": {
+                                  "result": {
+                                    "text": "A long note tweet about SQLite full text search that runs well past two hundred and eighty characters, which is exactly why the note_tweet body has to win over legacy.full_text whenever it is present.",
+                                    "entity_set": {
+                                      "urls": [
+                                        { "expanded_url": "https://sqlite.org/fts5.html" }
+                                      ]
+                                    }
+                                  }
+                                }
+                              },
+                              "legacy": {
+                                "created_at": "Sun Aug 10 07:44:00 +0000 2025",
+                                "id_str": "1900000000000000003",
+                                "full_text": "A long note tweet about SQLite full text search that runs well past two hundred and…",
+                                "lang": "en",
+                                "favorite_count": 90
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "entryId": "tweet-1900000000000000004",
+                    "sortIndex": "1799999999999999997",
+                    "content": {
+                      "entryType": "TimelineTimelineItem",
+                      "itemContent": {
+                        "itemType": "TimelineTweet",
+                        "tweet_results": {
+                          "result": {
+                            "__typename": "Tweet",
+                            "rest_id": "1900000000000000004",
+                            "core": {
+                              "user_results": {
+                                "result": {
+                                  "rest_id": "888",
+                                  "legacy": { "screen_name": "catmemes", "name": "cats" }
+                                }
+                              }
+                            },
+                            "legacy": {
+                              "created_at": "Sat Aug 09 12:00:00 +0000 2025",
+                              "id_str": "1900000000000000004",
+                              "full_text": "my cat knocked over the coffee again",
+                              "lang": "en",
+                              "in_reply_to_status_id_str": "1898000000000000000",
+                              "in_reply_to_screen_name": "someone",
+                              "extended_entities": {
+                                "media": [
+                                  { "type": "photo", "media_url_https": "https://pbs.twimg.com/media/x.jpg" }
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "entryId": "tweet-1900000000000000005",
+                    "sortIndex": "1799999999999999996",
+                    "content": {
+                      "entryType": "TimelineTimelineItem",
+                      "itemContent": {
+                        "itemType": "TimelineTweet",
+                        "tweet_results": {
+                          "result": { "__typename": "TweetTombstone", "tombstone": { "text": "unavailable" } }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "entryId": "cursor-bottom-9999",
+                    "sortIndex": "1799999999999999000",
+                    "content": {
+                      "entryType": "TimelineTimelineCursor",
+                      "value": "DAABCgABGm-cursor-value",
+                      "cursorType": "Bottom"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

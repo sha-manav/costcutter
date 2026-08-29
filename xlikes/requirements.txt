@@ -1,0 +1,3 @@
+# Searching and importing need nothing beyond the standard library.
+# Browser collection needs Playwright:
+playwright>=1.40
